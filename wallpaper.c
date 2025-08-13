@@ -13,7 +13,7 @@ typedef struct {
     XImage *img;
 } Win;
 
-Win open_win(int w, int h) {
+Win get_root_win(int w, int h) {
     Win win = {0};
 
     win.display = XOpenDisplay(NULL);
@@ -23,7 +23,7 @@ Win open_win(int w, int h) {
     }
 
     win.screen = DefaultScreen(win.display);
-    win.win = XCreateSimpleWindow(win.display, RootWindow(win.display, win.screen), 0, 0, w, h, 1, 0, 0);
+    win.win = DefaultRootWindow(win.display);
     XSelectInput(win.display, win.win, ExposureMask | KeyPressMask);
     XMapWindow(win.display, win.win);
 
@@ -86,7 +86,7 @@ int main() {
         }
     }
 
-    Win win = open_win(width, height);
+    Win win = get_root_win(width, height);
 
     // Enable image mode
     connect_img_to_win(&win, img, width, height);
