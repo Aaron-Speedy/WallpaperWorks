@@ -8,30 +8,34 @@
 
 #include "libwebp/src/webp/decode.h"
 
+typedef struct {
+    u32 *buf;
+    int w, h;
+} Image;
+
 int main() {
     Arena perm = new_arena(1 * GiB);
     Arena scratch = new_arena(1 * KiB);
 
-    s8 data = read_file(&perm, scratch, s8("150.webp"));
+    s8 data = read_file(&perm, scratch, s8("30.webp"));
     printf("%ld\n", data.len);
 
-    int width, height;
-    WebPGetInfo(data.buf, data.len, &width, &height);
-    printf("%dx%d\n", width, height);
+    Image img = {0};
+    WebPGetInfo(data.buf, data.len, &img.w, &img.h);
+    printf("%dx%d\n", img.w, img.h);
 
-    u32 *img = malloc(3 * width * height);
+    img.buf = malloc(sizeof(u32) * img.w * img.h);
     {
-        u8 *pixels = WebPDecodeRGB(data.buf, data.len, &width, &height);
-        for (int i = 0; i < width * height; i++) {
-            img[i] = pixels[i * 3 + 2] | (pixels[i * 3 + 1] << 8) | (pixels[i * 3] << 16);
+        u8 *buf = WebPDecodeRGB(data.buf, data.len, &img.w, &img.h);
+        for (int i = 0; i < img.w * img.h; i++) {
+            img.buf[i] = buf[i * 3 + 2] | (buf[i * 3 + 1] << 8) | (buf[i * 3] << 16);
         }
-        WebPFree(pixels);
+        WebPFree(buf);
     }
 
     Win win = get_root_win();
 
-    // Enable image mode
-    connect_img_to_win(&win, img, width, height);
+    connect_img_to_win(&win, img.buf, img.w, img.h);
 
     while (1) {
         XEvent e;
