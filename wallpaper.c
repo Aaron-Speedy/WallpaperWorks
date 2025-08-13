@@ -13,7 +13,7 @@ typedef struct {
     XImage *img;
 } Win;
 
-Win get_root_win(int w, int h) {
+Win get_root_win() {
     Win win = {0};
 
     win.display = XOpenDisplay(NULL);
@@ -71,7 +71,7 @@ int main() {
     Arena perm = new_arena(1 * GiB);
     Arena scratch = new_arena(1 * KiB);
 
-    s8 data = read_file(&perm, scratch, s8("30.webp"));
+    s8 data = read_file(&perm, scratch, s8("150.webp"));
     printf("%ld\n", data.len);
 
     int width, height;
@@ -84,9 +84,10 @@ int main() {
         for (int i = 0; i < width * height; i++) {
             img[i] = pixels[i * 3 + 2] | (pixels[i * 3 + 1] << 8) | (pixels[i * 3] << 16);
         }
+        WebPFree(pixels);
     }
 
-    Win win = get_root_win(width, height);
+    Win win = get_root_win();
 
     // Enable image mode
     connect_img_to_win(&win, img, width, height);
