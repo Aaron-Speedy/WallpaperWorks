@@ -10,7 +10,13 @@
 #include "libwebp/src/webp/decode.h"
 
 typedef struct {
-    u32 *buf; // 0xRRGGBB
+    u8 c[3]; // RGB
+    u32 packed; // 0xRRGGBB. Should be set to the colors in c.
+} Color;
+
+typedef struct {
+    Color *buf;
+    u32 *packed;
     int w, h;
 } Image;
 
@@ -19,53 +25,53 @@ typedef enum {
     DIR_V,
 } Dir;
 
-Image rescale_axis(Image img, Dir dir, int new_val) {
-    Image ret = {0};
-    int old_val = 0;
+void pack_color(Image *m, int i) {
+    m->packed[i] = (m->buf[i].c[2]) |
+                   (m->buf[i].c[1] << 8) |
+                   (m->buf[i].c[0] << 16);
+}
 
-    if (dir == DIR_H) {
-        ret.w = new_val;
-        ret.h = img.h;
-        old_val = img.w;
-    } else {
-        ret.w = img.w;
-        ret.h = new_val;
-        old_val = img.h;
-    }
+Image new_img(Image m) {
+    m.buf = malloc(sizeof(m.buf[0]) * m.w * m.h);
+    m.packed = malloc(sizeof(m.packed[0]) * m.w * m.h);
+    return m;
+}
 
-    ret.buf = malloc(sizeof(img.buf[0]) * ret.w * ret.h);
+// Bilinear interpolation
+Image rescale_img(Image img, int new_w, int new_h) {
+    Image ret = { .w = new_w, .h = new_h, };
+    ret = new_img(ret);
 
-    float scale = (float) new_val / old_val;
+    float scale_w = (float) ret.w / img.w,
+          scale_h = (float) ret.h / img.h;
 
-    // Linear interpolation
-    // TODO: Do average area for downscaling
-    // if (scale > 1) {
-        for (int x = 0; x < ret.w; x++) {
-            for (int y = 0; y < ret.h; y++) {
-                float x1 = x, y1 = y, x2 = x, y2 = y, d = 0;
-                if (dir == DIR_H) {
-                    float a = x / scale;
-                    x1 = floor(a);
-                    x2 = ceil(a);
-                    d = a - x1;
-                } else {
-                    float a = y / scale;
-                    y1 = floor(a);
-                    y2 = ceil(a);
-                    d = a - y1;
-                }
-                for (int i = 0; i < 3; i++) {
-                    /* The fancy bit manipulation stuff gets the color channels
-                     * from the u32 */
-                    float v1 = (img.buf[(int) (x1 + y1 * img.w)] >> (i * 8)) & 0xFF,
-                          v2 = (img.buf[(int) (x2 + y2 * img.w)] >> (i * 8)) & 0xFF;
-                    ret.buf[x + y * ret.w] |= ((
-                        (int) (v1 * (1.0 - d) + v2 * d)
-                    ) << (i * 8));
-                }
+    for (int x = 0; x < ret.w; x++) {
+        for (int y = 0; y < ret.h; y++) {
+            float a = 0;
+
+            a = x / scale_w;
+            float x0 = floor(a),
+                  x1 = ceil(a),
+                  dx = a - x0;
+
+            a = y / scale_h;
+            float y0 = floor(a),
+                  y1 = ceil(a),
+                  dy = a - y0;
+
+            int ret_i = x + y * ret.w;
+            for (int i = 0; i < 3; i++) {
+                float v00 = img.buf[(int) (x0 + y0 * img.w)].c[i],
+                      v01 = img.buf[(int) (x0 + y1 * img.w)].c[i],
+                      v10 = img.buf[(int) (x1 + y0 * img.w)].c[i],
+                      v11 = img.buf[(int) (x1 + y1 * img.w)].c[i],
+                      vt  = v00 * (1.0 - dx) + v10 * dx,
+                      vb  = v01 * (1.0 - dx) + v11 * dx;
+                ret.buf[ret_i].c[i] = vt * (1.0 - dy) + vb * dy;
             }
+            pack_color(&ret, ret_i);
         }
-    // }
+    }
 
     return ret;
 }
@@ -74,30 +80,34 @@ int main() {
     Arena perm = new_arena(1 * GiB);
     Arena scratch = new_arena(1 * KiB);
 
-    s8 data = read_file(&perm, scratch, s8("150.webp"));
+    s8 data = read_file(&perm, scratch, s8("./308.webp"));
     printf("%ld\n", data.len);
 
     Image img = {0};
     WebPGetInfo(data.buf, data.len, &img.w, &img.h);
     printf("%dx%d\n", img.w, img.h);
 
-    img.buf = malloc(sizeof(img.buf[0]) * img.w * img.h);
+    img = new_img(img);
     {
         u8 *buf = WebPDecodeRGB(data.buf, data.len, &img.w, &img.h);
         for (int i = 0; i < img.w * img.h; i++) {
-            img.buf[i] = buf[i * 3 + 2] | (buf[i * 3 + 1] << 8) | (buf[i * 3] << 16);
+            img.buf[i].c[0] = buf[i * 3 + 0];
+            img.buf[i].c[1] = buf[i * 3 + 1];
+            img.buf[i].c[2] = buf[i * 3 + 2];
+            pack_color(&img, i);
         }
         WebPFree(buf);
     }
 
     Win win = get_root_win();
 
-    img = rescale_axis(
-        rescale_axis(img, DIR_H, XDisplayWidth(win.display, win.screen)),
-        DIR_V, XDisplayHeight(win.display, win.screen)
+    img = rescale_img(
+        img,
+        XDisplayWidth(win.display, win.screen),
+        XDisplayHeight(win.display, win.screen)
     );
 
-    connect_img_to_win(&win, img.buf, img.w, img.h);
+    connect_img_to_win(&win, img.packed, img.w, img.h);
 
     while (1) {
         XEvent e;
