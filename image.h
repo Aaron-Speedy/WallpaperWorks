@@ -12,7 +12,7 @@ typedef struct {
     int w, h;
 } Image;
 
-void pack_color(Image *m, int i);
+void pack_color(Image m, int i);
 Image new_img(Image m);
 Image rescale_img(Image img, int new_w, int new_h);
 
@@ -22,10 +22,10 @@ Image rescale_img(Image img, int new_w, int new_h);
 #ifndef IMAGE_IMPL_GUARD
 #define IMAGE_IMPL_GUARD
 
-void pack_color(Image *m, int i) {
-    m->packed[i] = (m->buf[i].c[2]) |
-                   (m->buf[i].c[1] << 8) |
-                   (m->buf[i].c[0] << 16);
+void pack_color(Image m, int i) {
+    m.packed[i] = (m.buf[i].c[2]) |
+                  (m.buf[i].c[1] << 8) |
+                  (m.buf[i].c[0] << 16);
 }
 
 Image new_img(Image m) {
@@ -66,7 +66,7 @@ Image rescale_img(Image img, int new_w, int new_h) {
                       vb  = v01 * (1.0 - dx) + v11 * dx;
                 ret.buf[ret_i].c[i] = vt * (1.0 - dy) + vb * dy;
             }
-            pack_color(&ret, ret_i);
+            pack_color(ret, ret_i);
         }
     }
 

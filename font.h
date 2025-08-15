@@ -1,0 +1,72 @@
+#ifndef FONT_H
+#define FONT_H
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "image.h"
+
+typedef struct {
+    char *path; // TODO: Bake font into executable.
+    float pt;
+    FT_Library lib;
+    FT_Face face;
+} FFont;
+
+void load_font(FFont *f, int dpi_x, int dpi_y);
+// 0 <= (r, g, b) <= 1
+void draw_text(Image img, FFont f,
+               s8 s,
+               float o_x, float o_y,
+               float r, float g, float b);
+
+#endif // FONT_H
+
+#ifdef FONT_IMPL
+#ifndef FONT_IMPL_GUARD
+#define FONT_IMPL_GUARD
+
+void load_font(FFont *f, int dpi_x, int dpi_y) {
+    if (FT_Init_FreeType(&f->lib)) err("Failed to initialize FreeType.");
+    if (FT_New_Face(f->lib, f->path, 0, &f->face)) err("Failed to create FreeType font face.");
+    if (FT_Set_Char_Size(f->face, 0, f->pt * 64.0, dpi_x, dpi_y)) {
+        err("Failed to set character size on font.");
+    }
+}
+
+void draw_text(Image img, FFont f,
+               s8 s,
+               float o_x, float o_y,
+               float r, float g, float b) {
+    FT_GlyphSlot slot = f.face->glyph;
+    int pen_x = o_x * img.w, pen_y = o_y * img.h;
+
+    for (int i = 0; i < s.len; i++) {
+        // Ignore errors
+        if (FT_Load_Char(f.face, s.buf[i], FT_LOAD_RENDER)) continue;
+
+        for (u32 x = 0; x < slot->bitmap.width; x++) {
+            for (u32 y = 0; y < slot->bitmap.rows; y++) {
+                u8 v = slot->bitmap.buffer[x + y * slot->bitmap.width];
+                if (!v) continue;
+
+                int nx = x + pen_x + slot->bitmap_left,
+                    ny = (y + pen_y - slot->bitmap_top);
+                if (nx < 0 || nx >= img.w || ny < 0 || ny >= img.h) {
+                    err("Attempting to draw text out of bounds at position (%d, %d)", nx, ny);
+                }
+
+                int i = nx + ny * img.w;
+                img.buf[i].c[0] = r * v;
+                img.buf[i].c[1] = g * v;
+                img.buf[i].c[2] = b * v;
+                pack_color(img, i);
+            }
+        }
+
+        pen_x += slot->advance.x >> 6;
+    }
+}
+
+#endif // FONT_IMPL_GUARD
+#endif // FONT_IMPL
