@@ -15,6 +15,7 @@ typedef struct {
 void pack_color(Image m, int i);
 Image new_img(Image m);
 Image rescale_img(Image img, int new_w, int new_h);
+bool place_img(Image onto, Image img, int px, int py);
 
 #endif // IMAGE_H
 
@@ -71,6 +72,21 @@ Image rescale_img(Image img, int new_w, int new_h) {
     }
 
     return ret;
+}
+
+bool place_img(Image onto, Image img, int px, int py) {
+    if (px + img.w > onto.w) return 1;
+    if (py + img.h > onto.h) return 1;
+
+    for (int x = 0; x < img.w; x++) {
+        for (int y = 0; y < img.h; y++) {
+            int i = (px + x) + (py + y) * onto.w;
+            onto.buf[i] = img.buf[x + y * img.w];
+            pack_color(onto, i);
+        }
+    }
+
+    return 0;
 }
 
 #endif // IMAGE_IMPL_GUARD
