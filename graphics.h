@@ -4,7 +4,7 @@
 typedef struct {
     Display *display;
     Window win;
-    int screen;
+    int screen, dpi_x, dpi_y, w, h;
     GC gc;
     XImage *img;
 } Win;
@@ -24,10 +24,7 @@ Win get_root_win() {
     Win win = {0};
 
     win.display = XOpenDisplay(NULL);
-    if (win.display == NULL) {
-        fprintf(stderr, "Error: Failed to open display.\n");
-        exit(1);
-    }
+    if (win.display == NULL) err("Failed to open display.");
 
     win.screen = DefaultScreen(win.display);
     win.win = DefaultRootWindow(win.display);
@@ -35,6 +32,11 @@ Win get_root_win() {
     XMapWindow(win.display, win.win);
 
     win.gc = DefaultGC(win.display, win.screen);
+
+    win.w = XDisplayWidth(win.display, win.screen);
+    win.h = XDisplayHeight(win.display, win.screen);
+    win.dpi_x = win.w / ((float) DisplayWidthMM(win.display, win.screen) / 25.4);
+    win.dpi_y = win.h / ((float) DisplayHeightMM(win.display, win.screen) / 25.4);
 
     return win;
 }
@@ -57,10 +59,7 @@ bool draw_to_win(Win win) {
 }
 
 void connect_img_to_win(Win *win, u32 *buf, int w, int h) {
-    if (win->img != NULL) {
-        fprintf(stderr, "Error: Image already connected to window.\n");
-        exit(1);
-    }
+    if (win->img != NULL) err("The image you're trying to connect is already connected to a window.");
 
     win->img = XCreateImage(
         win->display,
@@ -68,10 +67,7 @@ void connect_img_to_win(Win *win, u32 *buf, int w, int h) {
         24, ZPixmap, 0, (char *) buf, w, h, 32, 0
     );
 
-    if (win->img == NULL) {
-        fprintf(stderr, "Error: Could not connect image.\n");
-        exit(1);
-    }
+    if (win->img == NULL) err("Failed to connect image.");
 }
 
 #endif // GRAPHICS_IMPL_GUARD

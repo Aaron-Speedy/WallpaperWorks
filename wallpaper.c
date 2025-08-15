@@ -1,80 +1,28 @@
-#include <X11/Xlib.h>
-#include <math.h>
-
 #define DS_IMPL
 #include "ds.h"
+
+// TODO: Put this into a common library
+#define err(...) do { \
+  fprintf(stderr, "Error: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+  exit(1); \
+} while (0);
+
+#include <math.h>
+
+#include <X11/Xlib.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "third_party/libwebp/src/webp/decode.h"
 
 #define GRAPHICS_IMPL
 #include "graphics.h"
 
-#include "libwebp/src/webp/decode.h"
-
-typedef struct {
-    u8 c[3]; // RGB
-    u32 packed; // 0xRRGGBB. Should be set to the colors in c.
-} Color;
-
-typedef struct {
-    Color *buf;
-    u32 *packed;
-    int w, h;
-} Image;
-
-typedef enum {
-    DIR_H,
-    DIR_V,
-} Dir;
-
-void pack_color(Image *m, int i) {
-    m->packed[i] = (m->buf[i].c[2]) |
-                   (m->buf[i].c[1] << 8) |
-                   (m->buf[i].c[0] << 16);
-}
-
-Image new_img(Image m) {
-    m.buf = malloc(sizeof(m.buf[0]) * m.w * m.h);
-    m.packed = malloc(sizeof(m.packed[0]) * m.w * m.h);
-    return m;
-}
-
-// Bilinear interpolation
-Image rescale_img(Image img, int new_w, int new_h) {
-    Image ret = { .w = new_w, .h = new_h, };
-    ret = new_img(ret);
-
-    float scale_w = (float) ret.w / img.w,
-          scale_h = (float) ret.h / img.h;
-
-    for (int x = 0; x < ret.w; x++) {
-        for (int y = 0; y < ret.h; y++) {
-            float a = 0;
-
-            a = x / scale_w;
-            float x0 = floor(a),
-                  x1 = ceil(a),
-                  dx = a - x0;
-
-            a = y / scale_h;
-            float y0 = floor(a),
-                  y1 = ceil(a),
-                  dy = a - y0;
-
-            int ret_i = x + y * ret.w;
-            for (int i = 0; i < 3; i++) {
-                float v00 = img.buf[(int) (x0 + y0 * img.w)].c[i],
-                      v01 = img.buf[(int) (x0 + y1 * img.w)].c[i],
-                      v10 = img.buf[(int) (x1 + y0 * img.w)].c[i],
-                      v11 = img.buf[(int) (x1 + y1 * img.w)].c[i],
-                      vt  = v00 * (1.0 - dx) + v10 * dx,
-                      vb  = v01 * (1.0 - dx) + v11 * dx;
-                ret.buf[ret_i].c[i] = vt * (1.0 - dy) + vb * dy;
-            }
-            pack_color(&ret, ret_i);
-        }
-    }
-
-    return ret;
-}
+#define IMAGE_IMPL
+#include "image.h"
 
 int main() {
     Arena perm = new_arena(1 * GiB);
@@ -101,13 +49,45 @@ int main() {
 
     Win win = get_root_win();
 
-    img = rescale_img(
-        img,
-        XDisplayWidth(win.display, win.screen),
-        XDisplayHeight(win.display, win.screen)
-    );
+    img = rescale_img(img, win.w, win.h);
+
+    s8 text = s8("10:10 PM");
+    s8 font_path = s8("./resources/Mallory/Mallory/Mallory Medium.ttf");
 
     connect_img_to_win(&win, img.packed, img.w, img.h);
+
+    FT_Library lib;
+    FT_Face face;
+    if (FT_Init_FreeType(&lib)) err("Failed to initialize FreeType.");
+    if (FT_New_Face(lib, font_path.buf, 0, &face)) err("Failed to create FreeType font face.");
+    if (FT_Set_Char_Size(
+        face,
+        0, 60*64 /* 1/64 pt*/,
+        win.dpi_x, win.dpi_y)) {
+        err("Failed to set character size on font.");
+    }
+
+    FT_GlyphSlot slot = face->glyph;
+    int pen_x = 100, pen_y = 100;
+
+    for (int i = 0; i < text.len; i++) {
+        // Ignore errors
+        if (FT_Load_Char(face, text.buf[i], FT_LOAD_RENDER)) continue;
+
+        for (int x = 0; x < slot->bitmap.width; x++) {
+            for (int y = 0; y < slot->bitmap.rows; y++) {
+                u8 v = slot->bitmap.buffer[x + y * slot->bitmap.width];
+                if (!v) continue;
+                int i = (x + pen_x + slot->bitmap_left) + (y + pen_y - slot->bitmap_top) * img.w;
+                img.buf[i].c[0] = v;
+                img.buf[i].c[1] = v;
+                img.buf[i].c[2] = v;
+                pack_color(&img, i);
+            }
+        }
+
+        pen_x += slot->advance.x >> 6;
+    }
 
     while (1) {
         XEvent e;
