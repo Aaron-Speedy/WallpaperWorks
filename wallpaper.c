@@ -1,6 +1,8 @@
 #define DS_IMPL
 #include "ds.h"
 
+#include <time.h>
+
 #define err(...) do { \
   fprintf(stderr, "Error: "); \
   fprintf(stderr, __VA_ARGS__); \
@@ -9,6 +11,7 @@
 } while (0);
 
 #include <math.h>
+#include <time.h>
 
 #include "third_party/libwebp/src/webp/decode.h"
 
@@ -48,20 +51,28 @@ int main() {
 
     img = rescale_img(img, win.w, win.h);
 
-    connect_img_to_win(&win, img.packed, img.w, img.h);
-
     FFont font = {
         .path = "./resources/Mallory/Mallory/Mallory Medium.ttf",
         .pt = 50,
     };
     load_font(&font, win.dpi_x, win.dpi_y);
 
-    draw_text(img, font, s8("10:10 PM"), 0.1, 0.25, 1.0, 1.0, 1.0);
+    Image wallpaper = new_img(img);
+
+    connect_img_to_win(&win, wallpaper.packed, wallpaper.w, wallpaper.h);
+
+    s8 time_str = s8_copy(&perm, s8("00:00:00 PM"));
 
     while (1) {
-        XEvent e;
-        XNextEvent(win.display, &e);
-        if (e.type == Expose) {
+        WinEvent e = next_event_timeout(&win, 1000);
+        if (e.type == EVENT_TIMEOUT || e.e.type == Expose) {
+            time_t currentTime = time(NULL);
+            struct tm *localTime = localtime(&currentTime);
+
+            sprintf((char *) time_str.buf, "%02d:%02d:%02d",  localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+
+            place_img(wallpaper, img, 0, 0);
+            draw_text(wallpaper, font, time_str, 0.1, 0.25, 1.0, 1.0, 1.0);
             draw_to_win(win);
         }
     }
