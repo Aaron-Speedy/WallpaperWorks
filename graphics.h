@@ -1,6 +1,8 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <X11/Xlib.h>
+
 typedef struct {
     Display *display;
     Window win;

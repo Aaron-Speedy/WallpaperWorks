@@ -10,8 +10,6 @@
 
 #include <math.h>
 
-#include <X11/Xlib.h>
-
 #include "third_party/libwebp/src/webp/decode.h"
 
 #define GRAPHICS_IMPL
