@@ -12,4 +12,4 @@ $(pkg-config --cflags freetype2) -lfreetype
 "
 
 (cd third_party/libwebp && make -f makefile.unix)
-cc wallpaper.c -o wallpaper $CFLAGS $LIBS
+cc src/wallpaper.c -o wallpaper $CFLAGS $LIBS

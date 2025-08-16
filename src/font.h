@@ -1,3 +1,4 @@
+// TODO: Optimize this mess
 #ifndef FONT_H
 #define FONT_H
 
@@ -14,8 +15,8 @@ typedef struct {
 } FFont;
 
 void load_font(FFont *f, int dpi_x, int dpi_y);
-// 0 <= (r, g, b) <= 1
-void draw_text(Image img, FFont f,
+// 0 <= (r, g, b) <= 1. Returns the bounding box.
+Image draw_text(Image img, FFont *f,
                s8 s,
                float o_x, float o_y,
                float r, float g, float b);
@@ -34,16 +35,18 @@ void load_font(FFont *f, int dpi_x, int dpi_y) {
     }
 }
 
-void draw_text(Image img, FFont f,
+Image draw_text(Image img, FFont *f,
                s8 s,
                float o_x, float o_y,
                float r, float g, float b) {
-    FT_GlyphSlot slot = f.face->glyph;
+    FT_GlyphSlot slot = f->face->glyph;
     int pen_x = o_x * img.w, pen_y = o_y * img.h;
+
+    int max_x = 0, max_y = 0, min_x = img.w, min_y = img.h;
 
     for (int i = 0; i < s.len; i++) {
         // Ignore errors
-        if (FT_Load_Char(f.face, s.buf[i], FT_LOAD_RENDER)) continue;
+        if (FT_Load_Char(f->face, s.buf[i], FT_LOAD_RENDER)) continue;
 
         for (u32 x = 0; x < slot->bitmap.width; x++) {
             for (u32 y = 0; y < slot->bitmap.rows; y++) {
@@ -52,20 +55,31 @@ void draw_text(Image img, FFont f,
 
                 int nx = x + pen_x + slot->bitmap_left,
                     ny = (y + pen_y - slot->bitmap_top);
-                if (nx < 0 || nx >= img.w || ny < 0 || ny >= img.h) {
-                    err("Attempting to draw text out of bounds at position (%d, %d)", nx, ny);
-                }
 
-                int i = nx + ny * img.w;
-                img.buf[i].c[0] = r * v;
-                img.buf[i].c[1] = g * v;
-                img.buf[i].c[2] = b * v;
-                pack_color(img, i);
+                max_x = nx >= max_x ? nx : max_x;
+                max_y = ny >= max_y ? ny : max_y;
+                min_x = nx <= min_x ? nx : min_x;
+                min_y = ny <= min_y ? ny : min_y;
+
+                img_atb(img, nx, ny)->c[0] = r * v;
+                img_atb(img, nx, ny)->c[1] = g * v;
+                img_atb(img, nx, ny)->c[2] = b * v;
+                pack_color(img, nx, ny);
             }
         }
 
         pen_x += slot->advance.x >> 6;
     }
+
+    return (Image) {
+        .buf = img.buf,
+        .packed = img.packed,
+        .x = min_x,
+        .y = min_y,
+        .w = max_x - min_x + 1,
+        .h = max_y - min_y + 1,
+        .alloc_w = img.alloc_w,
+    };
 }
 
 #endif // FONT_IMPL_GUARD

@@ -13,7 +13,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "third_party/libwebp/src/webp/decode.h"
+#include "../third_party/libwebp/src/webp/decode.h"
 
 #define GRAPHICS_IMPL
 #include "graphics.h"
@@ -38,11 +38,14 @@ int main() {
     img = new_img(img);
     {
         u8 *buf = WebPDecodeRGB(data.buf, data.len, &img.w, &img.h);
-        for (int i = 0; i < img.w * img.h; i++) {
-            img.buf[i].c[0] = buf[i * 3 + 0];
-            img.buf[i].c[1] = buf[i * 3 + 1];
-            img.buf[i].c[2] = buf[i * 3 + 2];
-            pack_color(img, i);
+        for (int x = 0; x < img.w; x++) {
+            for (int y = 0; y < img.h; y++) {
+                int i = img_at(img, x, y);
+                img.buf[i].c[0] = buf[i * 3 + 0];
+                img.buf[i].c[1] = buf[i * 3 + 1];
+                img.buf[i].c[2] = buf[i * 3 + 2];
+                pack_color(img, x, y);
+            }
         }
         WebPFree(buf);
     }
@@ -51,17 +54,18 @@ int main() {
 
     img = rescale_img(img, win.w, win.h);
 
+    Image background = copy_img(img);
+
+    connect_img_to_win(&win, img.packed, img.w, img.h);
+
     FFont font = {
         .path = "./resources/Mallory/Mallory/Mallory Medium.ttf",
         .pt = 50,
     };
     load_font(&font, win.dpi_x, win.dpi_y);
 
-    Image wallpaper = new_img(img);
-
-    connect_img_to_win(&win, wallpaper.packed, wallpaper.w, wallpaper.h);
-
     s8 time_str = s8_copy(&perm, s8("00:00:00 PM"));
+    Image prev_bb = {0};
 
     while (1) {
         WinEvent e = next_event_timeout(&win, 1000);
@@ -71,8 +75,12 @@ int main() {
 
             sprintf((char *) time_str.buf, "%02d:%02d:%02d",  localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
 
-            place_img(wallpaper, img, 0, 0);
-            draw_text(wallpaper, font, time_str, 0.1, 0.25, 1.0, 1.0, 1.0);
+            float time_x = 0.1, time_y = 0.25;
+            if (prev_bb.buf) place_img(img, prev_bb, prev_bb.x, prev_bb.y);
+            prev_bb = draw_text(img, &font, time_str, time_x, time_y, 1.0, 1.0, 1.0);
+            prev_bb.buf = background.buf;
+            prev_bb.packed = background.packed;
+
             draw_to_win(win);
         }
     }
