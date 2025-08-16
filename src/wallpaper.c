@@ -64,18 +64,23 @@ int main() {
     };
     load_font(&font, win.dpi_x, win.dpi_y);
 
+    float time_x = 0.1, time_y = 0.25;
     s8 time_str = s8_copy(&perm, s8("00:00:00 PM"));
     Image prev_bb = {0};
 
     while (1) {
         WinEvent e = next_event_timeout(&win, 1000);
         if (e.type == EVENT_TIMEOUT || e.e.type == Expose) {
-            time_t currentTime = time(NULL);
-            struct tm *localTime = localtime(&currentTime);
+            time_t ct = time(NULL);
+            struct tm *lt = localtime(&ct);
+            char *s = lt->tm_hour >= 12 ? "PM" : "AM";
 
-            sprintf((char *) time_str.buf, "%02d:%02d:%02d",  localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+            sprintf(
+                (char *) time_str.buf,
+                "%02d:%02d:%02d %s",
+                lt->tm_hour % 12, lt->tm_min, lt->tm_sec, s
+            );
 
-            float time_x = 0.1, time_y = 0.25;
             if (prev_bb.buf) place_img(img, prev_bb, prev_bb.x, prev_bb.y);
             prev_bb = draw_text(img, &font, time_str, time_x, time_y, 1.0, 1.0, 1.0);
             prev_bb.buf = background.buf;
