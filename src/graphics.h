@@ -17,9 +17,9 @@ typedef struct {
 typedef struct {
     XEvent e;
     enum {
-        EVENT_EVENT = 0,
+        EVENT_ERR = 0,
+        EVENT_EVENT,
         EVENT_TIMEOUT,
-        EVENT_ERR,
     } type;
 } WinEvent;
 

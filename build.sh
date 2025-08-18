@@ -8,7 +8,8 @@ LIBS="\
 third_party/libwebp/src/libwebp.a \
 -L/usr/X11R6/lib -lX11 \
 -lm \
-$(pkg-config --cflags freetype2) -lfreetype
+$(pkg-config --cflags freetype2) -lfreetype \
+-lcurl
 "
 
 (cd third_party/libwebp && make -f makefile.unix)

@@ -1,6 +1,8 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
+#include "ds.h"
+
 typedef struct {
     u8 c[3]; // RGB
     u32 packed; // 0xRRGGBB. Should be set to the colors in c.
@@ -9,8 +11,8 @@ typedef struct {
 typedef struct {
     Color *buf;
     u32 *packed;
-    int alloc_w; /* length of rows in allocation (num pixels.) This allows
-                    pixels to still be access even when using image slices.
+    int alloc_w; /* length of rows in allocation (num pixels). This allows
+                    pixels to still be accessed even when using image slices.
                     TODO: Make the semantics for allow_w better.*/
     int x, y;
     int w, h; // counting from (x, y)
@@ -19,9 +21,9 @@ typedef struct {
 int img_at(Image m, int x, int y);
 Color *img_atb(Image m, int x, int y);
 void pack_color(Image m, int x, int y);
-Image new_img(Image m);
-Image copy_img(Image m);
-Image rescale_img(Image img, int new_w, int new_h);
+Image new_img(Arena *perm, Image m);
+Image copy_img(Arena *perm, Image m);
+Image rescale_img(Arena *perm, Image img, int new_w, int new_h);
 void place_img(Image onto, Image img, int px, int py);
 
 #endif // IMAGE_H
@@ -29,6 +31,9 @@ void place_img(Image onto, Image img, int px, int py);
 #ifdef IMAGE_IMPL
 #ifndef IMAGE_IMPL_GUARD
 #define IMAGE_IMPL_GUARD
+
+#define DS_IMPL
+#include "ds.h"
 
 int img_at(Image m, int x, int y) {
     assert(x < m.w);
@@ -48,27 +53,27 @@ void pack_color(Image m, int x, int y) {
     m.packed[i] = (c.c[2]) | (c.c[1] << 8) | (c.c[0] << 16);
 }
 
-Image new_img(Image m) {
+Image new_img(Arena *perm, Image m) {
     Image ret = { .w = m.w, .h = m.h, .alloc_w = m.w, };
     int s = m.w * m.w;
-    ret.buf = malloc(sizeof(ret.buf[0]) * s);
-    ret.packed = malloc(sizeof(ret.packed[0]) * s);
+    ret.buf = new(perm, Color, s);
+    ret.packed = new(perm, u32, s);
     return ret;
 }
 
-Image copy_img(Image m) {
-    Image ret = new_img(m);
+Image copy_img(Arena *perm, Image m) {
+    Image ret = new_img(perm, m);
     place_img(ret, m, 0, 0);
     return ret;
 }
 
 // Bilinear interpolation
-Image rescale_img(Image img, int new_w, int new_h) {
+Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
     assert(new_w >= 0);
     assert(new_h >= 0);
 
     Image ret = { .w = new_w, .h = new_h, };
-    ret = new_img(ret);
+    ret = new_img(perm, ret);
 
     float scale_w = (float) ret.w / img.w,
           scale_h = (float) ret.h / img.h;
