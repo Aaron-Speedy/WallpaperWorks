@@ -19,7 +19,7 @@ void load_font(FFont *f, int dpi_x, int dpi_y);
 Image draw_text(Image img, FFont *f,
                s8 s,
                float o_x, float o_y,
-               float r, float g, float b);
+               u8 r, u8 g, u8 b);
 
 #endif // FONT_H
 
@@ -38,7 +38,7 @@ void load_font(FFont *f, int dpi_x, int dpi_y) {
 Image draw_text(Image img, FFont *f,
                s8 s,
                float o_x, float o_y,
-               float r, float g, float b) {
+               u8 r, u8 g, u8 b) {
     FT_GlyphSlot slot = f->face->glyph;
     int pen_x = o_x * img.w, pen_y = o_y * img.h;
 
@@ -50,8 +50,8 @@ Image draw_text(Image img, FFont *f,
 
         for (u32 x = 0; x < slot->bitmap.width; x++) {
             for (u32 y = 0; y < slot->bitmap.rows; y++) {
-                u8 v = slot->bitmap.buffer[x + y * slot->bitmap.width];
-                if (!v) continue;
+                float v = slot->bitmap.buffer[x + y * slot->bitmap.width] / 255.0;
+                if (v == 0.0) continue;
 
                 int nx = x + pen_x + slot->bitmap_left,
                     ny = (y + pen_y - slot->bitmap_top);
@@ -61,9 +61,11 @@ Image draw_text(Image img, FFont *f,
                 min_x = nx <= min_x ? nx : min_x;
                 min_y = ny <= min_y ? ny : min_y;
 
-                img_atb(img, nx, ny)->c[0] = r * v;
-                img_atb(img, nx, ny)->c[1] = g * v;
-                img_atb(img, nx, ny)->c[2] = b * v;
+                Color *c = img_atb(img, nx, ny);
+
+                c->c[0] = r * v + c->c[0] * (1 - v);
+                c->c[1] = g * v + c->c[1] * (1 - v);
+                c->c[2] = b * v + c->c[2] * (1 - v);
                 pack_color(img, nx, ny);
             }
         }

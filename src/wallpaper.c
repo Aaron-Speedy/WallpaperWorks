@@ -176,7 +176,7 @@ int main() {
                 &font,
                 time_str,
                 time_x, time_y,
-                1.0, 1.0, 1.0
+                255, 255, 255
             );
             prev_bb.buf = background.buf;
             prev_bb.packed = background.packed;
