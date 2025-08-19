@@ -66,7 +66,7 @@ s8 download(Arena *perm, CURL *curl, s8 url) {
 }
 
 void *background_thread() {
-    int timeout_s = 60;
+    int timeout_s = 10;
 
     Arena frame = new_arena(1 * GiB);
 
@@ -171,10 +171,10 @@ int main() {
     Image prev_bb = {0}; // previous text bounding box
 
     while (1) {
-        WinEvent e = next_event_timeout(&win, draw_init);
+        WinEvent event = next_event_timeout(&win, draw_init);
         draw_init = draw_timeout_ms;
 
-        if (!e.type) continue; // error
+        if (!event.type) continue; // error
 
         printf("%d\n", background.lock);
         while (background.lock) {}
@@ -204,7 +204,7 @@ int main() {
 
             if (background.redraw) {
                 place_img(screen, background.img, 0.0, 0.0);
-                background.redraw = false;
+                if (event.type == EVENT_TIMEOUT) background.redraw = false;
             } else place_img(screen, prev_bb, prev_bb.x, prev_bb.y);
             prev_bb = draw_text(
                 screen,
