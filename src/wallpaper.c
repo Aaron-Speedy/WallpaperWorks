@@ -98,6 +98,7 @@ int main() {
 
         if (cur_time - prev_time >= new_wallpaper_init) {
             new_wallpaper_init = new_wallpaper_timeout_s;
+            prev_time = cur_time;
             draw_arena.len = 0;
             redraw = true;
 
@@ -156,13 +157,16 @@ int main() {
             s8 hour = u64_to_s8(&scratch, lt->tm_hour, 2);
             s8 colon = s8_copy(&scratch, s8(":"));
             s8 minute = u64_to_s8(&scratch, lt->tm_min, 2);
+            s8 colon2 = s8_copy(&scratch, s8(":"));
+            s8 second = u64_to_s8(&scratch, lt->tm_sec, 2);
             // s8 space = s8_copy(&scratch, s8(" "));
             // s8 ampm = s8_copy(&scratch, lt->tm_hour >= 12 ? s8("PM") : s8("AM"));
 
             s8 time_str = {
                 .buf = hour.buf,
-                .len = hour.len + colon.len + minute.len
-                       // + space.len + ampm.len,
+                .len = hour.len + colon.len +
+                       minute.len + colon2.len +
+                       second.len,
             };
 
             if (redraw) place_img(screen, background, 0.0, 0.0);

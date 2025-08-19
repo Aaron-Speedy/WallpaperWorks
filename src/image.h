@@ -87,10 +87,14 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
                   x1 = ceil(a),
                   dx = a - x0;
 
+            if (x1 >= img.w) x1 = floor(a);
+
             a = y / scale_h;
             float y0 = floor(a),
                   y1 = ceil(a),
                   dy = a - y0;
+
+            if (y1 >= img.h) y1 = floor(a);
 
             for (int i = 0; i < 3; i++) {
                 float v00 = img_atb(img, x0, y0)->c[i],
