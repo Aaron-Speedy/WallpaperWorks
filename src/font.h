@@ -48,8 +48,8 @@ Image draw_text(Image img, FFont *f,
         // Ignore errors
         if (FT_Load_Char(f->face, s.buf[i], FT_LOAD_RENDER)) continue;
 
-        for (u32 x = 0; x < slot->bitmap.width; x++) {
-            for (u32 y = 0; y < slot->bitmap.rows; y++) {
+        for (u64 x = 0; x < slot->bitmap.width; x++) {
+            for (u64 y = 0; y < slot->bitmap.rows; y++) {
                 float v = slot->bitmap.buffer[x + y * slot->bitmap.width] / 255.0;
                 if (v == 0.0) continue;
 
