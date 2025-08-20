@@ -83,14 +83,11 @@ void s8_fprint(FILE *restrict stream, s8 s);
 u64 s8_hash(s8 s);
 s8 s8_errno();
 s8 s8_err(s8 s);
+s8 s8_read_file(Arena *perm, Arena scratch, s8 p);
+s8 s8_write_to_file(Arena scratch, s8 p, s8 data);
+
 u64 s8_to_u64(s8 s); // TODO: check for errors
 s8 u64_to_s8(Arena *perm, u64 n, int padding);
-
-s8 open_and_read(Arena *perm, s8 p,
-           FILE *(*open)(const char *p, const char *m),
-           int (*close)(FILE *stream));
-s8 read_file(Arena *perm, Arena scratch, s8 p);
-s8 run(Arena *perm, s8 p);
 
 #endif // DS_H
 
@@ -195,73 +192,7 @@ s8 s8_err(s8 s) {
   return s;
 }
 
-u64 s8_to_u64(s8 s) {
-    u64 ret = 0;
-
-    for (int i = 0; i < s.len; i++) {
-        u8 c = s.buf[i];
-        if (c < '0') break;
-        if (c > '9') break;
-        ret = 10 * ret + (s.buf[i] - '0');
-    }
-
-    return ret;
-}
-
-s8 u64_to_s8(Arena *perm, u64 n, int padding) {
-    s8 ret = {0};
-
-    // 20 digits (max for u64) + 1 for null terminator
-    ssize buf_len = 21;
-    ret.buf = new(perm, u8, buf_len);
-
-    ret.len = snprintf(
-        (char *) ret.buf,
-        buf_len, "%0*llu",
-        padding,
-        (unsigned long long int) n
-    );
-    perm->len -= buf_len - ret.len;
-
-    return ret;
-}
-
-s8 open_and_read(Arena *perm, s8 p,
-           FILE *(*open)(const char *p, const char *m),
-           int (*close)(FILE *stream)) {
-  assert(perm != NULL);
-
-  FILE *fp = NULL;
-  {
-    Arena scratch = *perm;
-
-    s8 n = s8_newcat(&scratch, p, s8("\0"));
-
-    fp = open((char *) n.buf, "r");
-    if (fp == NULL) {
-      perror("open");
-      fprintf(stderr, "file: ");
-      s8_fprint(stderr, p);
-      fprintf(stderr, "\n");
-      exit(1);
-    }
-  }
-
-  s8 ret = new_s8(perm, 0);
-
-  char c = 0;
-  while ((c = fgetc(fp)) != EOF) {
-    char *n = new(perm, u8, 1);
-    *n = c;
-    ret.len += 1;
-  }
-
-  close(fp);
-
-  return ret;
-}
-
-s8 read_file(Arena *perm, Arena scratch, s8 p) {
+s8 s8_read_file(Arena *perm, Arena scratch, s8 p) {
   s8 ret = {0};
 
   FILE *fp = NULL;
@@ -288,13 +219,62 @@ end:
   return ret;
 }
 
-// s8 read_file(Arena *perm, s8 p) {
-//   s8 ret = open_and_read(perm, p, fopen, fclose);
-//   return ret;
-// }
 
-s8 run(Arena *perm, s8 p) {
-  s8 ret = open_and_read(perm, p, popen, fclose);
+s8 s8_write_to_file(Arena scratch, s8 p, s8 data) {
+  s8 ret = {0};
+
+  FILE *fp = NULL;
+  {
+    s8 n = s8_newcat(&scratch, p, s8("\0"));
+    fp = fopen((char *) n.buf, "w");
+  }
+  if (fp == NULL) return s8_errno();
+
+  ssize n = fwrite(data.buf, 1, data.len, fp);
+  if (n < data.len) {
+    ret = s8_err(s8("fwrite"));
+    goto end;
+  }
+
+end:
+  if (fclose(fp) != 0) {
+
+    if (ret.len == 0) {
+        ret = s8_errno();
+    }
+  }
+
+  return ret;
+}
+
+u64 s8_to_u64(s8 s) {
+  u64 ret = 0;
+
+  for (int i = 0; i < s.len; i++) {
+    u8 c = s.buf[i];
+    if (c < '0') break;
+    if (c > '9') break;
+    ret = 10 * ret + (s.buf[i] - '0');
+  }
+
+  return ret;
+}
+
+s8 u64_to_s8(Arena *perm, u64 n, int padding) {
+  s8 ret = {0};
+
+  // 20 digits (max for u64) + 1 for null terminator
+  ssize buf_len = 21;
+  ret.buf = new(perm, u8, buf_len);
+
+  ret.len = snprintf(
+    (char *) ret.buf,
+    buf_len, "%0*llu",
+    padding,
+    (unsigned long long int) n
+  );
+  perm->len -= buf_len - ret.len;
+
   return ret;
 }
 

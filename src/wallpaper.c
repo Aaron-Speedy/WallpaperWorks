@@ -13,6 +13,12 @@
   exit(1); \
 } while (0);
 
+#define warning(...) do { \
+  fprintf(stderr, "Warning: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+} while (0);
+
 #include "../third_party/libwebp/src/webp/decode.h"
 
 #define GRAPHICS_IMPL
@@ -23,6 +29,9 @@
 
 #define FONT_IMPL
 #include "font.h"
+
+#define CACHE_IMPL
+#include "cache.h"
 
 typedef struct {
     Arena *perm;
@@ -56,7 +65,7 @@ s8 download(Arena *perm, CURL *curl, s8 url) {
 
     S8ArenaPair data = { .perm = perm, };
 
-    curl_easy_setopt(curl, CURLOPT_URL, (char *) url.buf);
+    curl_easy_setopt(curl, CURLOPT_URL, url.buf);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &data);
 
     CURLcode result = curl_easy_perform(curl);
@@ -66,7 +75,11 @@ s8 download(Arena *perm, CURL *curl, s8 url) {
 }
 
 void *background_thread() {
-    Arena perm = new_arena(1 * GiB);
+    Arena perm = new_arena(1 * GiB),
+          perm_2 = new_arena(1 * KiB);
+
+    // TODO: support disabling cache
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
 
     CURL *curl = curl_easy_init(); 
     if (!curl) err("Failed to initialize libcurl.");
@@ -77,28 +90,42 @@ void *background_thread() {
     pthread_mutex_lock(&lock); // initial lock
 
     while (true) {
-        Arena scratch = perm;
+        Arena scratch = perm, e_scratch = perm_2;
 
         time_t a_time = time(NULL);
         u8 *buf = NULL;
         Image img = {0};
 
-        s8 base = s8("https://infotoast.org/images/");
+        s8 base = s8("https://infotoast.org/images");
 
         u64 n = s8_to_u64(download(
             &scratch,
             curl,
-            s8_newcat(&scratch, base, s8("num.txt"))
+            s8_newcat(&scratch, base, s8("/num.txt"))
         ));
 
-        s8 name = u64_to_s8(&scratch, rand() % (n + 1), 0);
-        s8_modcat(&scratch, &name, s8(".webp"));
+        // TODO: remove names and redundancy
+        s8 slash = s8_copy(&scratch, s8("/")),
+           num = u64_to_s8(&scratch, rand() % (n + 1), 0),
+           ext = s8_copy(&scratch, s8(".webp")),
+           name = {
+               .buf = slash.buf,
+               .len = slash.len + num.len + ext.len, 
+           };
 
-        s8 data = download(
-            &scratch,
-            curl,
-            s8_newcat(&scratch, base, name)
-        );
+        s8 cpath = s8_newcat(&scratch, cache_dir, name);
+        s8 data = s8_read_file(&scratch, e_scratch, cpath);
+
+        // File was not found
+        if (data.len <= 0) {
+            data = download(
+                &scratch,
+                curl,
+                s8_newcat(&scratch, base, name)
+            );
+
+            s8_write_to_file(scratch, cpath, data);
+        }
 
         WebPGetInfo(data.buf, data.len, &img.w, &img.h);
         printf("%dx%d\n", img.w, img.h);
@@ -191,7 +218,7 @@ int main() {
             .len = hour.len + colon.len +
                    minute.len + colon2.len +
                    second.len,
-        };
+           };
 
         pthread_mutex_lock(&lock);
             if (background.redraw) {
