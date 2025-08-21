@@ -83,7 +83,7 @@ void *background_thread() {
     if (!curl) err("Failed to initialize libcurl.");
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
-    int timeout_s = 10;
+    int timeout_s = 60;
     bool initial = true;
     pthread_mutex_lock(&lock); // initial lock
 
