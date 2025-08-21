@@ -216,7 +216,9 @@ int main() {
     load_font(&date_font, win.dpi_x, win.dpi_y);
 
     float time_x = 0.03, time_y = 0.05, // from the bottom-right
-          date_x = 0.0, date_y = 0.05; // from the top-left of time
+          date_x = 0.0, date_y = 0.05, // from the top-left of time
+          time_shadow_x = 0.0025, time_shadow_y = 0.0025,
+          date_shadow_x = 0.0025, date_shadow_y = 0.0025; 
     Image prev_bound = {0}; // previous altered bounding box
 
     while (1) {
@@ -266,21 +268,26 @@ int main() {
                 background.redraw = false;
             } else place_img(screen, prev_bound, prev_bound.x, prev_bound.y);
 
-            time_bound = draw_text(
+           time_bound = draw_text_shadow(
                 screen,
                 &time_font,
                 time_str,
                 screen.w - 1 - screen.w * time_x - time_bound.w,
                 screen.h - 1 - screen.h * time_y,
-                255, 255, 255
+                255, 255, 255,
+                time_shadow_x * screen.w, time_shadow_y * screen.h,
+                0, 0, 0
             );
-            date_bound = draw_text(
+
+            date_bound = draw_text_shadow(
                 screen,
                 &date_font,
                 date_str,
                 time_bound.x + screen.w * date_x,
                 time_bound.y - screen.h * date_y,
-                255, 255, 255
+                255, 255, 255,
+                date_shadow_x * screen.w, date_shadow_y * screen.h,
+                0, 0, 0
             );
 
             prev_bound = combine_bound(time_bound, date_bound);

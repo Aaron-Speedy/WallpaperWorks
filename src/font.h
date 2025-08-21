@@ -17,17 +17,33 @@ typedef struct {
 
 void load_font(FFont *f, int dpi_x, int dpi_y);
 
-// o_y specifies from the bottom. Returns the bounding box.
+// oy specifies from the bottom. Returns the bounding box.
 Image draw_text_or_get_bound(Image img, FFont *f,
                              s8 s,
-                             int o_x, int o_y,
+                             int ox, int oy,
                              u8 r, u8 g, u8 b,
                              bool draw);
 Image get_bound_of_text(FFont *f, s8 s); // See above comment
 Image draw_text(Image img, FFont *f, // See above comment
                 s8 s,
-                int o_x, int o_y,
+                int ox, int oy,
                 u8 r, u8 g, u8 b);
+
+Image draw_text_or_get_bound_shadow(Image img, FFont *f,
+                             s8 s,
+                             int ox, int oy,
+                             u8 r, u8 g, u8 b,
+                             int shadow_x, int shadow_y,
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b,
+                             bool draw);
+Image get_bound_of_text_shadow(FFont *f, s8 s, int shadow_x, int shadow_y);
+Image draw_text_shadow(Image img, FFont *f,
+                             s8 s,
+                             int ox, int oy,
+                             u8 r, u8 g, u8 b,
+                             int shadow_x, int shadow_y,
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b);
+
 #endif // FONT_H
 
 #ifdef FONT_IMPL
@@ -44,11 +60,11 @@ void load_font(FFont *f, int dpi_x, int dpi_y) {
 
 Image draw_text_or_get_bound(Image img, FFont *f,
                              s8 s,
-                             int o_x, int o_y,
+                             int ox, int oy,
                              u8 r, u8 g, u8 b,
                              bool draw) {
     FT_GlyphSlot slot = f->face->glyph;
-    int pen_x = o_x, pen_y = o_y;
+    int pen_x = ox, pen_y = oy;
 
     int max_x = 0, max_y = 0, min_x = img.w, min_y = img.h;
 
@@ -99,9 +115,51 @@ Image get_bound_of_text(FFont *f, s8 s) {
 
 Image draw_text(Image img, FFont *f,
                 s8 s,
-                int o_x, int o_y,
+                int ox, int oy,
                 u8 r, u8 g, u8 b) {
-    return draw_text_or_get_bound(img, f, s, o_x, o_y, r, g, b, true);
+    return draw_text_or_get_bound(img, f, s, ox, oy, r, g, b, true);
+}
+
+Image draw_text_or_get_bound_shadow(Image img, FFont *f,
+                             s8 s,
+                             int ox, int oy,
+                             u8 r, u8 g, u8 b,
+                             int shadow_x, int shadow_y,
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b,
+                             bool draw) {
+    Image shadow = draw_text_or_get_bound(
+        img, f, s,
+        ox + shadow_x, oy + shadow_y,
+        shadow_r, shadow_g, shadow_b,
+        draw
+    );
+    Image plain = draw_text_or_get_bound(img, f, s, ox, oy, r, g, b, draw);
+    return combine_bound(shadow, plain);
+}
+
+Image get_bound_of_text_shadow(FFont *f, s8 s, int shadow_x, int shadow_y) {
+    return draw_text_or_get_bound_shadow(
+        (Image) {0}, f, s,
+        0, 0, 0, 0, 0,
+        shadow_x, shadow_y, 0, 0, 0,
+        false
+    );
+}
+
+Image draw_text_shadow(Image img, FFont *f,
+                             s8 s,
+                             int ox, int oy,
+                             u8 r, u8 g, u8 b,
+                             int shadow_x, int shadow_y,
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b) {
+    return draw_text_or_get_bound_shadow(
+        img, f, s,
+        ox, oy,
+        r, g, b,
+        shadow_x, shadow_y,
+        shadow_r, shadow_g, shadow_b,
+        true
+    );
 }
 
 #endif // FONT_IMPL_GUARD

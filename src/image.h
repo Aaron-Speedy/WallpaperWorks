@@ -38,12 +38,15 @@ void place_img(Image onto, Image img, int px, int py);
 #include "ds.h"
 
 int img_at(Image m, int x, int y) {
-    assert(x < m.w);
-    assert(y < m.h);
-    assert(0 <= x);
-    assert(0 <= y);
+    // assert(x < m.w);
+    // assert(y < m.h);
+    // assert(0 <= x);
+    // assert(0 <= y);
 
-    if (x >= m.w || y >= m.h || 0 > x || 0 > y) return -1;
+    if (x >= m.w || y >= m.h || 0 > x || 0 > y) {
+        warning("Accessing image out of bounds at position (%d, %d).", x, y);
+        return -1;
+    }
     return (x + m.x) + (y + m.y) * m.alloc_w;
 }
 
@@ -120,8 +123,8 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
 }
 
 void place_img(Image onto, Image img, int px, int py) {
-    assert(px + img.w <= onto.w);
-    assert(py + img.h <= onto.h);
+    // assert(px + img.w <= onto.w);
+    // assert(py + img.h <= onto.h);
 
     for (int x = 0; x < img.w; x++) {
         for (int y = 0; y < img.h; y++) {
