@@ -1,9 +1,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#include <X11/Xlib.h>
-#include <sys/select.h>
-#include <sys/time.h>
+#include <sokol_gfx.h>
 #include <unistd.h>
 
 typedef struct {
