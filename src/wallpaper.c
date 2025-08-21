@@ -65,11 +65,12 @@ s8 download(Arena *perm, CURL *curl, s8 url) {
 
     S8ArenaPair data = { .perm = perm, };
 
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
     curl_easy_setopt(curl, CURLOPT_URL, url.buf);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &data);
 
     CURLcode result = curl_easy_perform(curl);
-    if (result != CURLE_OK) err("Failed to download resource: %s.", curl_easy_strerror(result));
+    if (result != CURLE_OK) warning("Failed to download resource: %s.", curl_easy_strerror(result));
 
     return data.s;
 }
@@ -78,14 +79,11 @@ void *background_thread() {
     Arena perm = new_arena(1 * GiB),
           perm_2 = new_arena(1 * KiB);
 
-    // TODO: support disabling cache
-    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
-
     CURL *curl = curl_easy_init(); 
     if (!curl) err("Failed to initialize libcurl.");
 
-    int timeout_s = 60;
-
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
+    int timeout_s = 10;
     bool initial = true;
     pthread_mutex_lock(&lock); // initial lock
 
@@ -93,64 +91,82 @@ void *background_thread() {
         Arena scratch = perm, e_scratch = perm_2;
 
         time_t a_time = time(NULL);
-        u8 *buf = NULL;
-        Image img = {0};
+        Image b = {0};
 
-        s8 base = s8("https://infotoast.org/images");
+        while (true) {
+            s8 base = s8("https://infotoast.org/images");
+            bool network_mode = true;
 
-        u64 n = s8_to_u64(download(
-            &scratch,
-            curl,
-            s8_newcat(&scratch, base, s8("/num.txt"))
-        ));
+            u64 n = 0;
+            {
+                s8 f = s8("/num.txt");
+                s8 url = s8_newcat(&scratch, base, f);
+                s8 path = s8_newcat(&scratch, cache_dir, f);
 
-        // TODO: remove names and redundancy
-        s8 slash = s8_copy(&scratch, s8("/")),
-           num = u64_to_s8(&scratch, rand() % (n + 1), 0),
-           ext = s8_copy(&scratch, s8(".webp")),
-           name = {
-               .buf = slash.buf,
-               .len = slash.len + num.len + ext.len, 
-           };
+                s8 data = download(&scratch, curl, url);
+                network_mode = data.buf != NULL;
 
-        s8 cpath = s8_newcat(&scratch, cache_dir, name);
-        s8 data = s8_read_file(&scratch, e_scratch, cpath);
+                if (network_mode) {
+                    s8_write_to_file(scratch, path, data);
+                } else data = s8_read_file(&scratch, e_scratch, path);
 
-        // File was not found
-        if (data.len <= 0) {
-            data = download(
-                &scratch,
-                curl,
-                s8_newcat(&scratch, base, name)
+                n = s8_to_u64(data);
+            }
+
+            s8 img_data = {0};
+            {
+                s8 a0 = s8_copy(&scratch, s8("/"));
+                        u64_to_s8(&scratch, rand() % (n + 1), 0);
+                s8 al = s8_copy(&scratch, s8(".webp"));
+                s8 name = s8_masscat(scratch, a0, al);
+
+                s8 url = s8_newcat(&scratch, base, name);
+                s8 path = s8_newcat(&scratch, cache_dir, name);
+
+                img_data = s8_read_file(&scratch, e_scratch, path);
+
+                // File was not found
+                if (img_data.len <= 0) {
+                    if (!network_mode) continue; // try another image
+
+                    img_data = download(&scratch, curl, url);
+                    network_mode = img_data.buf != NULL;
+
+                    if (!network_mode) continue; // try another image;
+
+                    s8_write_to_file(scratch, path, img_data);
+                }
+            }
+
+            Image img = {0};
+            WebPGetInfo(img_data.buf, img_data.len, &img.w, &img.h);
+            printf("%dx%d\n", img.w, img.h);
+
+            u8 *buf = WebPDecodeRGB(img_data.buf, img_data.len, &img.w, &img.h);
+
+            img = new_img(&scratch, img);
+
+            for (int x = 0; x < img.w; x++) {
+                for (int y = 0; y < img.h; y++) {
+                    int i = img_at(img, x, y);
+                    img.buf[i].c[0] = buf[i * 3 + 0];
+                    img.buf[i].c[1] = buf[i * 3 + 1];
+                    img.buf[i].c[2] = buf[i * 3 + 2];
+                    pack_color(img, x, y);
+                }
+            }
+
+            WebPFree(buf);
+
+            b = rescale_img(
+                NULL,
+                img,
+                background.img.w,
+                background.img.h
             );
 
-            s8_write_to_file(scratch, cpath, data);
+            break;
         }
-
-        WebPGetInfo(data.buf, data.len, &img.w, &img.h);
-        printf("%dx%d\n", img.w, img.h);
-        buf = WebPDecodeRGB(data.buf, data.len, &img.w, &img.h);
-
-        img = new_img(&scratch, img);
-
-        for (int x = 0; x < img.w; x++) {
-            for (int y = 0; y < img.h; y++) {
-                int i = img_at(img, x, y);
-                img.buf[i].c[0] = buf[i * 3 + 0];
-                img.buf[i].c[1] = buf[i * 3 + 1];
-                img.buf[i].c[2] = buf[i * 3 + 2];
-                pack_color(img, x, y);
-            }
-        }
-
-        WebPFree(buf);
-
-        Image b = rescale_img(
-            NULL,
-            img,
-            background.img.w,
-            background.img.h
-        );
 
         int wait = timeout_s - (time(NULL) - a_time);
         if (wait > 0 && !initial) sleep(wait);
@@ -206,19 +222,14 @@ int main() {
         struct tm *lt = localtime(&ftime);
 
         // TODO: remove the need to specify names and repeat the order
-        s8 hour = u64_to_s8(&scratch, lt->tm_hour, 2),
-           colon = s8_copy(&scratch, s8(":")),
-           minute = u64_to_s8(&scratch, lt->tm_min, 2),
-           colon2 = s8_copy(&scratch, s8(":")),
-           second = u64_to_s8(&scratch, lt->tm_sec, 2),
-           // space = s8_copy(&scratch, s8(" ")),
-           // ampm = s8_copy(&scratch, lt->tm_hour >= 12 ? s8("PM") : s8("AM")),
-           time_str = {
-            .buf = hour.buf,
-            .len = hour.len + colon.len +
-                   minute.len + colon2.len +
-                   second.len,
-           };
+        s8 a0 = u64_to_s8(&scratch, lt->tm_hour, 2);
+                s8_copy(&scratch, s8(":"));
+                u64_to_s8(&scratch, lt->tm_min, 2);
+                s8_copy(&scratch, s8(":"));
+        s8 al = u64_to_s8(&scratch, lt->tm_sec, 2);
+                // s8_copy(&scratch, s8(" "));
+                // s8_copy(&scratch, lt->tm_hour >= 12 ? s8("PM") : s8("AM"));
+        s8 time_str = s8_masscat(scratch, a0, al);
 
         pthread_mutex_lock(&lock);
             if (background.redraw) {

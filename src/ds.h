@@ -76,6 +76,7 @@ s8 new_s8(Arena *perm, ssize len);
 s8 s8_copy(Arena *perm, s8 s);
 void s8_modcat(Arena *perm, s8 *a, s8 b);
 s8 s8_newcat(Arena *perm, s8 a, s8 b);
+s8 s8_masscat(Arena check, s8 head, s8 tail);
 bool s8_equals(s8 a, s8 b);
 s8 s8_replace_all(Arena *perm, s8 s, s8 old, s8 new);
 void s8_print(s8 s);
@@ -138,6 +139,15 @@ s8 s8_newcat(Arena *perm, s8 a, s8 b) {
   s8 c = s8_copy(perm, a);
   s8_modcat(perm, &c, b);
   return c;
+}
+
+s8 s8_masscat(Arena check, s8 head, s8 tail) {
+    s8 ret = {
+        .buf = head.buf,
+        .len = (tail.buf + tail.len) - head.buf,
+    };
+    assert(ret.len <= check.len);
+    return ret;
 }
 
 bool s8_equals(s8 a, s8 b) {
