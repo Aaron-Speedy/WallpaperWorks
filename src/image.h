@@ -16,14 +16,16 @@ typedef struct {
                     TODO: Make the semantics for allow_w better.*/
     int x, y;
     int w, h; // counting from (x, y)
+    Color none;
 } Image;
 
 int img_at(Image m, int x, int y);
-Color *img_atb(Image m, int x, int y);
+Color *img_atb(Image *m, int x, int y);
 void pack_color(Image m, int x, int y);
 Image new_img(Arena *perm, Image m);
 Image copy_img(Arena *perm, Image m);
 Image rescale_img(Arena *perm, Image img, int new_w, int new_h);
+Image combine_bound(Image a, Image b);
 void place_img(Image onto, Image img, int px, int py);
 
 #endif // IMAGE_H
@@ -40,15 +42,20 @@ int img_at(Image m, int x, int y) {
     assert(y < m.h);
     assert(0 <= x);
     assert(0 <= y);
+
+    if (x >= m.w || y >= m.h || 0 > x || 0 > y) return -1;
     return (x + m.x) + (y + m.y) * m.alloc_w;
 }
 
-Color *img_atb(Image m, int x, int y) {
-    return &m.buf[img_at(m, x, y)];
+Color *img_atb(Image *m, int x, int y) {
+    int i = img_at(*m, x, y);
+    if (i == -1) return &m->none;
+    return &m->buf[i];
 }
 
 void pack_color(Image m, int x, int y) {
     int i = img_at(m, x, y);
+    if (i == -1) return;
     Color c = m.buf[i];
     m.packed[i] = (c.c[2]) | (c.c[1] << 8) | (c.c[0] << 16);
 }
@@ -97,13 +104,13 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
             if (y1 >= img.h) y1 = floor(a);
 
             for (int i = 0; i < 3; i++) {
-                float v00 = img_atb(img, x0, y0)->c[i],
-                      v01 = img_atb(img, x0, y1)->c[i],
-                      v10 = img_atb(img, x1, y0)->c[i],
-                      v11 = img_atb(img, x1, y1)->c[i],
+                float v00 = img_atb(&img, x0, y0)->c[i],
+                      v01 = img_atb(&img, x0, y1)->c[i],
+                      v10 = img_atb(&img, x1, y0)->c[i],
+                      v11 = img_atb(&img, x1, y1)->c[i],
                       vt  = v00 * (1.0 - dx) + v10 * dx,
                       vb  = v01 * (1.0 - dx) + v11 * dx;
-                img_atb(ret, x, y)->c[i] = vt * (1.0 - dy) + vb * dy;
+                img_atb(&ret, x, y)->c[i] = vt * (1.0 - dy) + vb * dy;
             }
             pack_color(ret, x, y);
         }
@@ -119,10 +126,34 @@ void place_img(Image onto, Image img, int px, int py) {
     for (int x = 0; x < img.w; x++) {
         for (int y = 0; y < img.h; y++) {
             int nx = px + x, ny = py + y;
-            *img_atb(onto, nx, ny) = *img_atb(img, x, y);
+            *img_atb(&onto, nx, ny) = *img_atb(&img, x, y);
             pack_color(onto, nx, ny);
         }
     }
+}
+
+Image combine_bound(Image a, Image b) {
+    int x = (a.x < b.x) ? a.x : b.x,
+        y = (a.y < b.y) ? a.y : b.y;
+
+    assert(a.buf == b.buf);
+    assert(a.packed == b.packed);
+    assert(a.alloc_w == b.alloc_w);
+
+    // Calculate the new bottom-right corner by finding the maximum
+    // of the two images' right and bottom edges.
+    int right = (a.x + a.w > b.x + b.w) ? (a.x + a.w) : (b.x + b.w);
+    int bottom = (a.y + a.h > b.y + b.h) ? (a.y + a.h) : (b.y + b.h);
+
+    return (Image) {
+        .buf = a.buf,
+        .packed = a.packed,
+        .alloc_w = a.alloc_w,
+        .x = x,
+        .y = y,
+        .w = right - x,
+        .h = bottom - y,
+    };
 }
 
 #endif // IMAGE_IMPL_GUARD

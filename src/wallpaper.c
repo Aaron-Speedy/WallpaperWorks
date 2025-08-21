@@ -203,14 +203,21 @@ int main() {
     Image screen = new_img(&perm, (Image) { .w = win.w, .h = win.h, });
     connect_img_to_win(&win, screen.packed, screen.w, screen.h);
 
-    FFont font = {
+    FFont time_font = {
         .path = "./resources/Mallory/Mallory/Mallory Medium.ttf",
         .pt = 100,
     };
-    load_font(&font, win.dpi_x, win.dpi_y);
+    load_font(&time_font, win.dpi_x, win.dpi_y);
 
-    float time_x = 0.1, time_y = 0.25;
-    Image prev_bb = {0}; // previous text bounding box
+    FFont date_font = {
+        .path = time_font.path,
+        .pt = time_font.pt * 0.2,
+    };
+    load_font(&date_font, win.dpi_x, win.dpi_y);
+
+    float time_x = 0.03, time_y = 0.05, // from the bottom-right
+          date_x = 0.0, date_y = 0.05; // from the top-left of time
+    Image prev_bound = {0}; // previous altered bounding box
 
     while (1) {
         pthread_mutex_lock(&lock);
@@ -221,31 +228,64 @@ int main() {
 
         struct tm *lt = localtime(&ftime);
 
-        // TODO: remove the need to specify names and repeat the order
-        s8 a0 = u64_to_s8(&scratch, lt->tm_hour, 2);
-                s8_copy(&scratch, s8(":"));
-                u64_to_s8(&scratch, lt->tm_min, 2);
-                s8_copy(&scratch, s8(":"));
-        s8 al = u64_to_s8(&scratch, lt->tm_sec, 2);
-                // s8_copy(&scratch, s8(" "));
-                // s8_copy(&scratch, lt->tm_hour >= 12 ? s8("PM") : s8("AM"));
-        s8 time_str = s8_masscat(scratch, a0, al);
+        s8 time_str = {0};
+        {
+            s8 a0 = u64_to_s8(&scratch, lt->tm_hour, 2);
+                    s8_copy(&scratch, s8(":"));
+            s8 al = u64_to_s8(&scratch, lt->tm_min, 2);
+            time_str = s8_masscat(scratch, a0, al);
+        }
+
+        Image time_bound = get_bound_of_text(&time_font, time_str);
+
+        s8 date_str = {0};
+        {
+            s8 months[] = {
+                s8("January"), s8("February"), s8("march"), s8("April"),
+                s8("May"), s8("June"), s8("July"), s8("August"),
+                s8("September"), s8("October"), s8("November"), s8("December"),
+            };
+            s8 days[] = {
+                s8("Sunday"), s8("Monday"), s8("Tuesday"), s8("Wednesday"),
+                s8("Thursday"), s8("Friday"), s8("Saturday"),
+            };
+
+            s8 a0 = s8_copy(&scratch, days[lt->tm_wday]);
+                    s8_copy(&scratch, s8(", "));
+                    s8_copy(&scratch, months[lt->tm_mon]);
+                    s8_copy(&scratch, s8(" "));
+            s8 al = u64_to_s8(&scratch, lt->tm_mday, 0);
+            date_str = s8_masscat(scratch, a0, al);
+        }
+
+        Image date_bound = get_bound_of_text(&date_font, date_str);
 
         pthread_mutex_lock(&lock);
             if (background.redraw) {
                 place_img(screen, background.img, 0.0, 0.0);
                 background.redraw = false;
-            } else place_img(screen, prev_bb, prev_bb.x, prev_bb.y);
+            } else place_img(screen, prev_bound, prev_bound.x, prev_bound.y);
 
-            prev_bb = draw_text(
+            time_bound = draw_text(
                 screen,
-                &font,
+                &time_font,
                 time_str,
-                time_x, time_y,
+                screen.w - 1 - screen.w * time_x - time_bound.w,
+                screen.h - 1 - screen.h * time_y,
                 255, 255, 255
             );
-            prev_bb.buf = background.img.buf;
-            prev_bb.packed = background.img.packed;
+            date_bound = draw_text(
+                screen,
+                &date_font,
+                date_str,
+                time_bound.x + screen.w * date_x,
+                time_bound.y - screen.h * date_y,
+                255, 255, 255
+            );
+
+            prev_bound = combine_bound(time_bound, date_bound);
+            prev_bound.buf = background.img.buf;
+            prev_bound.packed = background.img.packed;
         pthread_mutex_unlock(&lock);
 
         struct timeval time_val;

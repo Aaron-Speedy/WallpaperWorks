@@ -1,4 +1,5 @@
 // TODO: Optimize this mess
+
 #ifndef FONT_H
 #define FONT_H
 
@@ -15,12 +16,18 @@ typedef struct {
 } FFont;
 
 void load_font(FFont *f, int dpi_x, int dpi_y);
-// 0 <= (r, g, b) <= 1. Returns the bounding box.
-Image draw_text(Image img, FFont *f,
-               s8 s,
-               float o_x, float o_y,
-               u8 r, u8 g, u8 b);
 
+// o_y specifies from the bottom. Returns the bounding box.
+Image draw_text_or_get_bound(Image img, FFont *f,
+                             s8 s,
+                             int o_x, int o_y,
+                             u8 r, u8 g, u8 b,
+                             bool draw);
+Image get_bound_of_text(FFont *f, s8 s); // See above comment
+Image draw_text(Image img, FFont *f, // See above comment
+                s8 s,
+                int o_x, int o_y,
+                u8 r, u8 g, u8 b);
 #endif // FONT_H
 
 #ifdef FONT_IMPL
@@ -35,17 +42,18 @@ void load_font(FFont *f, int dpi_x, int dpi_y) {
     }
 }
 
-Image draw_text(Image img, FFont *f,
-               s8 s,
-               float o_x, float o_y,
-               u8 r, u8 g, u8 b) {
+Image draw_text_or_get_bound(Image img, FFont *f,
+                             s8 s,
+                             int o_x, int o_y,
+                             u8 r, u8 g, u8 b,
+                             bool draw) {
     FT_GlyphSlot slot = f->face->glyph;
-    int pen_x = o_x * img.w, pen_y = o_y * img.h;
+    int pen_x = o_x, pen_y = o_y;
 
     int max_x = 0, max_y = 0, min_x = img.w, min_y = img.h;
 
     for (int i = 0; i < s.len; i++) {
-        // Ignore errors
+        // Ignore errors. TODO: Check about caching
         if (FT_Load_Char(f->face, s.buf[i], FT_LOAD_RENDER)) continue;
 
         for (u64 x = 0; x < slot->bitmap.width; x++) {
@@ -61,12 +69,13 @@ Image draw_text(Image img, FFont *f,
                 min_x = nx <= min_x ? nx : min_x;
                 min_y = ny <= min_y ? ny : min_y;
 
-                Color *c = img_atb(img, nx, ny);
-
-                c->c[0] = r * v + c->c[0] * (1 - v);
-                c->c[1] = g * v + c->c[1] * (1 - v);
-                c->c[2] = b * v + c->c[2] * (1 - v);
-                pack_color(img, nx, ny);
+                if (draw) {
+                    Color *c = img_atb(&img, nx, ny);
+                    c->c[0] = r * v + c->c[0] * (1 - v);
+                    c->c[1] = g * v + c->c[1] * (1 - v);
+                    c->c[2] = b * v + c->c[2] * (1 - v);
+                    pack_color(img, nx, ny);
+                }
             }
         }
 
@@ -76,12 +85,23 @@ Image draw_text(Image img, FFont *f,
     return (Image) {
         .buf = img.buf,
         .packed = img.packed,
+        .alloc_w = img.alloc_w,
         .x = min_x,
         .y = min_y,
         .w = max_x - min_x + 1,
         .h = max_y - min_y + 1,
-        .alloc_w = img.alloc_w,
     };
+}
+
+Image get_bound_of_text(FFont *f, s8 s) {
+    return draw_text_or_get_bound((Image) {0}, f, s, 0, 0, 0, 0, 0, false);
+}
+
+Image draw_text(Image img, FFont *f,
+                s8 s,
+                int o_x, int o_y,
+                u8 r, u8 g, u8 b) {
+    return draw_text_or_get_bound(img, f, s, o_x, o_y, r, g, b, true);
 }
 
 #endif // FONT_IMPL_GUARD
