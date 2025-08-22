@@ -43,7 +43,7 @@ Win get_root_win() {
 
     win.screen = DefaultScreen(win.display);
     win.win = DefaultRootWindow(win.display);
-    XSelectInput(win.display, win.win, ExposureMask | KeyPressMask);
+    XSelectInput(win.display, win.win, ExposureMask);
     XMapWindow(win.display, win.win);
 
     win.gc = DefaultGC(win.display, win.screen);
