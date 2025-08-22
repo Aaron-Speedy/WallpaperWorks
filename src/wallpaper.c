@@ -217,8 +217,8 @@ int main() {
 
     float time_x = 0.03, time_y = 0.05, // from the bottom-right
           date_x = 0.0, date_y = 0.05, // from the top-left of time
-          time_shadow_x = 0.0025, time_shadow_y = 0.0025,
-          date_shadow_x = 0.0025, date_shadow_y = 0.0025; 
+          time_shadow_x = 0.002, time_shadow_y = 0.002,
+          date_shadow_x = 0.002, date_shadow_y = 0.002; 
     Image prev_bound = {0}; // previous altered bounding box
 
     while (1) {
