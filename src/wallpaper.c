@@ -25,9 +25,6 @@
 
 #include "../third_party/libwebp/src/webp/decode.h"
 
-#define THREADS_IMPL
-#include "threads.h"
-
 #define GRAPHICS_IMPL
 #include "graphics.h"
 
