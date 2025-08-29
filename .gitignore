@@ -1,2 +1,4 @@
-wallpaper
 resources/*
+third_party/real/*
+build
+.vs

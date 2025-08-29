@@ -1,5 +1,4 @@
 #include <time.h>
-#include <pthread.h>
 #include <math.h>
 #include <curl/curl.h>
 
@@ -20,6 +19,9 @@
 } while (0);
 
 #include "../third_party/libwebp/src/webp/decode.h"
+
+#define THREADS_IMPL
+#include "threads.h"
 
 #define GRAPHICS_IMPL
 #include "graphics.h"

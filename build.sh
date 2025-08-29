@@ -4,13 +4,24 @@ set -xe
 
 CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
 
+OS=$(uname | tr '[:upper:]' '[:lower:]')
+
+LIBWEBP=""
+
+if [[ "$OS" == "windows"* ]]; then
+    LIBWEBP="third_party/real/libwebp/lib/libwebp.lib"
+elif [[ "$OS" == "linux"* ]]; then
+    LIBWEBP="third_party/real/libwebp/src/libwebp.a"
+else
+    echo "Unknown platform. Exiting..."
+    exit
+fi
+
 LIBS="\
-third_party/libwebp/src/libwebp.a \
+$LIBWEBP \
 -L/usr/X11R6/lib -lX11 \
 -lm \
-$(pkg-config --cflags freetype2) -lfreetype \
--lcurl
+-lcurl \
 "
 
-(cd third_party/libwebp && make -f makefile.unix)
 cc src/wallpaper.c -o wallpaper $CFLAGS $LIBS
