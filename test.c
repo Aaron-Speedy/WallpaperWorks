@@ -4,23 +4,21 @@
 #define DS_IMPL
 #include "src/ds.h"
 
-#include <stdlib.h>
-#include <stdint.h>
-
 int main() {
     Win win = {0};
     get_bg_win(&win);
 
-    while (1) {
-        MSG msg;
-        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) goto end;
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+    u32 color = 0xFF;
 
-            for (int i = 0; i < win.w * win.h; i++) {
-                win.buf[i] = 255;
-            }
+    while (1) {
+        next_event_timeout(&win, 1000);
+        switch (win.event) {
+            case EVENT_QUIT: goto end;
+            case EVENT_TIMEOUT: color = 0xFFFF0000; break;
+            // default: assert(!"Unhandled event");
+        }
+        for (int i = 0; i < win.w * win.h; i++) {
+            win.buf[i] = color;
         }
 
         draw_to_win(win);

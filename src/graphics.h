@@ -17,39 +17,34 @@ typedef struct {
     GC gc;
     XImage *img;
 } PlatformWin;
-typedef XEvent PlatformEvent;
 #elif _WIN32
 #include <Windows.h>
 typedef struct {
     HWND win;
     BITMAPINFO bitmap_info;
 } PlatformWin;
-typedef struct {
-    int do_not_use;
-} PlatformEvent;
 #else
 #error "Unsupported platform!"
 #endif
 
+typedef enum {
+    EVENT_ERR = 0,
+    EVENT_TIMEOUT,
+    EVENT_QUIT,
+    NUM_WIN_EVENTS,
+} WinEvent;
+
 typedef struct {
     int screen, dpi_x, dpi_y, w, h;
     uint32_t *buf;
-    bool redraw;
+    bool resized;
+    WinEvent event;
     PlatformWin p;
 } Win;
 
-typedef struct {
-    PlatformEvent e;
-    enum {
-        EVENT_ERR = 0,
-        EVENT_EVENT,
-        EVENT_TIMEOUT,
-    } type;
-} WinEvent;
-
 void get_bg_win(Win *win);
 void draw_to_win(Win win);
-WinEvent next_event_timeout(Win *win, int timeout_ms);
+void next_event_timeout(Win *win, int timeout_ms);
 void close_win(Win win);
 
 #endif // GRAPHICS_H
@@ -73,10 +68,15 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         win->w = client_rect.right - client_rect.left;
         win->h = client_rect.bottom - client_rect.top;
     }
-
+    
     switch (msg) {
+        case WM_TIMER: {
+            assert(win);
+            win->event = EVENT_TIMEOUT;
+        } break;
         case WM_SIZE: {
             assert(win);
+
             if (win->buf) {
                 free(win->buf);
             }
@@ -92,12 +92,18 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
             };
 
             win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-            win->redraw = true;
+            win->resized = true;
         } break;
-        case WM_DESTROY: PostQuitMessage(0); break; // TODO: Handle this as error?
-        case WM_CLOSE: PostQuitMessage(0); break;
+        case WM_DESTROY: case WM_CLOSE: {
+            assert(win);
+            win->event = EVENT_QUIT;
+            PostQuitMessage(0);
+        } break;
         case WM_PAINT: {
+            PAINTSTRUCT paint;
+            BeginPaint(pwin, &paint);
             draw_to_win(*win); // TODO: DO THIS!!!
+            EndPaint(pwin, &paint);
         } break;
         default: {
             ret = DefWindowProc(pwin, msg, hv, vv);
@@ -203,8 +209,8 @@ void draw_to_win(Win win) {
 #endif
 }
 
-WinEvent next_event_timeout(Win *win, int timeout_ms) {
-    WinEvent ret = {0};
+void next_event_timeout(Win *win, int timeout_ms) {
+    win->event = 0;
 
 #ifdef __linux__
     fd_set fds;
@@ -218,19 +224,31 @@ WinEvent next_event_timeout(Win *win, int timeout_ms) {
 
     int select_ret = select(x11_fd + 1, &fds, NULL, NULL, &tv);
 
+    XEvent e;
     if (select_ret > 0) {
-        XNextEvent(win->display, &ret.e);
-        ret.type = EVENT_EVENT;
+        XNextEvent(win->display, &e);
+        // win->event.type = EVENT_EVENT;
+        // TODO: handle events
     } else if (select_ret < 0) {
-        ret.type = EVENT_ERR;
+        win->event = EVENT_ERR;
     } else {
-        ret.type = EVENT_TIMEOUT;
+        win->event = EVENT_TIMEOUT;
     }
 #elif _WIN32
-    assert(!"Unimplemented");
-#endif
+    UINT_PTR timer_id = SetTimer(win->p.win, 1, timeout_ms, NULL);
+    if (!timer_id) {
+        win->event = EVENT_ERR;
+        return;
+    }
 
-    return ret;
+    MSG msg;
+    if (GetMessage(&msg, 0, 0, 0) > 0) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    } else win->event = EVENT_ERR;
+
+    KillTimer(NULL, timer_id);
+#endif
 }
 
 void close_win(Win win) {
