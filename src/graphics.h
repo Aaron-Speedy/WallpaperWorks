@@ -1,21 +1,45 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
+
+#ifdef __linux__
 #include <X11/Xlib.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
-
 typedef struct {
-    Display *display;
     Window win;
-    int screen, dpi_x, dpi_y, w, h;
+    Display *display;
+    int screen;
     GC gc;
     XImage *img;
+} PlatformWin;
+typedef XEvent PlatformEvent;
+#elif _WIN32
+#include <Windows.h>
+typedef struct {
+    HWND win;
+    BITMAPINFO bitmap_info;
+} PlatformWin;
+typedef struct {
+    int do_not_use;
+} PlatformEvent;
+#else
+#error "Unsupported platform!"
+#endif
+
+typedef struct {
+    int screen, dpi_x, dpi_y, w, h;
+    uint32_t *buf;
+    bool redraw;
+    PlatformWin p;
 } Win;
 
 typedef struct {
-    XEvent e;
+    PlatformEvent e;
     enum {
         EVENT_ERR = 0,
         EVENT_EVENT,
@@ -23,11 +47,10 @@ typedef struct {
     } type;
 } WinEvent;
 
-Win get_root_win();
-void close_win(Win win);
-bool draw_to_win(Win win);
-void connect_img_to_win(Win *win, u32 *buf, int w, int h);
+void get_bg_win(Win *win);
+void draw_to_win(Win win);
 WinEvent next_event_timeout(Win *win, int timeout_ms);
+void close_win(Win win);
 
 #endif // GRAPHICS_H
 
@@ -35,59 +58,153 @@ WinEvent next_event_timeout(Win *win, int timeout_ms);
 #ifndef GRAPHICS_IMPL_GUARD
 #define GRAPHICS_IMPL_GUARD
 
-Win get_root_win() {
-    Win win = {0};
+#ifdef _WIN32
 
-    win.display = XOpenDisplay(NULL);
-    if (win.display == NULL) err("Failed to open display.");
+LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
+    LRESULT ret = 0;
 
-    win.screen = DefaultScreen(win.display);
-    win.win = DefaultRootWindow(win.display);
-    XSelectInput(win.display, win.win, ExposureMask);
-    XMapWindow(win.display, win.win);
+    Win *win = (Win *) GetWindowLongPtr(pwin, GWLP_USERDATA);
+    assert(win);
 
-    win.gc = DefaultGC(win.display, win.screen);
+    win->p.win = pwin;
 
-    win.w = XDisplayWidth(win.display, win.screen);
-    win.h = XDisplayHeight(win.display, win.screen);
-    win.dpi_x = win.w / ((float) DisplayWidthMM(win.display, win.screen) / 25.4);
-    win.dpi_y = win.h / ((float) DisplayHeightMM(win.display, win.screen) / 25.4);
+    RECT client_rect;
+    GetClientRect(pwin, &client_rect);
+    win->w = client_rect.right - client_rect.left;
+    win->h = client_rect.bottom - client_rect.top;
 
-    return win;
-}
+    switch (msg) {
+        case WM_SIZE: {
+            if (win->buf) {
+                free(win->buf);
+            }
 
-void close_win(Win win) {
-    XCloseDisplay(win.display);
-}
+            win->p.bitmap_info = (BITMAPINFO) {
+                .bmiHeader = {
+                    .biSize = sizeof(win->p.bitmap_info.bmiHeader),
+                    .biWidth = win->w,
+                    .biHeight = -win->h,
+                    .biPlanes = 1,
+                    .biBitCount = 32,
+                },
+            };
 
-bool draw_to_win(Win win) {
-    if (win.img != NULL) {
-        XPutImage(
-            win.display, 
-            win.win, win.gc, win.img,
-            0, 0, 0, 0,
-            win.img->width, win.img->height
-        );
+            win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+            win->redraw = true;
+        } break;
+        case WM_DESTROY: PostQuitMessage(0); break; // TODO: Handle this as error?
+        case WM_CLOSE: PostQuitMessage(0); break;
+        case WM_PAINT: {
+            draw_to_win(*win); // TODO: DO THIS!!!
+        } break;
+        default: {
+            ret = DefWindowProc(win->p.win, msg, hv, vv);
+        } break;
     }
 
-    return XFlush(win.display);
+    return ret;
 }
+#endif
 
-void connect_img_to_win(Win *win, u32 *buf, int w, int h) {
-    if (win->img != NULL) err("The image you're trying to connect is already connected to a window.");
+void get_bg_win(Win *win) {
+    assert(win);
 
-    win->img = XCreateImage(
-        win->display,
-        DefaultVisual(win->display, win->screen),
+    *win = (Win) {0};
+
+#ifdef __linux__
+    win->p.display = XOpenDisplay(NULL);
+    if (win->p.display == NULL) err("Failed to open display.");
+
+    win->p.screen = DefaultScreen(win->p.display);
+    win->p.win = DefaultRootWindow(win->p.display);
+    XSelectInput(win->p.display, win->p.win, ExposureMask);
+    XMapWindow(win->p.display, win->p.win);
+
+    win->p.gc = DefaultGC(win->p.display, win->p.screen);
+
+    win->w = XDisplayWidth(win->p.display, win->p.screen);
+    win->h = XDisplayHeight(win->p.display, win->p.screen);
+    win->dpi_x = win->w /
+                ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
+    win->dpi_y = win->h /
+                ((float) DisplayHeightMM(win->p.display, win->p.screen) / 25.4);
+
+    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+
+    win->p.img = XCreateImage(
+        win->p.display,
+        DefaultVisual(win->p.display, win->p.screen),
         24, ZPixmap, 0, (char *) buf, w, h, 32, 0
     );
 
-    if (win->img == NULL) err("Failed to connect image.");
+    if (win->p.img == NULL) err("Failed to create window.");
+
+#elif _WIN32
+    WNDCLASS win_class = {
+        .style = CS_HREDRAW | CS_VREDRAW,
+        .lpfnWndProc = _main_win_cb,
+        .hInstance = GetModuleHandle(NULL),
+        .lpszClassName = "wallpaperworks",
+       	.hCursor = LoadCursor(NULL, IDC_ARROW),
+    };
+    RegisterClassA(&win_class); // TODO: Check for errors.
+
+    win->p.win = CreateWindowExA( // TODO: Check for errors.
+        0,
+        win_class.lpszClassName,
+        "Untited Window\n", // TODO: Add ability to change name
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        0,
+        0,
+        GetModuleHandle(NULL),
+        0
+    );
+
+    SetWindowLongPtr(win->p.win, GWLP_USERDATA, (LONG_PTR) win);
+
+    RECT client_rect;
+    GetClientRect(win->p.win, &client_rect);
+    win->w = client_rect.right - client_rect.left;
+    win->h = client_rect.bottom - client_rect.top;
+
+    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+
+    ShowWindow(win->p.win, SW_NORMAL);
+#endif
+}
+
+void draw_to_win(Win win) {
+#ifdef __linux__
+    XPutImage(
+        win.p.display, 
+        win.p.win, win.p.gc, win.p.img,
+        0, 0, 0, 0,
+        win.p.img->width, win.p.img->height
+    );
+
+    XFlush(win.display);
+#elif _WIN32
+    HDC ctx = GetDC(win.p.win);
+    StretchDIBits(
+        ctx,
+        0, 0, win.w, win.h,
+        0, 0, win.w, win.h,
+        win.buf,
+        &win.p.bitmap_info,
+        DIB_RGB_COLORS,
+        SRCCOPY
+    );
+#endif
 }
 
 WinEvent next_event_timeout(Win *win, int timeout_ms) {
     WinEvent ret = {0};
 
+#ifdef __linux__
     fd_set fds;
     struct timeval tv;
     int x11_fd = ConnectionNumber(win->display);
@@ -107,8 +224,19 @@ WinEvent next_event_timeout(Win *win, int timeout_ms) {
     } else {
         ret.type = EVENT_TIMEOUT;
     }
+#elif _WIN32
+    assert(!"Unimplemented");
+#endif
 
     return ret;
+}
+
+void close_win(Win win) {
+#ifdef __linux__
+    XCloseDisplay(win.p.display);
+#elif _WIN32
+    assert(!"Unimplemented");
+#endif
 }
 
 #endif // GRAPHICS_IMPL_GUARD

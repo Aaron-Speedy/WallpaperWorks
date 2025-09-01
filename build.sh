@@ -2,7 +2,8 @@
 
 set -xe
 
-CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
+# TODO: Remove -Wno-unused-parameter
+CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11 -Wno-unused-parameter"
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 
