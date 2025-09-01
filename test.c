@@ -17,11 +17,10 @@ int main() {
             if (msg.message == WM_QUIT) goto end;
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
 
-        for (int i = 0; i < win.w * win.h; i++) {
-            u8 r = 255 * i / (win.w * win.h);
-            win.buf[i] |= (r << 2*8);
+            for (int i = 0; i < win.w * win.h; i++) {
+                win.buf[i] = 255;
+            }
         }
 
         draw_to_win(win);

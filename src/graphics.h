@@ -64,17 +64,19 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     LRESULT ret = 0;
 
     Win *win = (Win *) GetWindowLongPtr(pwin, GWLP_USERDATA);
-    assert(win);
-
-    win->p.win = pwin;
 
     RECT client_rect;
     GetClientRect(pwin, &client_rect);
-    win->w = client_rect.right - client_rect.left;
-    win->h = client_rect.bottom - client_rect.top;
+
+    if (win) {
+        win->p.win = pwin;
+        win->w = client_rect.right - client_rect.left;
+        win->h = client_rect.bottom - client_rect.top;
+    }
 
     switch (msg) {
         case WM_SIZE: {
+            assert(win);
             if (win->buf) {
                 free(win->buf);
             }
@@ -98,7 +100,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
             draw_to_win(*win); // TODO: DO THIS!!!
         } break;
         default: {
-            ret = DefWindowProc(win->p.win, msg, hv, vv);
+            ret = DefWindowProc(pwin, msg, hv, vv);
         } break;
     }
 
