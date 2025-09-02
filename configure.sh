@@ -24,6 +24,9 @@ if [[ "$OS" == "windows"* ]]; then
     unzip curl.zip
     rm curl.zip
     mv $CURLWIN curl
+
+    cp -r ../freetype .
+    (cd freetype/ && ./configure && make)
 elif [[ "$OS" == "linux"* ]]; then
     cp -r ../libwebp .
     (cd libwebp && make -f makefile.unix)

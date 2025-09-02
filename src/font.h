@@ -17,7 +17,7 @@ typedef struct {
 
 void load_font(FFont *f, int dpi_x, int dpi_y);
 
-// oy specifies from the bottom. Returns the bounding box.
+// oy specifies the bottom of the text. Returns the bounding box.
 Image draw_text_or_get_bound(Image img, FFont *f,
                              s8 s,
                              int ox, int oy,
@@ -49,6 +49,9 @@ Image draw_text_shadow(Image img, FFont *f,
 #ifdef FONT_IMPL
 #ifndef FONT_IMPL_GUARD
 #define FONT_IMPL_GUARD
+
+#define IMAGE_IMPL
+#include "image.h"
 
 void load_font(FFont *f, int dpi_x, int dpi_y) {
     if (FT_Init_FreeType(&f->lib)) err("Failed to initialize FreeType.");
@@ -86,11 +89,10 @@ Image draw_text_or_get_bound(Image img, FFont *f,
                 min_y = ny <= min_y ? ny : min_y;
 
                 if (draw) {
-                    Color *c = img_atb(&img, nx, ny);
+                    Color *c = img_at(&img, nx, ny);
                     c->c[0] = r * v + c->c[0] * (1 - v);
                     c->c[1] = g * v + c->c[1] * (1 - v);
                     c->c[2] = b * v + c->c[2] * (1 - v);
-                    pack_color(img, nx, ny);
                 }
             }
         }
@@ -100,7 +102,6 @@ Image draw_text_or_get_bound(Image img, FFont *f,
 
     return (Image) {
         .buf = img.buf,
-        .packed = img.packed,
         .alloc_w = img.alloc_w,
         .x = min_x,
         .y = min_y,

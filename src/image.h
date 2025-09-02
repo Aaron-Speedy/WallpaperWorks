@@ -2,15 +2,10 @@
 #define IMAGE_H
 
 #include "ds.h"
-
-typedef struct {
-    u8 c[3]; // RGB
-    u32 packed; // 0xRRGGBB. Should be set to the colors in c.
-} Color;
+#include "graphics.h"
 
 typedef struct {
     Color *buf;
-    u32 *packed;
     int alloc_w; /* length of rows in allocation (num pixels). This allows
                     pixels to still be accessed even when using image slices.
                     TODO: Make the semantics for allow_w better.*/
@@ -19,9 +14,7 @@ typedef struct {
     Color none;
 } Image;
 
-int img_at(Image m, int x, int y);
-Color *img_atb(Image *m, int x, int y);
-void pack_color(Image m, int x, int y);
+Color *img_at(Image *m, int x, int y);
 Image new_img(Arena *perm, Image m);
 Image copy_img(Arena *perm, Image m);
 Image rescale_img(Arena *perm, Image img, int new_w, int new_h);
@@ -34,40 +27,35 @@ void place_img(Image onto, Image img, int px, int py);
 #ifndef IMAGE_IMPL_GUARD
 #define IMAGE_IMPL_GUARD
 
+#include <math.h>
+
 #define DS_IMPL
 #include "ds.h"
 
-int img_at(Image m, int x, int y) {
-    // assert(x < m.w);
-    // assert(y < m.h);
+#define GRAPHICS_IMPL
+#include "graphics.h"
+
+Color *img_at(Image *m, int x, int y) {
+    // assert(x < m->w);
+    // assert(y < m->h);
     // assert(0 <= x);
     // assert(0 <= y);
 
-    if (x >= m.w || y >= m.h || 0 > x || 0 > y) {
-        warning("Accessing image out of bounds at position (%d, %d).", x, y);
-        return -1;
-    }
-    return (x + m.x) + (y + m.y) * m.alloc_w;
-}
+    int i = 0;
 
-Color *img_atb(Image *m, int x, int y) {
-    int i = img_at(*m, x, y);
+    if (x >= m->w || y >= m->h || 0 > x || 0 > y) {
+        // warning("Accessing image out of bounds at position (%d, %d).", x, y);
+        i = -1;
+    } else i = (x + m->x) + (y + m->y) * m->alloc_w;
+
     if (i == -1) return &m->none;
     return &m->buf[i];
-}
-
-void pack_color(Image m, int x, int y) {
-    int i = img_at(m, x, y);
-    if (i == -1) return;
-    Color c = m.buf[i];
-    m.packed[i] = (c.c[2]) | (c.c[1] << 8) | (c.c[0] << 16);
 }
 
 Image new_img(Arena *perm, Image m) {
     Image ret = { .w = m.w, .h = m.h, .alloc_w = m.w, };
     int s = m.w * m.w;
     ret.buf = new(perm, Color, s);
-    ret.packed = new(perm, u32, s);
     return ret;
 }
 
@@ -107,15 +95,14 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
             if (y1 >= img.h) y1 = floor(a);
 
             for (int i = 0; i < 3; i++) {
-                float v00 = img_atb(&img, x0, y0)->c[i],
-                      v01 = img_atb(&img, x0, y1)->c[i],
-                      v10 = img_atb(&img, x1, y0)->c[i],
-                      v11 = img_atb(&img, x1, y1)->c[i],
+                float v00 = img_at(&img, x0, y0)->c[i],
+                      v01 = img_at(&img, x0, y1)->c[i],
+                      v10 = img_at(&img, x1, y0)->c[i],
+                      v11 = img_at(&img, x1, y1)->c[i],
                       vt  = v00 * (1.0 - dx) + v10 * dx,
                       vb  = v01 * (1.0 - dx) + v11 * dx;
-                img_atb(&ret, x, y)->c[i] = vt * (1.0 - dy) + vb * dy;
+                img_at(&ret, x, y)->c[i] = vt * (1.0 - dy) + vb * dy;
             }
-            pack_color(ret, x, y);
         }
     }
 
@@ -129,8 +116,7 @@ void place_img(Image onto, Image img, int px, int py) {
     for (int x = 0; x < img.w; x++) {
         for (int y = 0; y < img.h; y++) {
             int nx = px + x, ny = py + y;
-            *img_atb(&onto, nx, ny) = *img_atb(&img, x, y);
-            pack_color(onto, nx, ny);
+            *img_at(&onto, nx, ny) = *img_at(&img, x, y);
         }
     }
 }
@@ -140,7 +126,6 @@ Image combine_bound(Image a, Image b) {
         y = (a.y < b.y) ? a.y : b.y;
 
     assert(a.buf == b.buf);
-    assert(a.packed == b.packed);
     assert(a.alloc_w == b.alloc_w);
 
     // Calculate the new bottom-right corner by finding the maximum
@@ -150,7 +135,6 @@ Image combine_bound(Image a, Image b) {
 
     return (Image) {
         .buf = a.buf,
-        .packed = a.packed,
         .alloc_w = a.alloc_w,
         .x = x,
         .y = y,

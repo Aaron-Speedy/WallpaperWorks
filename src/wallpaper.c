@@ -1,11 +1,7 @@
 #include <time.h>
 #include <math.h>
 
-#ifdef _WIN32
-#include "../third_party/real/curl/include/curl/curl.h"
-#else
 #include <curl/curl.h>
-#endif
 
 #define DS_IMPL
 #include "ds.h"

@@ -1,3 +1,4 @@
+// TODO: See if dpi_x == dpi_y on Linux
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
@@ -10,6 +11,12 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
+typedef enum {
+    COLOR_R,
+    COLOR_G,
+    COLOR_B,
+    COLOR_A,
+} ColorEnum;
 typedef struct {
     Window win;
     Display *display;
@@ -18,6 +25,12 @@ typedef struct {
     XImage *img;
 } PlatformWin;
 #elif _WIN32
+typedef enum {
+    COLOR_B,
+    COLOR_G,
+    COLOR_R,
+    COLOR_A,
+} ColorEnum;
 #include <Windows.h>
 typedef struct {
     HWND win;
@@ -27,16 +40,21 @@ typedef struct {
 #error "Unsupported platform!"
 #endif
 
+typedef struct {
+    uint8_t c[4];
+} Color;
+
 typedef enum {
-    EVENT_ERR = 0,
+    NO_EVENT = 0,
     EVENT_TIMEOUT,
     EVENT_QUIT,
+    EVENT_ERR,
     NUM_WIN_EVENTS,
 } WinEvent;
 
 typedef struct {
     int screen, dpi_x, dpi_y, w, h;
-    uint32_t *buf;
+    Color *buf;
     bool resized;
     WinEvent event;
     PlatformWin p;
@@ -67,6 +85,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         win->p.win = pwin;
         win->w = client_rect.right - client_rect.left;
         win->h = client_rect.bottom - client_rect.top;
+        win->dpi_x = win->dpi_y = GetDpiForWindow(pwin);
     }
     
     switch (msg) {
@@ -178,6 +197,7 @@ void get_bg_win(Win *win) {
     GetClientRect(win->p.win, &client_rect);
     win->w = client_rect.right - client_rect.left;
     win->h = client_rect.bottom - client_rect.top;
+    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
 
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
 
