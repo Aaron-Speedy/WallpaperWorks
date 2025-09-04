@@ -3,7 +3,7 @@
 set -xe
 
 # TODO: Remove -Wno-unused-parameter
-CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11 -Wno-unused-parameter"
+CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 
@@ -37,5 +37,5 @@ $FREETYPE \
 
 rm -rf build
 mkdir build
-# cc src/wallpaper.c -o build/wallpaper $CFLAGS $LIBS
-cc test.c -o build/test $CFLAGS $LIBS
+cc src/wallpaper.c -o build/wallpaper $CFLAGS $LIBS
+# cc test.c -o build/test $CFLAGS $LIBS

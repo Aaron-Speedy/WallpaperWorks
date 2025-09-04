@@ -32,11 +32,11 @@ int main() {
     Win win = {0};
     get_bg_win(&win);
 
-    // FFont font = {
-    //     .path = "./resources/Mallory/Mallory Medium.ttf",
-    //     .pt = 30,
-    // };
-    // load_font(&font, win.dpi_x, win.dpi_y);
+    FFont font = {
+        .path = "./resources/Mallory/Mallory Medium.ttf",
+        .pt = 30,
+    };
+    load_font(&font, win.dpi_x, win.dpi_y);
 
     Color color = { .c[COLOR_B] = 255, };
 
@@ -49,14 +49,14 @@ int main() {
         }
 
 
-        // draw_text(
-        //     screen,
-        //     &font,
-        //     s8("Hi. Watch me guys."),
-        //     screen.w * 0.5,
-        //     screen.h * 0.5,
-        //     255, 255, 255
-        // );
+        draw_text(
+            screen,
+            &font,
+            s8("Ah! Like gold fall the leaves of the wind."),
+            screen.w * 0.3,
+            screen.h * 0.5,
+            255, 255, 255
+        );
 
         draw_to_win(win);
 

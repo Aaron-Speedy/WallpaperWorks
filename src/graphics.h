@@ -310,6 +310,7 @@ void close_win(Win win) {
 #ifdef __linux__
     XCloseDisplay(win.p.display);
 #elif _WIN32
+    (void) win;
     assert(!"Unimplemented");
 #endif
 }

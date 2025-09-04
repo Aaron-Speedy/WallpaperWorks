@@ -142,21 +142,27 @@ void *background_thread() {
             WebPGetInfo(img_data.buf, img_data.len, &img.w, &img.h);
             printf("%dx%d\n", img.w, img.h);
 
-            u8 *buf = WebPDecodeRGB(img_data.buf, img_data.len, &img.w, &img.h);
+            Image decoded = (Image) {
+                .buf = (Color *) WebPDecodeRGBA(img_data.buf, img_data.len, &img.w, &img.h),
+                .w = img.w,
+                .h = img.h,
+                .alloc_w = img.w,
+            };
 
             img = new_img(&scratch, img);
 
             for (int x = 0; x < img.w; x++) {
                 for (int y = 0; y < img.h; y++) {
-                    int i = img_at(img, x, y);
-                    img.buf[i].c[0] = buf[i * 3 + 0];
-                    img.buf[i].c[1] = buf[i * 3 + 1];
-                    img.buf[i].c[2] = buf[i * 3 + 2];
-                    pack_color(img, x, y);
+                    Color d = *img_at(&decoded, x, y);
+                    *img_at(&img, x, y) = (Color) {
+                        .c[COLOR_R] = d.c[0],
+                        .c[COLOR_G] = d.c[1],
+                        .c[COLOR_B] = d.c[2],
+                    };
                 }
             }
 
-            WebPFree(buf);
+            WebPFree(decoded.buf);
 
             b = rescale_img(
                 NULL,
@@ -175,7 +181,6 @@ void *background_thread() {
                                                     iteration, it's already
                                                     locked. */
             free(background.img.buf);
-            free(background.img.packed);
             background.img = b;
             background.redraw = true;
         pthread_mutex_unlock(&lock);
@@ -190,7 +195,8 @@ int main() {
     srand(time(0));
 
     Arena perm = new_arena(1 * GiB);
-    Win win = get_root_win();
+    Win win = {0};
+    get_bg_win(&win);
 
     background.img.w = win.w;
     background.img.h = win.h;
@@ -199,9 +205,6 @@ int main() {
     if (pthread_create(&thread, NULL, background_thread, NULL)) {
         err("Failed to create background thread.");
     }
-
-    Image screen = new_img(&perm, (Image) { .w = win.w, .h = win.h, });
-    connect_img_to_win(&win, screen.packed, screen.w, screen.h);
 
     FFont time_font = {
         .path = "./resources/Mallory/Mallory/Mallory Medium.ttf",
@@ -263,6 +266,10 @@ int main() {
         Image date_bound = get_bound_of_text(&date_font, date_str);
 
         pthread_mutex_lock(&lock);
+            Image screen = (Image) {
+                .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
+            };
+
             if (background.redraw) {
                 place_img(screen, background.img, 0.0, 0.0);
                 background.redraw = false;
@@ -292,23 +299,25 @@ int main() {
 
             prev_bound = combine_bound(time_bound, date_bound);
             prev_bound.buf = background.img.buf;
-            prev_bound.packed = background.img.packed;
         pthread_mutex_unlock(&lock);
 
         struct timeval time_val;
         gettimeofday(&time_val, NULL);
 
-        WinEvent event = next_event_timeout(
+        next_event_timeout(
             &win,
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
-
-        if (!event.type) continue; // error
+        switch (win.event) {
+            case EVENT_QUIT: goto end;
+            default: break;
+        }
 
         draw_to_win(win);
     }
 
     close_win(win);
 
+end:
     return 0;
 }
