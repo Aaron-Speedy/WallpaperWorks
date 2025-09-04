@@ -1,7 +1,10 @@
+#define HAVE_GETTIMEOFDAY
 #include <time.h>
+#include <sys/time.h>
 #include <math.h>
 
 #include <curl/curl.h>
+#include <pthread.h>
 
 #define DS_IMPL
 #include "ds.h"
@@ -265,11 +268,12 @@ int main() {
 
         Image date_bound = get_bound_of_text(&date_font, date_str);
 
+        // TODO: win.resized
         pthread_mutex_lock(&lock);
-            Image screen = (Image) {
+           Image screen = (Image) {
                 .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
             };
-
+            
             if (background.redraw) {
                 place_img(screen, background.img, 0.0, 0.0);
                 background.redraw = false;
