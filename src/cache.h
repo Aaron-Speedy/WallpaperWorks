@@ -5,6 +5,8 @@
 
 #include "ds.h"
 
+s8 get_or_make_cache_dir(Arena *perm, s8 name);
+
 #endif // CACHE_H
 
 #ifdef CACHE_IMPL

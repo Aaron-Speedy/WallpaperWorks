@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <curl/curl.h>
 
 #define err(...) do { \
     fprintf(stderr, "Error: "); \
@@ -28,7 +29,20 @@
 #define DS_IMPL
 #include "src/ds.h"
 
+#define NETWORKING_IMPL
+#include "src/networking.h"
+
 int main() {
+    Arena perm = new_arena(1 * GiB);
+
+    CURL *curl = curl_easy_init(); 
+    if (!curl) err("Failed to initialize libcurl.");
+
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
+
+    s8 r = download(&perm, curl, s8("https://infotoast.org/images/num.txt"));
+    print("%ld\n", r.len);
+
     Win win = {0};
     get_bg_win(&win);
 
@@ -42,7 +56,6 @@ int main() {
 
     while (1) {
         Image screen = { .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w, };
-
 
         for (int i = 0; i < screen.w * screen.h; i++) {
             screen.buf[i] = (i % 100 >= 50) ? color : (Color) {0};

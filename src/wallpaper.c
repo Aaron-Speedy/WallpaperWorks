@@ -36,10 +36,8 @@
 #define CACHE_IMPL
 #include "cache.h"
 
-typedef struct {
-    Arena *perm;
-    s8 s;
-} S8ArenaPair;
+#define NETWORKING_IMPL
+#include "networking.h"
 
 typedef struct {
     bool redraw;
@@ -49,41 +47,14 @@ typedef struct {
 Background background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-size_t curl_get_data(char *buf, size_t item_len, size_t item_num, void *data) {
-    size_t n = item_len * item_num;
-    S8ArenaPair *into = (S8ArenaPair *)(data);
-
-    char *r = new(into->perm, char, n);
-    if (!into->s.buf) into->s.buf = (u8 *) r;
-    memcpy(r, buf, n);
-    into->s.len += n;
-
-    return n;
-}
-
-s8 download(Arena *perm, CURL *curl, s8 url) {
-    url = s8_newcat(perm, url, s8("\0"));
-
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_get_data);
-
-    S8ArenaPair data = { .perm = perm, };
-
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
-    curl_easy_setopt(curl, CURLOPT_URL, url.buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &data);
-
-    CURLcode result = curl_easy_perform(curl);
-    if (result != CURLE_OK) warning("Failed to download resource: %s.", curl_easy_strerror(result));
-
-    return data.s;
-}
-
 void *background_thread() {
     Arena perm = new_arena(1 * GiB),
           perm_2 = new_arena(1 * KiB);
 
     CURL *curl = curl_easy_init(); 
     if (!curl) err("Failed to initialize libcurl.");
+
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
     int timeout_s = 60;
@@ -118,6 +89,7 @@ void *background_thread() {
 
             s8 img_data = {0};
             {
+
                 s8 a0 = s8_copy(&scratch, s8("/"));
                         u64_to_s8(&scratch, rand() % (n + 1), 0);
                 s8 al = s8_copy(&scratch, s8(".webp"));
@@ -210,7 +182,7 @@ int main() {
     }
 
     FFont time_font = {
-        .path = "./resources/Mallory/Mallory/Mallory Medium.ttf",
+        .path = "../resources/Mallory/Mallory Medium.ttf",
         .pt = 100,
     };
     load_font(&time_font, win.dpi_x, win.dpi_y);
@@ -270,24 +242,24 @@ int main() {
 
         // TODO: win.resized
         pthread_mutex_lock(&lock);
-           Image screen = (Image) {
-                .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
+            Image screen = (Image) {
+                 .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
             };
-            
+             
             if (background.redraw) {
                 place_img(screen, background.img, 0.0, 0.0);
                 background.redraw = false;
             } else place_img(screen, prev_bound, prev_bound.x, prev_bound.y);
 
-           time_bound = draw_text_shadow(
-                screen,
-                &time_font,
-                time_str,
-                screen.w - 1 - screen.w * time_x - time_bound.w,
-                screen.h - 1 - screen.h * time_y,
-                255, 255, 255,
-                time_shadow_x * screen.w, time_shadow_y * screen.h,
-                0, 0, 0
+            time_bound = draw_text_shadow(
+                 screen,
+                 &time_font,
+                 time_str,
+                 screen.w - 1 - screen.w * time_x - time_bound.w,
+                 screen.h - 1 - screen.h * time_y,
+                 255, 255, 255,
+                 time_shadow_x * screen.w, time_shadow_y * screen.h,
+                 0, 0, 0
             );
 
             date_bound = draw_text_shadow(
