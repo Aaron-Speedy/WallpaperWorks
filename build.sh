@@ -45,5 +45,7 @@ $CURL \
 $FREETYPE \
 "
 
+cp resources/font.ttf build/
+
 cc src/wallpaper.c -o build/wallpaper $CFLAGS $LIBS
 # cc test.c -o build/test $CFLAGS $LIBS

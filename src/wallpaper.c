@@ -182,7 +182,7 @@ int main() {
     }
 
     FFont time_font = {
-        .path = "../resources/Mallory/Mallory Medium.ttf",
+        .path = "font.ttf",
         .pt = 100,
     };
     load_font(&time_font, win.dpi_x, win.dpi_y);
