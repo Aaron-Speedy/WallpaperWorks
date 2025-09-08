@@ -39,6 +39,8 @@
 #define NETWORKING_IMPL
 #include "networking.h"
 
+#include "recs.h"
+
 typedef struct {
     bool redraw;
     Image img;
@@ -172,6 +174,7 @@ int main() {
     Arena perm = new_arena(1 * GiB);
     Win win = {0};
     get_bg_win(&win);
+    show_systemtray_icon(&win, ICON_ID, "Wallpaper");
 
     background.img.w = win.w;
     background.img.h = win.h;

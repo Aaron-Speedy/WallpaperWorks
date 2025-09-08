@@ -64,6 +64,7 @@ typedef struct {
 void get_bg_win(Win *win);
 void draw_to_win(Win win);
 void next_event_timeout(Win *win, int timeout_ms);
+void show_systemtray_icon(Win *win, int icon_id, char *tooltip);
 void close_win(Win win);
 
 #endif // GRAPHICS_H
@@ -304,6 +305,26 @@ void next_event_timeout(Win *win, int timeout_ms) {
 
     KillTimer(0, timer_id);
 #endif
+}
+
+// From rc file
+void show_systemtray_icon(Win *win, int icon_id, char *tooltip) {
+    #ifdef __linux__
+    (void) win;
+    assert(!"Unimplemented");
+    #elif _WIN32
+    NOTIFYICONDATA nid = {
+        .cbSize = sizeof(NOTIFYICONDATA),
+        .hWnd = win->p.win,
+        .uID = icon_id,
+        .uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
+        .uCallbackMessage = WM_USER + 1,
+    };
+    nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(icon_id));
+    lstrcpy(nid.szTip, tooltip);
+    Shell_NotifyIcon(NIM_ADD, &nid); // TODO: check for errors
+    // TODO: Add function to delete system tray icon
+    #endif
 }
 
 void close_win(Win win) {

@@ -1,1 +1,2 @@
-IDI_ICON ICON "../build/icon.ico"
+#include "recs.h"
+ICON_ID ICON "../build/icon.ico"
