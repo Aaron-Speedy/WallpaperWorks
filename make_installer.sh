@@ -15,4 +15,3 @@ exit 1
 fi
 
 "$NSIS" src/installer.nsi
-echo "Hello"

@@ -2,9 +2,9 @@
 !define EXE_NAME "wallpaper"
 
 Name "${NAME} Installer"
-OutFile "../build/${NAME}Installer.exe"
+OutFile "../build/${EXE_NAME}_installer.exe"
 InstallDir $PROGRAMFILES\${NAME}
-; Icon "icon.ico"
+; Icon "../build/icon.ico"
 
 InstallDirRegKey HKLM "Software\${NAME}" "Install_Dir"
 
