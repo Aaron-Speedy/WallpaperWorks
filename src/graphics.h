@@ -396,22 +396,34 @@ void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
         .hWnd = win->p.win,
         .uID = icon_id,
         .uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
-        .uCallbackMessage = WM_USER + 1,
+        .uCallbackMessage = SYS_TRAY_MSG,
     };
     nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(icon_id));
     lstrcpy(nid.szTip, tooltip);
     Shell_NotifyIcon(NIM_ADD, &nid); // TODO: check for errors
-    // TODO: Add function to delete system tray icon
     #endif
 }
 
-void close_win(Win win) {
+void kill_sys_tray_icon(Win *win, int icon_id) {
+    NOTIFYICONDATA nid = {
+        .cbSize = sizeof(NOTIFYICONDATA),
+        .hWnd = win->p.win,
+        .uID = icon_id,
+    };
+    Shell_NotifyIcon(NIM_DELETE, &nid);
+}
+
+void close_win(Win *win) {
 #ifdef __linux__
-    XCloseDisplay(win.p.display);
+    XCloseDisplay(win->p.display);
 #elif _WIN32
-    (void) win;
-    assert(!"Unimplemented");
+    if (win->is_bg) {
+        SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, 0, SPIF_UPDATEINIFILE);
+    }
+    DestroyWindow(win->p.win);
 #endif
+    free(win->buf);
+    *win = (Win) {0};
 }
 
 #endif // GRAPHICS_IMPL_GUARD
