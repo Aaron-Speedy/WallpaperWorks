@@ -63,13 +63,12 @@ void *background_thread() {
     s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
     int timeout_s = 60;
     bool initial = true;
-    pthread_mutex_lock(&lock); // initial lock
 
     while (true) {
         Arena scratch = perm, e_scratch = perm_2;
 
         time_t a_time = time(NULL);
-        Image b = {0};
+        Image b = {0}, non_scaled = {0};
 
         while (true) {
             s8 base = s8("https://infotoast.org/images");
@@ -117,23 +116,29 @@ void *background_thread() {
                 }
             }
 
-            Image img = {0};
-            WebPGetInfo(img_data.buf, img_data.len, &img.w, &img.h);
-            printf("%dx%d\n", img.w, img.h);
+            non_scaled = (Image) {0};
+            WebPGetInfo(
+                img_data.buf, img_data.len,
+                &non_scaled.w, &non_scaled.h
+            );
+            printf("%dx%d\n", non_scaled.w, non_scaled.h);
 
             Image decoded = (Image) {
-                .buf = (Color *) WebPDecodeRGBA(img_data.buf, img_data.len, &img.w, &img.h),
-                .w = img.w,
-                .h = img.h,
-                .alloc_w = img.w,
+                .buf = (Color *) WebPDecodeRGBA(
+                    img_data.buf, img_data.len,
+                    &non_scaled.w, &non_scaled.h
+                ),
+                .w = non_scaled.w,
+                .h = non_scaled.h,
+                .alloc_w = non_scaled.w,
             };
 
-            img = new_img(&scratch, img);
+            non_scaled = new_img(NULL, non_scaled);
 
-            for (int x = 0; x < img.w; x++) {
-                for (int y = 0; y < img.h; y++) {
+            for (int x = 0; x < non_scaled.w; x++) {
+                for (int y = 0; y < non_scaled.h; y++) {
                     Color d = *img_at(&decoded, x, y);
-                    *img_at(&img, x, y) = (Color) {
+                    *img_at(&non_scaled, x, y) = (Color) {
                         .c[COLOR_R] = d.c[0],
                         .c[COLOR_G] = d.c[1],
                         .c[COLOR_B] = d.c[2],
@@ -145,7 +150,7 @@ void *background_thread() {
 
             b = rescale_img(
                 NULL,
-                img,
+                non_scaled,
                 background.img.w,
                 background.img.h
             );
@@ -160,7 +165,9 @@ void *background_thread() {
                                                     iteration, it's already
                                                     locked. */
             free(background.img.buf);
+            free(background.non_scaled.buf);
             background.img = b;
+            background.non_scaled = non_scaled;
             background.redraw = true;
         pthread_mutex_unlock(&lock);
 
@@ -245,8 +252,15 @@ int main() {
 
         Image date_bound = get_bound_of_text(&date_font, date_str);
 
-        // TODO: win.resized
+        while (!background.img.buf);
         pthread_mutex_lock(&lock);
+            if (win.resized) {
+                Image m = rescale_img(NULL, background.non_scaled, win.w, win.h);
+                free(background.img.buf);
+                background.img = m;
+                background.redraw = true;
+                win.resized = false;
+            }
             Image screen = (Image) {
                  .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
             };
