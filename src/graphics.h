@@ -131,7 +131,46 @@ void _find_worker_w(PlatformWin *win) {
     // }
 }
 
+void _resize_win(Win *win) {
+    if (win->buf) {
+        free(win->buf);
+    }
+
+    win->p.bitmap_info = (BITMAPINFO) {
+        .bmiHeader = {
+            .biSize = sizeof(win->p.bitmap_info.bmiHeader),
+            .biWidth = win->w,
+            .biHeight = -win->h,
+            .biPlanes = 1,
+            .biBitCount = 32,
+        },
+    };
+
+    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+    win->resized = true;
+}
+
+void _fill_working_area(Win *win) {
+    RECT old;
+    GetClientRect(win->p.win, &old);
+
+    RECT work = {0};
+    SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
+    int w = work.right - work.left,
+        h = work.bottom - work.top;
+
+    bool resized = work.left != old.left ||
+                   work.right != old.right ||
+                   work.bottom != old.bottom ||
+                   work.top != old.top;
+    if (resized) {
+        SetWindowPos(win->p.win, 0, work.left, work.top, w, h, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+    }
+}
+
 LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
+    LRESULT ret = 0;
+
     Win *win = (Win *) GetWindowLongPtr(pwin, GWLP_USERDATA);
 
     // If the window isn't passed, do the default window procedure.
@@ -224,19 +263,23 @@ void get_bg_win(Win *win) {
         .style = CS_HREDRAW | CS_VREDRAW,
         .lpfnWndProc = _main_win_cb,
         .hInstance = GetModuleHandle(0),
-        .lpszClassName = "wallpaperworks",
+        .lpszClassName = "WallpaperWorks",
        	.hCursor = LoadCursor(0, IDC_ARROW),
     };
     RegisterClassA(&win_class); // TODO: Check for errors.
 
-    _find_worker_w(&win->p);
+    RECT work = {0};
+    SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
+    int w = work.right - work.left;
+    int h = work.bottom - work.top;
 
     win->p.win = CreateWindowExA( // TODO: Check for errors.
         0,
         win_class.lpszClassName,
         "Untited Window", // TODO: Add ability to change name
         WS_POPUP | WS_BORDER | WS_SYSMENU | WS_MAXIMIZE,
-        0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+        // WS_OVERLAPPEDWINDOW,
+        work.left, work.top, w, h,
         0,
         0,
         GetModuleHandle(0),
@@ -245,14 +288,14 @@ void get_bg_win(Win *win) {
 
     // SetWindowLong(win->p.win, GWL_STYLE, 0);
     SetWindowLongPtr(win->p.win, GWLP_USERDATA, (LONG_PTR) win);
+
+    _find_worker_w(&win->p);
     SetParent(win->p.win, win->p.worker_w);
 
-    RECT rect;
-    GetClientRect(win->p.win, &rect);
-    win->w = rect.right - rect.left;
-    win->h = rect.bottom - rect.top;
+    _fill_working_area(win);
+
     win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
-    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+    win->buf = calloc(w * h, sizeof(*win->buf));
 
     ShowWindow(win->p.win, SW_NORMAL);
 #endif

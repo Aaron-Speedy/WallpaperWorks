@@ -43,13 +43,15 @@
 
 typedef struct {
     bool redraw;
-    Image img;
+    Image img, non_scaled;
 } Background;
 
 Background background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *background_thread() {
+    pthread_mutex_lock(&lock); // initial lock
+
     Arena perm = new_arena(1 * GiB),
           perm_2 = new_arena(1 * KiB);
 
@@ -287,15 +289,13 @@ int main() {
             &win,
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
-        while (get_next_event(&win)) {
-            
-        }
+        while (get_next_event(&win));
         switch (win.event.type) {
         case EVENT_QUIT: goto end;
         case EVENT_SYS_TRAY: {
             switch (win.event.click) {
             case CLICK_L_UP: case CLICK_M_UP: case CLICK_R_UP: {
-                goto end;                    
+                goto end;
             } break;
             default: break;
             }

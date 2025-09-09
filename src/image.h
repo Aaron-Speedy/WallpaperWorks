@@ -54,7 +54,7 @@ Color *img_at(Image *m, int x, int y) {
 
 Image new_img(Arena *perm, Image m) {
     Image ret = { .w = m.w, .h = m.h, .alloc_w = m.w, };
-    int s = m.w * m.w;
+    int s = m.w * m.h;
     ret.buf = new(perm, Color, s);
     return ret;
 }
