@@ -2,9 +2,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
+#include <pthread.h>
 
 #include <curl/curl.h>
-#include <pthread.h>
 
 #define DS_IMPL
 #include "ds.h"
@@ -174,7 +174,7 @@ int main() {
     Arena perm = new_arena(1 * GiB);
     Win win = {0};
     get_bg_win(&win);
-    show_systemtray_icon(&win, ICON_ID, "Wallpaper");
+    show_sys_tray_icon(&win, ICON_ID, "Stop WallpaperWorks");
 
     background.img.w = win.w;
     background.img.h = win.h;
@@ -283,20 +283,31 @@ int main() {
         struct timeval time_val;
         gettimeofday(&time_val, NULL);
 
-        next_event_timeout(
+        wait_event_timeout(
             &win,
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
-        switch (win.event) {
-            case EVENT_QUIT: goto end;
+        while (get_next_event(&win)) {
+            
+        }
+        switch (win.event.type) {
+        case EVENT_QUIT: goto end;
+        case EVENT_SYS_TRAY: {
+            switch (win.event.click) {
+            case CLICK_L_UP: case CLICK_M_UP: case CLICK_R_UP: {
+                goto end;                    
+            } break;
             default: break;
+            }
+        } break;
+        default: break;
         }
 
         draw_to_win(win);
     }
 
-    close_win(win);
-
 end:
+    kill_sys_tray_icon(&win, ICON_ID);
+    close_win(&win);
     return 0;
 }

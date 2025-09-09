@@ -45,27 +45,42 @@ typedef struct {
     uint8_t c[4];
 } Color;
 
-typedef enum {
-    NO_EVENT = 0,
-    EVENT_TIMEOUT,
-    EVENT_QUIT,
-    EVENT_ERR,
-    NUM_WIN_EVENTS,
+typedef struct {
+    enum {
+        NO_EVENT = 0,
+        EVENT_TIMEOUT,
+        EVENT_QUIT,
+        EVENT_ERR,
+        EVENT_SYS_TRAY,
+        NUM_WIN_EVENTS,
+    } type;
+    enum {
+        NO_CLICK,
+        CLICK_L_UP,
+        CLICK_L_DOWN,
+        CLICK_M_UP,
+        CLICK_M_DOWN,
+        CLICK_R_UP,
+        CLICK_R_DOWN,
+        NUM_CLICKS,
+    } click;
 } WinEvent;
 
 typedef struct {
     int screen, dpi_x, dpi_y, w, h;
     Color *buf;
-    bool resized;
+    bool resized, is_bg;
     WinEvent event;
     PlatformWin p;
 } Win;
 
 void get_bg_win(Win *win);
 void draw_to_win(Win win);
-void next_event_timeout(Win *win, int timeout_ms);
-void show_systemtray_icon(Win *win, int icon_id, char *tooltip);
-void close_win(Win win);
+void wait_event_timeout(Win *win, int timeout_ms);
+bool get_next_event(Win *win);
+void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
+void kill_sys_tray_icon(Win *win, int icon_id);
+void close_win(Win *win);
 
 #endif // GRAPHICS_H
 
@@ -74,6 +89,8 @@ void close_win(Win win);
 #define GRAPHICS_IMPL_GUARD
 
 #ifdef _WIN32
+
+#define SYS_TRAY_MSG (WM_USER + 1)
 
 // https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
 
@@ -129,50 +146,50 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     win->w = client_rect.right - client_rect.left;
     win->h = client_rect.bottom - client_rect.top;
     win->dpi_x = win->dpi_y = GetDpiForWindow(pwin);
-    
+
     switch (msg) {
-        case WM_TIMER: win->event = EVENT_TIMEOUT; break;
-        case WM_SIZE: {
-            if (win->buf) {
-                free(win->buf);
-            }
+    case WM_TIMER: win->event.type = EVENT_TIMEOUT; break;
+    case WM_SIZE: _resize_win(win); break;
+    case WM_DESTROY: case WM_CLOSE: {
+        win->event.type = EVENT_QUIT;
+        PostQuitMessage(0);
+    } break;
+    case WM_PAINT: {
+        PAINTSTRUCT paint;
+        BeginPaint(pwin, &paint);
+        draw_to_win(*win); // TODO: DO THIS!!!
+        EndPaint(pwin, &paint);
+    } break;
+    case SYS_TRAY_MSG: {
+        win->event.type = EVENT_SYS_TRAY;
 
-            win->p.bitmap_info = (BITMAPINFO) {
-                .bmiHeader = {
-                    .biSize = sizeof(win->p.bitmap_info.bmiHeader),
-                    .biWidth = win->w,
-                    .biHeight = -win->h,
-                    .biPlanes = 1,
-                    .biBitCount = 32,
-                },
-            };
+        int c = 0;
+        switch (LOWORD(vv)) {
+        case WM_LBUTTONUP:   c = CLICK_L_UP; break;
+        case WM_LBUTTONDOWN: c = CLICK_L_DOWN; break;
+        case WM_MBUTTONUP:   c = CLICK_M_UP; break;
+        case WM_MBUTTONDOWN: c = CLICK_M_DOWN; break;
+        case WM_RBUTTONUP:   c = CLICK_R_UP; break;
+        case WM_RBUTTONDOWN: c = CLICK_R_DOWN; break;
+        }
+        win->event.click = c;
+    } break;
+    case WM_SETTINGCHANGE: {
 
-            win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-            win->resized = true;
-        } break;
-        case WM_DESTROY: case WM_CLOSE: {
-            win->event = EVENT_QUIT;
-            PostQuitMessage(0);
-        } break;
-        case WM_PAINT: {
-            PAINTSTRUCT paint;
-            BeginPaint(pwin, &paint);
-            draw_to_win(*win); // TODO: DO THIS!!!
-            EndPaint(pwin, &paint);
-        } break;
-        default: {
-            return DefWindowProc(pwin, msg, hv, vv);
-        } break;
+    } break;
+    default: {
+        ret = DefWindowProc(pwin, msg, hv, vv);
+    } break;
     }
 
-    return 0;
+    return ret;
 }
 #endif
 
 void get_bg_win(Win *win) {
     assert(win);
 
-    *win = (Win) {0};
+    *win = (Win) { .is_bg = true, };
 
 #ifdef __linux__
     win->p.display = XOpenDisplay(0);
@@ -262,11 +279,12 @@ void draw_to_win(Win win) {
         DIB_RGB_COLORS,
         SRCCOPY
     );
+    ReleaseDC(win.p.win, ctx);
 #endif
 }
 
-void next_event_timeout(Win *win, int timeout_ms) {
-    win->event = 0;
+void wait_event_timeout(Win *win, int timeout_ms) {
+    win->event = (WinEvent) {0};
 
 #ifdef __linux__
     fd_set fds;
@@ -286,29 +304,46 @@ void next_event_timeout(Win *win, int timeout_ms) {
         // win->event.type = EVENT_EVENT;
         // TODO: handle events
     } else if (select_ret < 0) {
-        win->event = EVENT_ERR;
+        win->event.type = EVENT_ERR;
     } else {
-        win->event = EVENT_TIMEOUT;
+        win->event.type = EVENT_TIMEOUT;
     }
 #elif _WIN32
     UINT_PTR timer_id = SetTimer(win->p.win, 1, timeout_ms, 0);
     if (!timer_id) {
-        win->event = EVENT_ERR;
+        win->event.type = EVENT_ERR;
         return;
     }
 
-    MSG msg;
-    if (GetMessage(&msg, 0, 0, 0) > 0) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    } else win->event = EVENT_ERR;
-
+    if (WaitMessage()) {
+    } else win->event.type = EVENT_ERR;
+    
     KillTimer(0, timer_id);
 #endif
 }
 
+bool get_next_event(Win *win) {
+    bool ret = 0;
+#ifdef __linux__
+assert(!"Unimplemented");
+#elif _WIN32
+    MSG msg;
+    if (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        ret = true;
+    }
+    
+    if (win->event.type == EVENT_TIMEOUT && win->is_bg) {
+        _fill_working_area(win);
+    }
+
+    return ret;
+#endif
+}
+
 // From rc file
-void show_systemtray_icon(Win *win, int icon_id, char *tooltip) {
+void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
     #ifdef __linux__
     (void) win;
     assert(!"Unimplemented");
