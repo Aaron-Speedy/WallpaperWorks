@@ -46,6 +46,12 @@ typedef struct {
     Image img, non_scaled;
 } Background;
 
+typedef struct Wallpaper Wallpaper;
+typedef struct Wallpaper {
+    Win win;
+    Wallpaper *next, *prev;    
+} Wallpaper;
+
 Background background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -181,8 +187,10 @@ int main() {
     srand(time(0));
 
     Arena perm = new_arena(1 * GiB);
-    Win win = {0};
-    get_bg_win(&win);
+    Win win;
+    new_win(&win, 500, 500);
+    make_win_bg(&win, (PlatformMonitor) {0});
+    show_win(win);
     show_sys_tray_icon(&win, ICON_ID, "Stop WallpaperWorks");
 
     background.img.w = win.w;

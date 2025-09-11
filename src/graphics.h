@@ -25,13 +25,16 @@ typedef struct {
     XImage *img;
 } PlatformWin;
 #elif _WIN32
+#include <Windows.h>
 typedef enum {
     COLOR_B,
     COLOR_G,
     COLOR_R,
     COLOR_A,
 } ColorEnum;
-#include <Windows.h>
+typedef struct {
+    RECT rect;
+} PlatformMonitor;
 typedef struct {
     HWND win;
     BITMAPINFO bitmap_info;
@@ -66,7 +69,7 @@ typedef struct {
     } click;
 } WinEvent;
 
-typedef struct {
+typedef struct Win {
     int screen, dpi_x, dpi_y, w, h;
     Color *buf;
     bool resized, is_bg;
@@ -74,7 +77,9 @@ typedef struct {
     PlatformWin p;
 } Win;
 
-void get_bg_win(Win *win);
+void new_win(Win *win, int w, int h);
+void make_win_bg(Win *win, PlatformMonitor m);
+void show_win(Win win);
 void draw_to_win(Win win);
 void wait_event_timeout(Win *win, int timeout_ms);
 bool get_next_event(Win *win);
@@ -94,41 +99,28 @@ void close_win(Win *win);
 
 // https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
 
-BOOL _find_worker_w_cb(HWND top, LPARAM vv) {
+BOOL _make_worker_w_cb(HWND top, LPARAM vv) {
     HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
     if (p) {
-        PlatformWin *win = (PlatformWin *) vv;
-        win->worker_w = FindWindowExA(0, top, "WorkerW", 0);
-        win->shell = p;
+        *((HWND *) vv) = FindWindowExA(0, top, "WorkerW", 0);
         return false;
     }
     return true;
 }
 
-void _find_worker_w(PlatformWin *win) {
+HWND _make_worker_w() {
     HWND progman = FindWindowA("Progman", 0);
-    if (!progman) return;
+    if (!progman) return 0;
 
     SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
 
-    EnumWindows(_find_worker_w_cb, (LPARAM) win);
+    HWND ret = 0;
+    
+    EnumWindows(_make_worker_w_cb, (LPARAM) &ret);
 
     // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
 
-    // p.worker_w = FindWindowExA(progman, 0, "WorkerW", 0);
-
-    // HWND shell = FindWindowExA(progman, 0, "SHELLDLL_DefView", 0);
-
-    // if (shell) {
-    //     assert(0);
-    //     worker_w = GetWindow(shell, GW_HWNDPREV);
-    //     char name[256] = {0};
-    //     GetClassName(worker_w, name, sizeof(name));
-    //     if (!strcmp(name, "WorkerW")) {
-    //         assert(0);
-    //         return false;
-    //     }
-    // }
+    return ret;
 }
 
 void _resize_win(Win *win) {
@@ -225,10 +217,8 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
 }
 #endif
 
-void get_bg_win(Win *win) {
-    assert(win);
-
-    *win = (Win) { .is_bg = true, };
+void new_win(Win *win, int w, int h) {
+    *win = (Win) {0};
 
 #ifdef __linux__
     win->p.display = XOpenDisplay(0);
@@ -270,15 +260,12 @@ void get_bg_win(Win *win) {
 
     RECT work = {0};
     SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
-    int w = work.right - work.left;
-    int h = work.bottom - work.top;
 
     win->p.win = CreateWindowExA( // TODO: Check for errors.
         0,
         win_class.lpszClassName,
         "Untited Window", // TODO: Add ability to change name
-        WS_POPUP | WS_BORDER | WS_SYSMENU | WS_MAXIMIZE,
-        // WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW,
         work.left, work.top, w, h,
         0,
         0,
@@ -286,18 +273,35 @@ void get_bg_win(Win *win) {
         0
     );
 
-    // SetWindowLong(win->p.win, GWL_STYLE, 0);
     SetWindowLongPtr(win->p.win, GWLP_USERDATA, (LONG_PTR) win);
-
-    _find_worker_w(&win->p);
-    SetParent(win->p.win, win->p.worker_w);
-
-    _fill_working_area(win);
 
     win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
     win->buf = calloc(w * h, sizeof(*win->buf));
+#endif
+}
 
-    ShowWindow(win->p.win, SW_NORMAL);
+void make_win_bg(Win *win, PlatformMonitor m) {
+    win->is_bg = true;
+#ifdef __linux__
+    assert(!"Unimplemented")
+#elif _WIN32
+    HWND worker_w = _make_worker_w();
+    SetParent(win->p.win, worker_w);
+
+    SetWindowLongPtrA(
+        win->p.win,
+        GWL_STYLE,
+        WS_POPUP | WS_BORDER | WS_SYSMENU | WS_MAXIMIZE
+    );
+    _fill_working_area(win);
+#endif
+}
+
+void show_win(Win win) {
+#ifdef __linux__
+    assert(!"Unimplemented")
+#elif _WIN32
+    ShowWindow(win.p.win, SW_NORMAL);
 #endif
 }
 
