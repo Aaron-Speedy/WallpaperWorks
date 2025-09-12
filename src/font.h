@@ -25,12 +25,13 @@ Image draw_text_or_get_bound(Image img, FFont *f,
                              s8 s,
                              int ox, int oy,
                              u8 r, u8 g, u8 b,
-                             bool draw);
+                             bool draw, bool mix);
 Image get_bound_of_text(FFont *f, s8 s); // See above comment
 Image draw_text(Image img, FFont *f, // See above comment
                 s8 s,
                 int ox, int oy,
-                u8 r, u8 g, u8 b);
+                u8 r, u8 g, u8 b,
+                bool mix);
 
 Image draw_text_or_get_bound_shadow(Image img, FFont *f,
                              s8 s,
@@ -38,14 +39,15 @@ Image draw_text_or_get_bound_shadow(Image img, FFont *f,
                              u8 r, u8 g, u8 b,
                              int shadow_x, int shadow_y,
                              u8 shadow_r, u8 shadow_g, u8 shadow_b,
-                             bool draw);
+                             bool draw, bool mix);
 Image get_bound_of_text_shadow(FFont *f, s8 s, int shadow_x, int shadow_y);
 Image draw_text_shadow(Image img, FFont *f,
                              s8 s,
                              int ox, int oy,
                              u8 r, u8 g, u8 b,
                              int shadow_x, int shadow_y,
-                             u8 shadow_r, u8 shadow_g, u8 shadow_b);
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b,
+                             bool mix);
 
 #endif // FONT_H
 
@@ -77,7 +79,7 @@ Image draw_text_or_get_bound(Image img, FFont *f,
                              s8 s,
                              int ox, int oy,
                              u8 r, u8 g, u8 b,
-                             bool draw) {
+                             bool draw, bool mix) {
     FT_GlyphSlot slot = f->face->glyph;
     int pen_x = ox, pen_y = oy;
 
@@ -89,8 +91,8 @@ Image draw_text_or_get_bound(Image img, FFont *f,
 
         for (u64 x = 0; x < slot->bitmap.width; x++) {
             for (u64 y = 0; y < slot->bitmap.rows; y++) {
-                float v = slot->bitmap.buffer[x + y * slot->bitmap.width] / 255.0;
-                if (v == 0.0) continue;
+                u8 alpha = slot->bitmap.buffer[x + y * slot->bitmap.width];
+                if (!alpha) continue;
 
                 int nx = x + pen_x + slot->bitmap_left,
                     ny = (y + pen_y - slot->bitmap_top);
@@ -101,10 +103,14 @@ Image draw_text_or_get_bound(Image img, FFont *f,
                 min_y = ny <= min_y ? ny : min_y;
 
                 if (draw) {
-                    Color *c = img_at(&img, nx, ny);
-                    c->c[0] = r * v + c->c[0] * (1 - v);
-                    c->c[1] = g * v + c->c[1] * (1 - v);
-                    c->c[2] = b * v + c->c[2] * (1 - v);
+                    Color *c1 = img_at(&img, nx, ny);
+                    Color c2 = {
+                        .c[COLOR_R] = r,
+                        .c[COLOR_G] = g,
+                        .c[COLOR_B] = b,
+                        .c[COLOR_A] = alpha,
+                    };
+                    *c1 = mix ? mix_colors(*c1, c2) : c2;
                 }
             }
         }
@@ -123,14 +129,15 @@ Image draw_text_or_get_bound(Image img, FFont *f,
 }
 
 Image get_bound_of_text(FFont *f, s8 s) {
-    return draw_text_or_get_bound((Image) {0}, f, s, 0, 0, 0, 0, 0, false);
+    return draw_text_or_get_bound((Image) {0}, f, s, 0, 0, 0, 0, 0, 0, 0);
 }
 
 Image draw_text(Image img, FFont *f,
                 s8 s,
                 int ox, int oy,
-                u8 r, u8 g, u8 b) {
-    return draw_text_or_get_bound(img, f, s, ox, oy, r, g, b, true);
+                u8 r, u8 g, u8 b,
+                bool mix) {
+    return draw_text_or_get_bound(img, f, s, ox, oy, r, g, b, true, mix);
 }
 
 Image draw_text_or_get_bound_shadow(Image img, FFont *f,
@@ -139,14 +146,19 @@ Image draw_text_or_get_bound_shadow(Image img, FFont *f,
                              u8 r, u8 g, u8 b,
                              int shadow_x, int shadow_y,
                              u8 shadow_r, u8 shadow_g, u8 shadow_b,
-                             bool draw) {
+                             bool draw, bool mix) {
     Image shadow = draw_text_or_get_bound(
         img, f, s,
         ox + shadow_x, oy + shadow_y,
         shadow_r, shadow_g, shadow_b,
-        draw
+        draw, mix
     );
-    Image plain = draw_text_or_get_bound(img, f, s, ox, oy, r, g, b, draw);
+    Image plain = draw_text_or_get_bound(
+        img, f, s,
+        ox, oy,
+        r, g, b,
+        draw, mix
+    );
     return combine_bound(shadow, plain);
 }
 
@@ -155,7 +167,7 @@ Image get_bound_of_text_shadow(FFont *f, s8 s, int shadow_x, int shadow_y) {
         (Image) {0}, f, s,
         0, 0, 0, 0, 0,
         shadow_x, shadow_y, 0, 0, 0,
-        false
+        false, false
     );
 }
 
@@ -164,14 +176,15 @@ Image draw_text_shadow(Image img, FFont *f,
                              int ox, int oy,
                              u8 r, u8 g, u8 b,
                              int shadow_x, int shadow_y,
-                             u8 shadow_r, u8 shadow_g, u8 shadow_b) {
+                             u8 shadow_r, u8 shadow_g, u8 shadow_b,
+                             bool mix) {
     return draw_text_or_get_bound_shadow(
         img, f, s,
         ox, oy,
         r, g, b,
         shadow_x, shadow_y,
         shadow_r, shadow_g, shadow_b,
-        true
+        true, mix
     );
 }
 

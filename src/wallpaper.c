@@ -182,7 +182,8 @@ typedef struct {
     Image imgs[MAX_PLATFORM_MONITORS];
     FFontLib font_lib;
     char *font_path;
-    float time_font_pt, date_font_pt;
+    float time_pt, date_pt;
+    float time_size, date_size;
     HWND worker_w;
 } Wins;
 
@@ -199,24 +200,39 @@ void replace_wins(Wins *wins, Monitors *m) {
     for (int i = 0; i < wins->monitors.len; i++) {
         Win *w = &wins->wins[i];
         wins->monitors.buf[i] = m->buf[i];
+
+        new_win(w, 500, 500);
+        make_win_bg(w, wins->worker_w);
+        move_win_to_monitor(w, m->buf[i]);
+        _fill_working_area(w);
+
+        int d = w->w < w->h ? w->w : w->h;
+
         load_font(
             &wins->time_fonts[i],
             wins->font_lib,
             wins->font_path,
-            wins->time_font_pt,
+            wins->time_pt,
             w->dpi_x, w->dpi_y
+        );
+        FT_Set_Pixel_Sizes(
+            wins->time_fonts[i].face,
+            d * wins->time_size,
+            d * wins->time_size
         );
         load_font(
             &wins->date_fonts[i],
             wins->font_lib,
             wins->font_path,
-            wins->date_font_pt,
+            wins->date_pt,
             w->dpi_x, w->dpi_y
         );
-        new_win(w, 500, 500);
-        make_win_bg(w, wins->worker_w);
-        move_win_to_monitor(w, m->buf[i]);
-        _fill_working_area(w);
+        FT_Set_Pixel_Sizes(
+            wins->date_fonts[i].face,
+            d * wins->date_size,
+            d * wins->date_size
+        );
+
         show_win(*w);
     }
 }
@@ -230,8 +246,10 @@ int main() {
         .worker_w = _make_worker_w(),
         .font_lib = init_ffont(),
         .font_path = "./font.ttf",
-        .time_font_pt = 130,
-        .date_font_pt = 30,
+        .time_pt = 130,
+        .date_pt = 26,
+        .time_size = 0.2,
+        .date_size = 0.05,
     };
 
     {
@@ -245,7 +263,7 @@ int main() {
         err("Failed to create background thread.");
     }
 
-    float time_x = 0.03, time_y = 0.05, // from the bottom-right
+    float dt_x = 0.04, dt_y = 0.06, // from the bottom-right
           date_x = 0.0, date_y = 0.05, // from the top-left of time
           time_shadow_x = 0.002, time_shadow_y = 0.002,
           date_shadow_x = 0.002, date_shadow_y = 0.002; 
@@ -254,7 +272,7 @@ int main() {
         pthread_mutex_lock(&lock);
         pthread_mutex_unlock(&lock);
 
-        Arena scratch  = perm;
+        Arena scratch = perm;
         time_t ftime = time(NULL) + 1;
 
         struct tm *lt = localtime(&ftime);
@@ -311,30 +329,49 @@ int main() {
                  .alloc_w = win->w,
             };
          
-            place_img(screen, *bg_img, 0.0, 0.0);
+            place_img(screen, *bg_img, 0, 0, 0);
 
-            Image time_bound = get_bound_of_text(time_font, time_str);
-            time_bound = draw_text_shadow(
-                 screen,
+            Image dt_box = { .w = screen.w, .h = screen.h, };
+            dt_box = new_img(&scratch, dt_box);
+
+            Image dt_bound = get_bound_of_text(time_font, time_str);
+            dt_bound = draw_text_shadow(
+                 dt_box,
                  time_font,
                  time_str,
-                 screen.w - 1 - screen.w * time_x - time_bound.w,
-                 screen.h - 1 - screen.h * time_y,
+                 screen.w / 2, screen.h / 2 + dt_bound.h,
+                 // screen.w - 1 - screen.w * time_x - time_bound.w,
+                 // screen.h - 1 - screen.h * time_y,
                  255, 255, 255,
                  time_shadow_x * screen.w, time_shadow_y * screen.h,
-                 0, 0, 0
+                 0, 0, 0,
+                 false
             );
 
             // Image date_bound = get_bound_of_text(date_font, date_str);
-            draw_text_shadow(
-                screen,
+            dt_bound = combine_bound(draw_text_shadow(
+                dt_box,
                 date_font,
                 date_str,
-                time_bound.x + screen.w * date_x,
-                time_bound.y - screen.h * date_y,
+                dt_bound.x + screen.w * date_x,
+                dt_bound.y - screen.h * date_y,
                 255, 255, 255,
                 date_shadow_x * screen.w, date_shadow_y * screen.h,
-                0, 0, 0
+                0, 0, 0,
+                false
+            ), dt_bound);
+
+            dt_box.w = dt_bound.w;
+            dt_box.h = dt_bound.h;
+            dt_box.x = dt_bound.x;
+            dt_box.y = dt_bound.y;
+
+            place_img(
+                screen,
+                dt_box,
+                screen.w - 1 - screen.w * dt_x - dt_bound.w,
+                screen.h - 1 - screen.h * dt_y - dt_bound.h,
+                true
             );
         }
         if (background.redraw) background.redraw = false;

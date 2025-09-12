@@ -19,7 +19,8 @@ Image new_img(Arena *perm, Image m);
 Image copy_img(Arena *perm, Image m);
 Image rescale_img(Arena *perm, Image img, int new_w, int new_h);
 Image combine_bound(Image a, Image b);
-void place_img(Image onto, Image img, int px, int py);
+Color mix_colors(Color a, Color b);
+void place_img(Image onto, Image img, int px, int py, bool mix);
 
 #endif // IMAGE_H
 
@@ -61,7 +62,7 @@ Image new_img(Arena *perm, Image m) {
 
 Image copy_img(Arena *perm, Image m) {
     Image ret = new_img(perm, m);
-    place_img(ret, m, 0, 0);
+    place_img(ret, m, 0, 0, 0);
     return ret;
 }
 
@@ -109,14 +110,27 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
     return ret;
 }
 
-void place_img(Image onto, Image img, int px, int py) {
+Color mix_colors(Color a, Color b) {
+    float v = b.c[COLOR_A] / 255.0;
+    Color ret = {
+        .c[COLOR_R] = b.c[COLOR_R] * v + a.c[COLOR_R] * (1 - v),
+        .c[COLOR_G] = b.c[COLOR_G] * v + a.c[COLOR_G] * (1 - v),
+        .c[COLOR_B] = b.c[COLOR_B] * v + a.c[COLOR_B] * (1 - v),
+        .c[COLOR_A] = 255,
+    };
+    return ret;
+}
+
+void place_img(Image onto, Image img, int px, int py, bool mix) {
     // assert(px + img.w <= onto.w);
     // assert(py + img.h <= onto.h);
 
     for (int x = 0; x < img.w; x++) {
         for (int y = 0; y < img.h; y++) {
             int nx = px + x, ny = py + y;
-            *img_at(&onto, nx, ny) = *img_at(&img, x, y);
+            Color *a = img_at(&onto, nx, ny),
+                  *b = img_at(&img, x, y);
+            *a = mix ? mix_colors(*a, *b) : *b;
         }
     }
 }
