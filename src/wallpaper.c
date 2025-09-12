@@ -46,6 +46,7 @@
 #include "networking.h"
 
 #include "recs.h"
+#include "../build/raw_font_buf.h"
 
 typedef struct {
     bool redraw;
@@ -181,7 +182,8 @@ typedef struct {
     FFont date_fonts[MAX_PLATFORM_MONITORS];
     Image imgs[MAX_PLATFORM_MONITORS];
     FFontLib font_lib;
-    char *font_path;
+    u8 *raw_buf;
+    int raw_len;
     float time_pt, date_pt;
     float time_size, date_size;
     HWND worker_w;
@@ -211,7 +213,8 @@ void replace_wins(Wins *wins, Monitors *m) {
         load_font(
             &wins->time_fonts[i],
             wins->font_lib,
-            wins->font_path,
+            wins->raw_buf,
+            wins->raw_len,
             wins->time_pt,
             w->dpi_x, w->dpi_y
         );
@@ -223,7 +226,8 @@ void replace_wins(Wins *wins, Monitors *m) {
         load_font(
             &wins->date_fonts[i],
             wins->font_lib,
-            wins->font_path,
+            wins->raw_buf,
+            wins->raw_len,
             wins->date_pt,
             w->dpi_x, w->dpi_y
         );
@@ -245,7 +249,9 @@ int main() {
     Wins wins = {
         .worker_w = _make_worker_w(),
         .font_lib = init_ffont(),
-        .font_path = "./font.ttf",
+        .raw_buf = raw_font_buf,
+        .raw_len = raw_font_buf_len,
+        // .font_path = "./font.ttf",
         .time_pt = 130,
         .date_pt = 26,
         .time_size = 0.2,

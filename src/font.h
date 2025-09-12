@@ -17,7 +17,9 @@ typedef struct {
 } FFont;
 
 FFontLib init_ffont();
-void load_font(FFont *f, FFontLib lib, char *path, float pt, int dpi_x, int dpi_y);
+void load_font(FFont *f, FFontLib lib,
+               u8 *raw, int raw_len,
+               float pt, int dpi_x, int dpi_y);
 void free_font(FFont f);
 
 // oy specifies the bottom of the text. Returns the bounding box.
@@ -64,8 +66,10 @@ FFontLib init_ffont() {
     return ret;
 }
 
-void load_font(FFont *f, FFontLib lib, char *path, float pt, int dpi_x, int dpi_y) {
-    if (FT_New_Face(lib.lib, path, 0, &f->face)) err("Failed to create FreeType font face.");
+void load_font(FFont *f, FFontLib lib,
+               u8 *raw, int raw_len,
+               float pt, int dpi_x, int dpi_y) {
+    if (FT_New_Memory_Face(lib.lib, raw, raw_len, 0, &f->face)) err("Failed to create FreeType font face.");
     if (FT_Set_Char_Size(f->face, 0, pt * 64.0, dpi_x, dpi_y)) {
         err("Failed to set character size on font.");
     }

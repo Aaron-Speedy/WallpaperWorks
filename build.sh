@@ -6,6 +6,7 @@ rm -rf build
 mkdir build
 
 cp -r resources/* build/
+xxd -i -n raw_font_buf build/font.ttf > build/raw_font_buf.h
 
 # TODO: Remove -Wno-unused-parameter
 CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
@@ -53,3 +54,5 @@ $FREETYPE \
 
 cc src/wallpaper.c -o build/wallpaper $CFLAGS $LIBS $OTHER
 # cc test.c -o build/test $CFLAGS $LIBS
+
+rm build/font.ttf build/raw_font_buf.h
