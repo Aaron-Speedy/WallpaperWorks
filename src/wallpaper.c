@@ -254,7 +254,7 @@ int main() {
         // .font_path = "./font.ttf",
         .time_pt = 130,
         .date_pt = 26,
-        .time_size = 0.2,
+        .time_size = 0.18,
         .date_size = 0.05,
     };
 
