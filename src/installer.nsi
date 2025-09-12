@@ -1,5 +1,5 @@
-!define NAME "Wallpaper"
-!define EXE_NAME "wallpaper"
+!define NAME "WallpaperWorks"
+!define EXE_NAME "wallpaper_works"
 
 Name "${NAME} Installer"
 OutFile "../build/${EXE_NAME}_installer.exe"

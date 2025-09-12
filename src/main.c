@@ -69,7 +69,7 @@ void *background_thread() {
 
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 
-    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper"));
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper_works"));
     int timeout_s = 60;
     bool initial = true;
 

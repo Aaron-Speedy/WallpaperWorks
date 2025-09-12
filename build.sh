@@ -52,7 +52,7 @@ $CURL \
 $FREETYPE \
 "
 
-cc src/wallpaper.c -o build/wallpaper $CFLAGS $LIBS $OTHER
+cc src/main.c -o build/wallpaper_works $CFLAGS $LIBS $OTHER
 # cc test.c -o build/test $CFLAGS $LIBS
 
 rm build/font.ttf build/raw_font_buf.h
