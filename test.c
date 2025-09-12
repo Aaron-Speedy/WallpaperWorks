@@ -32,56 +32,117 @@
 #define NETWORKING_IMPL
 #include "src/networking.h"
 
+typedef struct {
+    Monitors monitors;
+    Win wins[MAX_PLATFORM_MONITORS];
+    FFont fonts[MAX_PLATFORM_MONITORS];
+    FFontLib font_lib;
+    char *font_path;
+    int font_pt;
+    HWND worker_w;
+} Wins;
+
+void replace_wins(Wins *wins, Monitors *m) {
+    for (int i = 0; i < wins->monitors.len; i++) {
+        Win *w = &wins->wins[i];
+        w->is_bg = false; // to make sure the wallpaper isn't cleared
+        free_font(wins->fonts[i]);
+        close_win(w);
+    }
+
+    wins->monitors.len = m->len;
+    for (int i = 0; i < wins->monitors.len; i++) {
+        Win *w = &wins->wins[i];
+        wins->monitors.buf[i] = m->buf[i];
+        load_font(
+            &wins->fonts[i],
+            wins->font_lib,
+            wins->font_path,
+            wins->font_pt,
+            w->dpi_x, w->dpi_y
+        );
+        new_win(w, 500, 500);
+        make_win_bg(w, wins->worker_w);
+        move_win_to_monitor(w, m->buf[i]);
+        _fill_working_area(w);
+        show_win(*w);
+    }
+}
+
 int main() {
-    Arena perm = new_arena(1 * GiB);
+    // Arena perm = new_arena(1 * GiB);
 
-    CURL *curl = curl_easy_init(); 
-    if (!curl) err("Failed to initialize libcurl.");
+    // Monitors m = {0};
+    // collect_monitors(&m);
 
-    curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
+    // print("%d", m.len);
 
-    s8 r = download(&perm, curl, s8("https://infotoast.org/images/num.txt"));
-    print("%ld\n", r.len);
-
-    Win win = {0};
-    get_bg_win(&win);
-
-    FFont font = {
-        .path = "./resources/Mallory/Mallory Medium.ttf",
-        .pt = 30,
+    Wins wins = {
+        .worker_w = _make_worker_w(),
+        .font_lib = init_ffont(),
+        .font_path = "./font.ttf",
+        .font_pt = 70,
     };
-    load_font(&font, win.dpi_x, win.dpi_y);
 
-    Color color = { .c[COLOR_B] = 255, };
+    {
+        Monitors m;
+        collect_monitors(&m);
+        replace_wins(&wins, &m);
+    }
+
+    // show_sys_tray_icon(&wins.wins[0], ICON_ID, "Stop WallpaperWorks");
+
+    Color colors[2] = {
+        { .c[COLOR_G] = 0, },
+        { .c[COLOR_R] = 0, },
+    };
 
     while (1) {
-        Image screen = { .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w, };
+        for (int i = 0; i < wins.monitors.len; i++) {
+            Win *win = &wins.wins[i];
+            FFont *font = &wins.fonts[i];
 
-        for (int i = 0; i < screen.w * screen.h; i++) {
-            screen.buf[i] = (i % 100 >= 50) ? color : (Color) {0};
+            Image screen = {
+                .buf = win->buf,
+                .w = win->w, .h = win->h,
+                .alloc_w = win->w,
+            };
+
+            for (int j = 0; j < screen.w * screen.h; j++) {
+                screen.buf[j] = colors[i];
+            }
+
+            // draw_text(
+            //     screen,
+            //     font,
+            //     s8("Ah! Like fools, men scream hatred."),
+            //     screen.w * 0.3,
+            //     screen.h * 0.5,
+            //     255, 255, 255
+            // );
+
+            draw_to_win(*win);
+
+            wait_event_timeout(
+                win,
+                1000
+            );
+            while (get_next_event(win));
+            switch (win->event.type) {
+            case EVENT_QUIT: goto end;
+            // case EVENT_TIMEOUT: color = (Color) { .c[COLOR_R] = 255, }; break;
+            default: break;
+            }
         }
 
-
-        draw_text(
-            screen,
-            &font,
-            s8("Ah! Like gold fall the leaves of the wind."),
-            screen.w * 0.3,
-            screen.h * 0.5,
-            255, 255, 255
-        );
-
-        draw_to_win(win);
-
-        next_event_timeout(&win, 1000);
-        switch (win.event) {
-            case NO_EVENT: break;
-            case EVENT_QUIT: goto end;
-            case EVENT_TIMEOUT: color = (Color) { .c[COLOR_R] = 255, }; break;
-            default: assert(!"Unhandled event");
+        Monitors monitors = {0};
+        collect_monitors(&monitors);
+        if (did_monitors_change(&wins.monitors, &monitors)) {
+            replace_wins(&wins, &monitors);
         }
     }
 
-    end:
+end:
+    // close_win(&win); // TODO
     return 0;
 }

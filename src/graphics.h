@@ -16,7 +16,7 @@ typedef enum {
     COLOR_G,
     COLOR_B,
     COLOR_A,
-} ColorEnum;
+} PlatformColorEnum;
 typedef struct {
     Window win;
     Display *display;
@@ -31,14 +31,13 @@ typedef enum {
     COLOR_G,
     COLOR_R,
     COLOR_A,
-} ColorEnum;
+} PlatformColorEnum;
 typedef struct {
     RECT rect;
 } PlatformMonitor;
 typedef struct {
     HWND win;
     BITMAPINFO bitmap_info;
-    HWND worker_w, shell;
 } PlatformWin;
 #else
 #error "Unsupported platform!"
@@ -47,6 +46,12 @@ typedef struct {
 typedef struct {
     uint8_t c[4];
 } Color;
+
+#define MAX_PLATFORM_MONITORS 100
+typedef struct {
+    PlatformMonitor buf[MAX_PLATFORM_MONITORS];
+    int len;
+} Monitors;
 
 typedef struct {
     enum {
@@ -78,9 +83,10 @@ typedef struct Win {
 } Win;
 
 void new_win(Win *win, int w, int h);
-void make_win_bg(Win *win, PlatformMonitor m);
+void make_win_bg(Win *win, HWND worker_w);
 void show_win(Win win);
 void draw_to_win(Win win);
+void collect_monitors(Monitors *m);
 void wait_event_timeout(Win *win, int timeout_ms);
 bool get_next_event(Win *win);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
@@ -139,6 +145,7 @@ void _resize_win(Win *win) {
     };
 
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
     win->resized = true;
 }
 
@@ -146,8 +153,19 @@ void _fill_working_area(Win *win) {
     RECT old;
     GetClientRect(win->p.win, &old);
 
-    RECT work = {0};
-    SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
+    MONITORINFO info = { .cbSize = sizeof(MONITORINFO), };
+
+    RECT old_abs;
+    GetWindowRect(win->p.win, &old_abs);
+    POINT point = { old_abs.left, old_abs.top, };
+    HMONITOR monitor = MonitorFromPoint(point, 0);
+    assert(monitor);
+
+    bool yes = GetMonitorInfoA(monitor, &info);
+    assert(yes);
+
+    RECT work = info.rcWork;
+
     int w = work.right - work.left,
         h = work.bottom - work.top;
 
@@ -155,8 +173,16 @@ void _fill_working_area(Win *win) {
                    work.right != old.right ||
                    work.bottom != old.bottom ||
                    work.top != old.top;
+
     if (resized) {
-        SetWindowPos(win->p.win, 0, work.left, work.top, w, h, SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+        win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
+        SetWindowPos(
+            win->p.win,
+            0,
+            work.left, work.top,
+            w, h,
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
+        );
     }
 }
 
@@ -183,7 +209,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     case WM_SIZE: _resize_win(win); break;
     case WM_DESTROY: case WM_CLOSE: {
         win->event.type = EVENT_QUIT;
-        PostQuitMessage(0);
+        // PostQuitMessage(0);
     } break;
     case WM_PAINT: {
         PAINTSTRUCT paint;
@@ -204,9 +230,6 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         case WM_RBUTTONDOWN: c = CLICK_R_DOWN; break;
         }
         win->event.click = c;
-    } break;
-    case WM_SETTINGCHANGE: {
-
     } break;
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);
@@ -280,19 +303,19 @@ void new_win(Win *win, int w, int h) {
 #endif
 }
 
-void make_win_bg(Win *win, PlatformMonitor m) {
+void make_win_bg(Win *win, HWND worker_w) {
     win->is_bg = true;
 #ifdef __linux__
     assert(!"Unimplemented")
 #elif _WIN32
-    HWND worker_w = _make_worker_w();
     SetParent(win->p.win, worker_w);
 
     SetWindowLongPtrA(
         win->p.win,
         GWL_STYLE,
-        WS_POPUP | WS_BORDER | WS_SYSMENU | WS_MAXIMIZE
+        WS_POPUP | WS_BORDER | WS_SYSMENU
     );
+
     _fill_working_area(win);
 #endif
 }
@@ -328,6 +351,54 @@ void draw_to_win(Win win) {
     );
     ReleaseDC(win.p.win, ctx);
 #endif
+}
+
+BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
+    Monitors *m = (Monitors *) vv;
+    m->buf[m->len++] = (PlatformMonitor) {
+        .rect = *rect,
+    };
+    return true;
+}
+
+void collect_monitors(Monitors *m) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+#elif _WIN32
+    EnumDisplayMonitors(NULL, NULL, _collect_monitors_cb, (LPARAM) m);
+#endif
+}
+
+void move_win_to_monitor(Win *win, PlatformMonitor m) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+#elif _WIN32
+    SetWindowPos(
+        win->p.win,
+        0,
+        m.rect.left, m.rect.top,
+        win->w, win->h,
+        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
+    );
+#endif
+}
+
+bool are_monitors_equal(PlatformMonitor a, PlatformMonitor b) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+#elif _WIN32
+    // print("%ld, %ld, %ld, %ld", a.rect.left, a.rect.top, a.rect.right, a.rect.bottom);
+    // print("%ld, %ld, %ld, %ld", b.rect.left, b.rect.top, b.rect.right, b.rect.bottom);
+    return EqualRect(&a.rect, &b.rect);
+#endif
+}
+
+bool did_monitors_change(Monitors *a, Monitors *b) {
+    if (a->len != b->len) return true;
+    for (int i = 0; i < a->len; i++) {
+        if (!are_monitors_equal(a->buf[i], b->buf[i])) return true;
+    }
+    return false;
 }
 
 void wait_event_timeout(Win *win, int timeout_ms) {
@@ -372,7 +443,7 @@ void wait_event_timeout(Win *win, int timeout_ms) {
 bool get_next_event(Win *win) {
     bool ret = 0;
 #ifdef __linux__
-assert(!"Unimplemented");
+    assert(!"Unimplemented");
 #elif _WIN32
     MSG msg;
     if (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
@@ -380,7 +451,7 @@ assert(!"Unimplemented");
         DispatchMessage(&msg);
         ret = true;
     }
-    
+
     if (win->event.type == EVENT_TIMEOUT && win->is_bg) {
         _fill_working_area(win);
     }

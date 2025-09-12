@@ -9,13 +9,16 @@
 #include "image.h"
 
 typedef struct {
-    char *path; // TODO: Bake font into executable.
-    float pt;
     FT_Library lib;
+} FFontLib;
+
+typedef struct {
     FT_Face face;
 } FFont;
 
-void load_font(FFont *f, int dpi_x, int dpi_y);
+FFontLib init_ffont();
+void load_font(FFont *f, FFontLib lib, char *path, float pt, int dpi_x, int dpi_y);
+void free_font(FFont f);
 
 // oy specifies the bottom of the text. Returns the bounding box.
 Image draw_text_or_get_bound(Image img, FFont *f,
@@ -53,12 +56,21 @@ Image draw_text_shadow(Image img, FFont *f,
 #define IMAGE_IMPL
 #include "image.h"
 
-void load_font(FFont *f, int dpi_x, int dpi_y) {
-    if (FT_Init_FreeType(&f->lib)) err("Failed to initialize FreeType.");
-    if (FT_New_Face(f->lib, f->path, 0, &f->face)) err("Failed to create FreeType font face.");
-    if (FT_Set_Char_Size(f->face, 0, f->pt * 64.0, dpi_x, dpi_y)) {
+FFontLib init_ffont() {
+    FFontLib ret = {0};
+    if (FT_Init_FreeType(&ret.lib)) err("Failed to initialize FreeType.");
+    return ret;
+}
+
+void load_font(FFont *f, FFontLib lib, char *path, float pt, int dpi_x, int dpi_y) {
+    if (FT_New_Face(lib.lib, path, 0, &f->face)) err("Failed to create FreeType font face.");
+    if (FT_Set_Char_Size(f->face, 0, pt * 64.0, dpi_x, dpi_y)) {
         err("Failed to set character size on font.");
     }
+}
+
+void free_font(FFont f) {
+    if (FT_Done_Face(f.face)) err("Failed to free font");
 }
 
 Image draw_text_or_get_bound(Image img, FFont *f,

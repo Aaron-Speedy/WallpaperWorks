@@ -22,6 +22,12 @@
   fprintf(stderr, "\n"); \
 } while (0);
 
+#define print(format, ...) do { \
+    char buf[1024]; \
+    _snprintf_s(buf, sizeof(buf), _TRUNCATE, format, __VA_ARGS__); \
+    MessageBox(NULL, buf, "Debug Message", MB_OK); \
+} while (0);
+
 #include "../third_party/libwebp/src/webp/decode.h"
 
 #define GRAPHICS_IMPL
@@ -43,14 +49,8 @@
 
 typedef struct {
     bool redraw;
-    Image img, non_scaled;
+    Image img;
 } Background;
-
-typedef struct Wallpaper Wallpaper;
-typedef struct Wallpaper {
-    Win win;
-    Wallpaper *next, *prev;    
-} Wallpaper;
 
 Background background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -74,7 +74,7 @@ void *background_thread() {
         Arena scratch = perm, e_scratch = perm_2;
 
         time_t a_time = time(NULL);
-        Image b = {0}, non_scaled = {0};
+        Image b = {0};
 
         while (true) {
             s8 base = s8("https://infotoast.org/images");
@@ -122,29 +122,29 @@ void *background_thread() {
                 }
             }
 
-            non_scaled = (Image) {0};
+            b = (Image) {0};
             WebPGetInfo(
                 img_data.buf, img_data.len,
-                &non_scaled.w, &non_scaled.h
+                &b.w, &b.h
             );
-            printf("%dx%d\n", non_scaled.w, non_scaled.h);
+            printf("%dx%d\n", b.w, b.h);
 
             Image decoded = (Image) {
                 .buf = (Color *) WebPDecodeRGBA(
                     img_data.buf, img_data.len,
-                    &non_scaled.w, &non_scaled.h
+                    &b.w, &b.h
                 ),
-                .w = non_scaled.w,
-                .h = non_scaled.h,
-                .alloc_w = non_scaled.w,
+                .w = b.w,
+                .h = b.h,
+                .alloc_w = b.w,
             };
 
-            non_scaled = new_img(NULL, non_scaled);
+            b = new_img(NULL, b);
 
-            for (int x = 0; x < non_scaled.w; x++) {
-                for (int y = 0; y < non_scaled.h; y++) {
+            for (int x = 0; x < b.w; x++) {
+                for (int y = 0; y < b.h; y++) {
                     Color d = *img_at(&decoded, x, y);
-                    *img_at(&non_scaled, x, y) = (Color) {
+                    *img_at(&b, x, y) = (Color) {
                         .c[COLOR_R] = d.c[0],
                         .c[COLOR_G] = d.c[1],
                         .c[COLOR_B] = d.c[2],
@@ -153,13 +153,6 @@ void *background_thread() {
             }
 
             WebPFree(decoded.buf);
-
-            b = rescale_img(
-                NULL,
-                non_scaled,
-                background.img.w,
-                background.img.h
-            );
 
             break;
         }
@@ -171,9 +164,7 @@ void *background_thread() {
                                                     iteration, it's already
                                                     locked. */
             free(background.img.buf);
-            free(background.non_scaled.buf);
             background.img = b;
-            background.non_scaled = non_scaled;
             background.redraw = true;
         pthread_mutex_unlock(&lock);
 
@@ -183,41 +174,81 @@ void *background_thread() {
     curl_easy_cleanup(curl);
 }
 
+typedef struct {
+    Monitors monitors;
+    Win wins[MAX_PLATFORM_MONITORS];
+    FFont time_fonts[MAX_PLATFORM_MONITORS];
+    FFont date_fonts[MAX_PLATFORM_MONITORS];
+    Image imgs[MAX_PLATFORM_MONITORS];
+    FFontLib font_lib;
+    char *font_path;
+    float time_font_pt, date_font_pt;
+    HWND worker_w;
+} Wins;
+
+void replace_wins(Wins *wins, Monitors *m) {
+    for (int i = 0; i < wins->monitors.len; i++) {
+        Win *w = &wins->wins[i];
+        w->is_bg = false; // to make sure the wallpaper isn't cleared
+        free_font(wins->time_fonts[i]);
+        free_font(wins->date_fonts[i]);
+        close_win(w);
+    }
+
+    wins->monitors.len = m->len;
+    for (int i = 0; i < wins->monitors.len; i++) {
+        Win *w = &wins->wins[i];
+        wins->monitors.buf[i] = m->buf[i];
+        load_font(
+            &wins->time_fonts[i],
+            wins->font_lib,
+            wins->font_path,
+            wins->time_font_pt,
+            w->dpi_x, w->dpi_y
+        );
+        load_font(
+            &wins->date_fonts[i],
+            wins->font_lib,
+            wins->font_path,
+            wins->date_font_pt,
+            w->dpi_x, w->dpi_y
+        );
+        new_win(w, 500, 500);
+        make_win_bg(w, wins->worker_w);
+        move_win_to_monitor(w, m->buf[i]);
+        _fill_working_area(w);
+        show_win(*w);
+    }
+}
+
 int main() {
     srand(time(0));
 
     Arena perm = new_arena(1 * GiB);
-    Win win;
-    new_win(&win, 500, 500);
-    make_win_bg(&win, (PlatformMonitor) {0});
-    show_win(win);
-    show_sys_tray_icon(&win, ICON_ID, "Stop WallpaperWorks");
 
-    background.img.w = win.w;
-    background.img.h = win.h;
+    Wins wins = {
+        .worker_w = _make_worker_w(),
+        .font_lib = init_ffont(),
+        .font_path = "./font.ttf",
+        .time_font_pt = 130,
+        .date_font_pt = 30,
+    };
+
+    {
+        Monitors m;
+        collect_monitors(&m);
+        replace_wins(&wins, &m);
+    }
 
     pthread_t thread;
     if (pthread_create(&thread, NULL, background_thread, NULL)) {
         err("Failed to create background thread.");
     }
 
-    FFont time_font = {
-        .path = "font.ttf",
-        .pt = 100,
-    };
-    load_font(&time_font, win.dpi_x, win.dpi_y);
-
-    FFont date_font = {
-        .path = time_font.path,
-        .pt = time_font.pt * 0.2,
-    };
-    load_font(&date_font, win.dpi_x, win.dpi_y);
-
     float time_x = 0.03, time_y = 0.05, // from the bottom-right
           date_x = 0.0, date_y = 0.05, // from the top-left of time
           time_shadow_x = 0.002, time_shadow_y = 0.002,
           date_shadow_x = 0.002, date_shadow_y = 0.002; 
-    Image prev_bound = {0}; // previous altered bounding box
 
     while (1) {
         pthread_mutex_lock(&lock);
@@ -235,8 +266,6 @@ int main() {
             s8 al = u64_to_s8(&scratch, lt->tm_min, 2);
             time_str = s8_masscat(scratch, a0, al);
         }
-
-        Image time_bound = get_bound_of_text(&time_font, time_str);
 
         s8 date_str = {0};
         {
@@ -258,29 +287,36 @@ int main() {
             date_str = s8_masscat(scratch, a0, al);
         }
 
-        Image date_bound = get_bound_of_text(&date_font, date_str);
-
         while (!background.img.buf);
         pthread_mutex_lock(&lock);
-            if (win.resized) {
-                Image m = rescale_img(NULL, background.non_scaled, win.w, win.h);
-                free(background.img.buf);
-                background.img = m;
-                background.redraw = true;
-                win.resized = false;
-            }
-            Image screen = (Image) {
-                 .buf = win.buf, .w = win.w, .h = win.h, .alloc_w = win.w,
-            };
-             
-            if (background.redraw) {
-                place_img(screen, background.img, 0.0, 0.0);
-                background.redraw = false;
-            } else place_img(screen, prev_bound, prev_bound.x, prev_bound.y);
+        for (int i = 0; i < wins.monitors.len; i++) {
+            Win *win = &wins.wins[i];
+            FFont *time_font = &wins.time_fonts[i],
+                  *date_font = &wins.date_fonts[i];
+            Image *bg_img = &wins.imgs[i];
 
+            if (background.redraw) {
+                Image new = rescale_img(
+                    NULL,
+                    background.img,
+                    win->w, win->h
+                );
+                free(bg_img->buf);
+                *bg_img = new;
+            }
+
+            Image screen = (Image) {
+                 .buf = win->buf,
+                 .w = win->w, .h = win->h,
+                 .alloc_w = win->w,
+            };
+         
+            place_img(screen, *bg_img, 0.0, 0.0);
+
+            Image time_bound = get_bound_of_text(time_font, time_str);
             time_bound = draw_text_shadow(
                  screen,
-                 &time_font,
+                 time_font,
                  time_str,
                  screen.w - 1 - screen.w * time_x - time_bound.w,
                  screen.h - 1 - screen.h * time_y,
@@ -289,9 +325,10 @@ int main() {
                  0, 0, 0
             );
 
-            date_bound = draw_text_shadow(
+            // Image date_bound = get_bound_of_text(date_font, date_str);
+            draw_text_shadow(
                 screen,
-                &date_font,
+                date_font,
                 date_str,
                 time_bound.x + screen.w * date_x,
                 time_bound.y - screen.h * date_y,
@@ -299,37 +336,49 @@ int main() {
                 date_shadow_x * screen.w, date_shadow_y * screen.h,
                 0, 0, 0
             );
-
-            prev_bound = combine_bound(time_bound, date_bound);
-            prev_bound.buf = background.img.buf;
+        }
+        if (background.redraw) background.redraw = false;
         pthread_mutex_unlock(&lock);
 
         struct timeval time_val;
         gettimeofday(&time_val, NULL);
 
         wait_event_timeout(
-            &win,
+            &wins.wins[0],
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
-        while (get_next_event(&win));
-        switch (win.event.type) {
-        case EVENT_QUIT: goto end;
-        case EVENT_SYS_TRAY: {
-            switch (win.event.click) {
-            case CLICK_L_UP: case CLICK_M_UP: case CLICK_R_UP: {
-                goto end;
-            } break;
-            default: break;
+
+        for (int i = 0; i < wins.monitors.len; i++) {
+            Win *win = &wins.wins[i];
+
+            while (get_next_event(win)) {
+                switch (win->event.type) {
+                case EVENT_QUIT: goto end;
+                case EVENT_SYS_TRAY: {
+                    int c = win->event.click;
+                    if (c == CLICK_L_UP ||
+                        c == CLICK_M_UP ||
+                        c == CLICK_R_UP) {
+                        goto end;
+                    }
+                } break;
+                default: break;
+                }
             }
-        } break;
-        default: break;
+
+            draw_to_win(*win);
         }
 
-        draw_to_win(win);
+        Monitors monitors = {0};
+        collect_monitors(&monitors);
+        if (did_monitors_change(&wins.monitors, &monitors)) {
+            replace_wins(&wins, &monitors);
+            background.redraw = true;
+        }
     }
 
 end:
-    kill_sys_tray_icon(&win, ICON_ID);
-    close_win(&win);
+    // kill_sys_tray_icon(&win, ICON_ID);
+    // close_win(&win);
     return 0;
 }
