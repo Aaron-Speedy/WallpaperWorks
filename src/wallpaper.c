@@ -57,6 +57,8 @@ Background background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *background_thread() {
+    srand(time(0));
+
     pthread_mutex_lock(&lock); // initial lock
 
     Arena perm = new_arena(1 * GiB),
@@ -242,8 +244,6 @@ void replace_wins(Wins *wins, Monitors *m) {
 }
 
 int main() {
-    srand(time(0));
-
     Arena perm = new_arena(1 * GiB);
 
     Wins wins = {
