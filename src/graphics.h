@@ -276,7 +276,7 @@ void new_win(Win *win, int w, int h) {
         .style = CS_HREDRAW | CS_VREDRAW,
         .lpfnWndProc = _main_win_cb,
         .hInstance = GetModuleHandle(0),
-        .lpszClassName = "WallpaperWorks",
+        .lpszClassName = name,
        	.hCursor = LoadCursor(0, IDC_ARROW),
     };
     RegisterClassA(&win_class); // TODO: Check for errors.
@@ -295,6 +295,8 @@ void new_win(Win *win, int w, int h) {
         GetModuleHandle(0),
         0
     );
+
+    SetWindowTextA(win->p.win, name);
 
     SetWindowLongPtr(win->p.win, GWLP_USERDATA, (LONG_PTR) win);
 

@@ -46,7 +46,8 @@
 #include "networking.h"
 
 #include "recs.h"
-#include "../build/raw_font_buf.h"
+#include "../build/tmp/raw_font_buf.h"
+#include "../build/tmp/app_name.h"
 
 typedef struct {
     bool redraw;
@@ -69,7 +70,7 @@ void *background_thread() {
 
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 
-    s8 cache_dir = get_or_make_cache_dir(&perm, s8("wallpaper_works"));
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
     int timeout_s = 60;
     bool initial = true;
 
@@ -205,7 +206,7 @@ void replace_wins(Wins *wins, Monitors *m) {
         Win *w = &wins->wins[i];
         wins->monitors.buf[i] = m->buf[i];
 
-        new_win(w, 500, 500);
+        new_win(w, APP_NAME, 500, 500);
         make_win_bg(w, wins->worker_w);
         move_win_to_monitor(w, m->buf[i]);
         _fill_working_area(w);
@@ -263,6 +264,8 @@ int main() {
         collect_monitors(&m);
         replace_wins(&wins, &m);
     }
+
+    show_sys_tray_icon(&wins.wins[0], ICON_ID, "Close " APP_NAME);
 
     pthread_t thread;
     if (pthread_create(&thread, NULL, background_thread, NULL)) {

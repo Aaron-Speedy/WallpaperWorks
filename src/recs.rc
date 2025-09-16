@@ -1,2 +1,2 @@
 #include "recs.h"
-ICON_ID ICON "../build/icon.ico"
+ICON_ID ICON "../build/favicon.ico"

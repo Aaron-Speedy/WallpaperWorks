@@ -4,9 +4,16 @@ set -xe
 
 rm -rf build
 mkdir build
+mkdir build/tmp
 
-cp -r resources/* build/
-xxd -i -n raw_font_buf build/font.ttf > build/raw_font_buf.h
+APP_NAME="WallpaperWorks"
+
+cp resources/favicon.ico build/
+cp resources/font.ttf build/tmp/
+
+xxd -i -n raw_font_buf build/tmp/font.ttf > build/tmp/raw_font_buf.h
+echo "!define APP_NAME \"$APP_NAME\"" > build/app_name.nsh
+echo "#define APP_NAME \"$APP_NAME\"" > build/tmp/app_name.h
 
 # TODO: Remove -Wno-unused-parameter
 CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
@@ -52,7 +59,7 @@ $CURL \
 $FREETYPE \
 "
 
-cc src/main.c -o build/wallpaper_works $CFLAGS $LIBS $OTHER
+cc src/main.c -o build/$APP_NAME $CFLAGS $LIBS $OTHER
 # cc test.c -o build/test $CFLAGS $LIBS
 
-rm build/font.ttf build/raw_font_buf.h
+rm -r build/tmp
