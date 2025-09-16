@@ -327,7 +327,7 @@ void make_win_bg(Win *win, HWND worker_w) {
     SetWindowLongPtrA(
         win->p.win,
         GWL_STYLE,
-        WS_POPUP | WS_BORDER | WS_SYSMENU
+        WS_POPUP | WS_SYSMENU
     );
 
     _fill_working_area(win);

@@ -3,6 +3,9 @@
 #include <sys/time.h>
 #include <math.h>
 #include <pthread.h>
+#include <unistd.h>
+
+int usleep(useconds_t useconds);
 
 #include <curl/curl.h>
 
@@ -245,6 +248,7 @@ void replace_wins(Wins *wins, Monitors *m) {
 }
 
 int main() {
+    usleep(1000000);
     if (is_program_already_open(APP_NAME)) {
         MessageBoxA(
             0, APP_NAME" is already open!",
@@ -286,8 +290,13 @@ int main() {
           date_shadow_x = 0.002, date_shadow_y = 0.002; 
 
     while (1) {
-        pthread_mutex_lock(&lock);
-        pthread_mutex_unlock(&lock);
+        while (true) {
+            pthread_mutex_lock(&lock);
+            bool end = background.img.buf;
+            pthread_mutex_unlock(&lock);
+            if (end) break;
+            usleep(1/20 * 1000000);
+        }
 
         Arena scratch = perm;
         time_t ftime = time(NULL) + 1;
@@ -322,7 +331,6 @@ int main() {
             date_str = s8_masscat(scratch, a0, al);
         }
 
-        while (!background.img.buf);
         pthread_mutex_lock(&lock);
         for (int i = 0; i < wins.monitors.len; i++) {
             Win *win = &wins.wins[i];
