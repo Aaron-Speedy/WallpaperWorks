@@ -424,7 +424,9 @@ int main() {
     }
 
 end:
-    // kill_sys_tray_icon(&win, ICON_ID);
-    // close_win(&win);
+    kill_sys_tray_icon(&wins.wins[0], ICON_ID);
+    for (int i = 0; i < wins.monitors.len; i++) {
+        close_win(&wins.wins[i]);
+    }
     return 0;
 }
