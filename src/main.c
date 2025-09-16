@@ -240,11 +240,19 @@ void replace_wins(Wins *wins, Monitors *m) {
             d * wins->date_size
         );
 
-        show_win(*w);
+        show_win(w);
     }
 }
 
 int main() {
+    if (is_program_already_open(APP_NAME)) {
+        MessageBoxA(
+            0, APP_NAME" is already open!",
+            0, MB_APPLMODAL | MB_ICONERROR
+        );
+        return 1;
+    }
+
     Arena perm = new_arena(1 * GiB);
 
     Wins wins = {

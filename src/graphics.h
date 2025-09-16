@@ -495,5 +495,25 @@ void close_win(Win *win) {
     *win = (Win) {0};
 }
 
+bool is_program_already_open(char *id) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+#elif _WIN32
+    char path[1024] = { 'L', 'o', 'c', 'a', 'l', '\\', '$', };
+    int path_len = strlen(path);
+
+    int id_len = strlen(id);
+    for (int i = 0; i < id_len; i++) {
+        path[path_len++] = id[i];
+    }
+
+    path[path_len++] = '$';
+
+    CreateMutexA(0, 0, path);
+
+    return (GetLastError() == ERROR_ALREADY_EXISTS);
+#endif
+}
+
 #endif // GRAPHICS_IMPL_GUARD
 #endif // GRAPHICS_IMPL
