@@ -6,11 +6,11 @@ Display works of art on your desktop wallpaper.
 
 Before you're able build WallpaperWorks, you'll have to provide a font
 and icon. To do this, first clone the repository and enter it
-(see instructions below). Then, create a ``resources`` directory in the
-project root and copy a font.ttf and favicon.ico of your liking into it.
-For the best experience, we recommend using an icon encoded at multiple
-sizes. You can convert a regular image to an ico file by going to
-[iconconverter.com](icoconverter.com), or by using the following
+(see instructions below), then, create a ``resources`` directory in the
+project root and copy a ``font.ttf`` and ``favicon.ico`` of your liking
+into it. For the best experience, we recommend using an icon encoded at
+multiple sizes. You can convert a regular image to an ico file by going
+to [iconconverter.com](icoconverter.com), or by using the following
 [ImageMagick](imagemagick.org) command.
 
 ```sh
