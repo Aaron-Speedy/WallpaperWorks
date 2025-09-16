@@ -469,7 +469,7 @@ void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
     };
     nid.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(icon_id));
     lstrcpy(nid.szTip, tooltip);
-    Shell_NotifyIcon(NIM_ADD, &nid); // TODO: check for errors
+    if (!Shell_NotifyIcon(NIM_ADD, &nid)) warning("Could not add shell icon.");
     #endif
 }
 
