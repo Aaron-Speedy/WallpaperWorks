@@ -389,30 +389,30 @@ int main() {
         struct timeval time_val;
         gettimeofday(&time_val, NULL);
 
-        wait_event_timeout(
-            &wins.wins[0],
+        get_events_timeout(
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
 
         for (int i = 0; i < wins.monitors.len; i++) {
             Win *win = &wins.wins[i];
 
-            while (get_next_event(win)) {
-                switch (win->event.type) {
+            for (int i = 0; i < win->event_queue_len; i++) {
+                WinEvent event = win->event_queue[i];
+                switch (event.type) {
                 case EVENT_QUIT: goto end;
-                case EVENT_SYS_TRAY: {
-                    int c = win->event.click;
+                case EVENT_SYS_TRAY: { // TODO: fix the stupid event loop
+                    int c = event.click;
                     if (c == CLICK_L_UP ||
                         c == CLICK_M_UP ||
-                        c == CLICK_R_UP) {
-                        goto end;
-                    }
+                        c == CLICK_R_UP) goto end;
                 } break;
                 default: break;
                 }
             }
 
-            draw_to_win(*win);
+            win->event_queue_len = 0;
+
+            draw_to_win(win);
         }
 
         Monitors monitors = {0};

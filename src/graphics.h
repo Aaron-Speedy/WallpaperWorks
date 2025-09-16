@@ -74,24 +74,27 @@ typedef struct {
     } click;
 } WinEvent;
 
+#define MAX_EVENT_QUEUE_LEN 30
 typedef struct Win {
     int screen, dpi_x, dpi_y, w, h;
     Color *buf;
     bool resized, is_bg;
-    WinEvent event;
+    WinEvent event_queue[MAX_EVENT_QUEUE_LEN];
+    int event_queue_len;
     PlatformWin p;
 } Win;
 
-void new_win(Win *win, int w, int h);
+void new_win(Win *win, char *name, int w, int h);
 void make_win_bg(Win *win, HWND worker_w);
-void show_win(Win win);
-void draw_to_win(Win win);
+void show_win(Win *win);
+void draw_to_win(Win *win);
 void collect_monitors(Monitors *m);
-void wait_event_timeout(Win *win, int timeout_ms);
-bool get_next_event(Win *win);
+void get_events_timeout(int timeout_ms);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
 void kill_sys_tray_icon(Win *win, int icon_id);
 void close_win(Win *win);
+
+bool is_program_already_open(char *id);
 
 #endif // GRAPHICS_H
 
@@ -204,21 +207,26 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     win->h = client_rect.bottom - client_rect.top;
     win->dpi_x = win->dpi_y = GetDpiForWindow(pwin);
 
+    WinEvent win_event = {0};
+
     switch (msg) {
-    case WM_TIMER: win->event.type = EVENT_TIMEOUT; break;
+    case WM_TIMER: {
+        win_event.type = EVENT_TIMEOUT;
+        if (win->is_bg) _fill_working_area(win);
+    } break;
     case WM_SIZE: _resize_win(win); break;
     case WM_DESTROY: case WM_CLOSE: {
-        win->event.type = EVENT_QUIT;
+        win_event.type = EVENT_QUIT;
         // PostQuitMessage(0);
     } break;
     case WM_PAINT: {
         PAINTSTRUCT paint;
         BeginPaint(pwin, &paint);
-        draw_to_win(*win); // TODO: DO THIS!!!
+        draw_to_win(win); // TODO: DO THIS!!!
         EndPaint(pwin, &paint);
     } break;
     case SYS_TRAY_MSG: {
-        win->event.type = EVENT_SYS_TRAY;
+        win_event.type = EVENT_SYS_TRAY;
 
         int c = 0;
         switch (LOWORD(vv)) {
@@ -229,18 +237,22 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         case WM_RBUTTONUP:   c = CLICK_R_UP; break;
         case WM_RBUTTONDOWN: c = CLICK_R_DOWN; break;
         }
-        win->event.click = c;
+
+        win_event.click = c;
     } break;
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);
     } break;
     }
 
+    if (win_event.type) win->event_queue[win->event_queue_len++] = win_event;
+    assert(win->event_queue_len <= MAX_EVENT_QUEUE_LEN);
+
     return ret;
 }
 #endif
 
-void new_win(Win *win, int w, int h) {
+void new_win(Win *win, char *name, int w, int h) {
     *win = (Win) {0};
 
 #ifdef __linux__
@@ -322,36 +334,36 @@ void make_win_bg(Win *win, HWND worker_w) {
 #endif
 }
 
-void show_win(Win win) {
+void show_win(Win *win) {
 #ifdef __linux__
     assert(!"Unimplemented")
 #elif _WIN32
-    ShowWindow(win.p.win, SW_NORMAL);
+    ShowWindow(win->p.win, SW_NORMAL);
 #endif
 }
 
-void draw_to_win(Win win) {
+void draw_to_win(Win *win) {
 #ifdef __linux__
     XPutImage(
-        win.p.display, 
-        win.p.win, win.p.gc, win.p.img,
+        win->p.display, 
+        win->p.win, win->p.gc, win->p.img,
         0, 0, 0, 0,
-        win.p.img->width, win.p.img->height
+        win->p.img->width, win->p.img->height
     );
 
-    XFlush(win.display);
+    XFlush(win->display);
 #elif _WIN32
-    HDC ctx = GetDC(win.p.win);
+    HDC ctx = GetDC(win->p.win);
     StretchDIBits(
         ctx,
-        0, 0, win.w, win.h,
-        0, 0, win.w, win.h,
-        win.buf,
-        &win.p.bitmap_info,
+        0, 0, win->w, win->h,
+        0, 0, win->w, win->h,
+        win->buf,
+        &win->p.bitmap_info,
         DIB_RGB_COLORS,
         SRCCOPY
     );
-    ReleaseDC(win.p.win, ctx);
+    ReleaseDC(win->p.win, ctx);
 #endif
 }
 
@@ -403,10 +415,9 @@ bool did_monitors_change(Monitors *a, Monitors *b) {
     return false;
 }
 
-void wait_event_timeout(Win *win, int timeout_ms) {
-    win->event = (WinEvent) {0};
-
+void get_events_timeout(int timeout_ms) {
 #ifdef __linux__
+    assert(!"Unimplemented");
     fd_set fds;
     struct timeval tv;
     int x11_fd = ConnectionNumber(win->display);
@@ -429,36 +440,17 @@ void wait_event_timeout(Win *win, int timeout_ms) {
         win->event.type = EVENT_TIMEOUT;
     }
 #elif _WIN32
-    UINT_PTR timer_id = SetTimer(win->p.win, 1, timeout_ms, 0);
-    if (!timer_id) {
-        win->event.type = EVENT_ERR;
-        return;
-    }
+    UINT_PTR timer_id = SetTimer(0, 1, timeout_ms, 0);
 
-    if (WaitMessage()) {
-    } else win->event.type = EVENT_ERR;
-    
-    KillTimer(0, timer_id);
-#endif
-}
+    WaitMessage();
 
-bool get_next_event(Win *win) {
-    bool ret = 0;
-#ifdef __linux__
-    assert(!"Unimplemented");
-#elif _WIN32
     MSG msg;
-    if (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
+    while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-        ret = true;
     }
 
-    if (win->event.type == EVENT_TIMEOUT && win->is_bg) {
-        _fill_working_area(win);
-    }
-
-    return ret;
+    KillTimer(0, timer_id);
 #endif
 }
 
