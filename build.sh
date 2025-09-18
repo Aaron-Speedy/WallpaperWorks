@@ -30,7 +30,7 @@ OTHER=""
 
 CURL_DIR="third_party/real/curl"
 FT_DIR="third_party/real/freetype"
-WEBP_DIR="third_party/real/webp"
+WEBP_DIR="third_party/real/libwebp"
 
 if [[ "$OS" == "windows"* ]]; then
     LIBWEBP="third_party/real/libwebp/src/libwebp.a"
