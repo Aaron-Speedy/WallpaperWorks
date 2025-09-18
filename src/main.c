@@ -260,43 +260,46 @@ void show_message_box(char *text, bool err, bool block) {
 }
 
 int main() {
-    usleep(1000000);
-    if (is_program_already_open(APP_NAME)) {
-        show_message_box(APP_NAME" is already open!", true, true);
-        return 1;
-    }
+    // usleep(1000000);
+    // if (is_program_already_open(APP_NAME)) {
+    //     show_message_box(APP_NAME" is already open!", true, true);
+    //     return 1;
+    // }
 
     Arena perm = new_arena(1 * GiB);
 
+    float time_x = 0.04, time_y = 0.06, // from the bottom-right
+          time_size = 0.18,
+          time_shadow_x = 0.002, time_shadow_y = 0.002;
+
+    float date_x = 0.04, date_y = time_y + 0.17, // from the bottom-right
+          date_size = 0.04,
+          date_shadow_x = 0.002, date_shadow_y = 0.002; 
+
     Wins wins = {
-        .worker_w = _make_worker_w(),
+        // .worker_w = _make_worker_w(),
         .font_lib = init_ffont(),
         .raw_buf = raw_font_buf,
         .raw_len = raw_font_buf_len,
         // .font_path = "./font.ttf",
         .time_pt = 130,
         .date_pt = 26,
-        .time_size = 0.18,
-        .date_size = 0.05,
+        .time_size = time_size,
+        .date_size = date_size,
     };
 
     {
-        Monitors m;
-        collect_monitors(&m);
+        Monitors m = { .len = 1, };
+        // collect_monitors(&m);
         replace_wins(&wins, &m);
     }
 
-    show_sys_tray_icon(&wins.wins[0], ICON_ID, "Close " APP_NAME);
+    // show_sys_tray_icon(&wins.wins[0], ICON_ID, "Close " APP_NAME);
 
     pthread_t thread;
     if (pthread_create(&thread, NULL, background_thread, NULL)) {
         err("Failed to create background thread.");
     }
-
-    float dt_x = 0.04, dt_y = 0.06, // from the bottom-right
-          date_x = 0.0, date_y = 0.05, // from the top-left of time
-          time_shadow_x = 0.002, time_shadow_y = 0.002,
-          date_shadow_x = 0.002, date_shadow_y = 0.002; 
 
     while (1) {
         while (true) {
@@ -365,46 +368,28 @@ int main() {
          
             place_img(screen, *bg_img, 0, 0, 0);
 
-            Image dt_box = { .w = screen.w, .h = screen.h, };
-            dt_box = new_img(&scratch, dt_box);
-
-            Image dt_bound = get_bound_of_text(time_font, time_str);
-            dt_bound = draw_text_shadow(
-                 dt_box,
-                 time_font,
-                 time_str,
-                 screen.w / 2, screen.h / 2 + dt_bound.h,
-                 // screen.w - 1 - screen.w * time_x - time_bound.w,
-                 // screen.h - 1 - screen.h * time_y,
-                 255, 255, 255,
-                 time_shadow_x * screen.w, time_shadow_y * screen.h,
-                 0, 0, 0,
-                 false
+            Image time_bound = get_bound_of_text(time_font, time_str);
+            time_bound = draw_text_shadow(
+                screen,
+                time_font,
+                time_str,
+                screen.w - 1 - screen.w * time_x - time_bound.w,
+                screen.h - 1 - screen.h * time_y,
+                255, 255, 255,
+                time_shadow_x * screen.w, time_shadow_y * screen.h,
+                0, 0, 0,
+                true
             );
-
-            // Image date_bound = get_bound_of_text(date_font, date_str);
-            dt_bound = combine_bound(draw_text_shadow(
-                dt_box,
+            Image date_bound = get_bound_of_text(date_font, date_str);
+            date_bound = draw_text_shadow(
+                screen,
                 date_font,
                 date_str,
-                dt_bound.x + screen.w * date_x,
-                dt_bound.y - screen.h * date_y,
+                screen.w - 1 - screen.w * date_x - date_bound.w,
+                screen.h - 1 - screen.h * date_y,
                 255, 255, 255,
                 date_shadow_x * screen.w, date_shadow_y * screen.h,
                 0, 0, 0,
-                false
-            ), dt_bound);
-
-            dt_box.w = dt_bound.w;
-            dt_box.h = dt_bound.h;
-            dt_box.x = dt_bound.x;
-            dt_box.y = dt_bound.y;
-
-            place_img(
-                screen,
-                dt_box,
-                screen.w - 1 - screen.w * dt_x - dt_bound.w,
-                screen.h - 1 - screen.h * dt_y - dt_bound.h,
                 true
             );
         }
