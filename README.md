@@ -32,9 +32,9 @@ cd WallpaperWorks
 ```
 
 If that works, congratulations! To run it, move into the build directory
-and run ``./WallpaperWorks.exe``. This isn't the greatest experience,
-so we provide an installer. To install the program, first install
-[NSIS](https://nsis.sourceforge.io/Main_Page), then run
+and run ``./WallpaperWorks.exe``. We also provide an installer. To install
+the program, first install [NSIS](https://nsis.sourceforge.io/Main_Page),
+then run
 
 ```sh
 ./build_installer.sh
