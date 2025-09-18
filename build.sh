@@ -61,7 +61,7 @@ $CURL \
 $FREETYPE \
 "
 
-# cc src/main.c -o build/$APP_NAME $CFLAGS $LIBS $OTHER
-cc test.c -o build/test $CFLAGS $LIBS -Wno-unused-parameter # TODO: remove -Wno...
+cc src/main.c -o build/$APP_NAME $CFLAGS $LIBS $OTHER
+# cc test.c -o build/test $CFLAGS $LIBS -Wno-unused-parameter # TODO: remove -Wno...
 
 rm -r build/tmp

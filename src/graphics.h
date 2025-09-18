@@ -301,7 +301,6 @@ void new_win(Win *win, char *name, int w, int h) {
         1, 0, 0
     ); // TODO: check for errors
     XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
-    XMapWindow(win->p.display, win->p.win);
 
     win->p.gc = DefaultGC(win->p.display, win->p.screen);
 
@@ -357,7 +356,6 @@ void make_win_bg(Win *win) {
     win->p.screen = DefaultScreen(win->p.display);
     win->p.win = DefaultRootWindow(win->p.display);
     XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
-    XMapWindow(win->p.display, win->p.win);
 
     win->p.gc = DefaultGC(win->p.display, win->p.screen);
 
@@ -382,7 +380,7 @@ void make_win_bg(Win *win) {
 
 void show_win(Win *win) {
 #ifdef __linux__
-    assert(!"Unimplemented");
+    XMapWindow(win->p.display, win->p.win);
 #elif _WIN32
     ShowWindow(win->p.win, SW_NORMAL);
 #endif

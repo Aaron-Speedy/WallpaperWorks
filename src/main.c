@@ -65,20 +65,21 @@ void *background_thread() {
 
     pthread_mutex_lock(&lock); // initial lock
 
-    Arena perm = new_arena(1 * GiB),
-          perm_2 = new_arena(1 * KiB);
+    Arena perm = new_arena(1 * GiB);
 
     CURL *curl = curl_easy_init(); 
     if (!curl) err("Failed to initialize libcurl.");
 
+#ifdef _WIN32
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
+#endif
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
     int timeout_s = 60;
     bool initial = true;
 
     while (true) {
-        Arena scratch = perm, e_scratch = perm_2;
+        Arena scratch = perm;
 
         time_t a_time = time(NULL);
         Image b = {0};
@@ -98,7 +99,7 @@ void *background_thread() {
 
                 if (network_mode) {
                     s8_write_to_file(scratch, path, data);
-                } else data = s8_read_file(&scratch, e_scratch, path);
+                } else data = s8_read_file(&scratch, path);
 
                 n = s8_to_u64(data);
             }
@@ -114,7 +115,7 @@ void *background_thread() {
                 s8 url = s8_newcat(&scratch, base, name);
                 s8 path = s8_newcat(&scratch, cache_dir, name);
 
-                img_data = s8_read_file(&scratch, e_scratch, path);
+                img_data = s8_read_file(&scratch, path);
 
                 // File was not found
                 if (img_data.len <= 0) {
@@ -192,7 +193,7 @@ typedef struct {
     int raw_len;
     float time_pt, date_pt;
     float time_size, date_size;
-    HWND worker_w;
+    // HWND worker_w;
 } Wins;
 
 void replace_wins(Wins *wins, Monitors *m) {
@@ -210,8 +211,8 @@ void replace_wins(Wins *wins, Monitors *m) {
         wins->monitors.buf[i] = m->buf[i];
 
         new_win(w, APP_NAME, 500, 500);
-        make_win_bg(w, wins->worker_w);
-        move_win_to_monitor(w, m->buf[i]);
+        make_win_bg(w);
+        // move_win_to_monitor(w, m->buf[i]);
         _fill_working_area(w);
 
         int d = w->w < w->h ? w->w : w->h;
@@ -251,7 +252,7 @@ void show_message_box(char *text, bool err, bool block) {
 #ifdef __linux__
     assert(!"Unimplemented");
     Win win = {0};
-    new_win(win, "Message Box", 300, 100);
+    new_win(&win, "Message Box", 300, 100);
 #elif _WIN32
     unsigned int flags = (block * MB_APPLMODAL) | (err * MB_ICONERROR);
     MessageBoxA(0, text, 0, flags);
@@ -414,6 +415,7 @@ int main() {
         gettimeofday(&time_val, NULL);
 
         get_events_timeout(
+            &wins.wins[0],
             1000 - (time_val.tv_usec / 1000) // update exactly on the second
         );
 
@@ -439,12 +441,12 @@ int main() {
             draw_to_win(win);
         }
 
-        Monitors monitors = {0};
-        collect_monitors(&monitors);
-        if (did_monitors_change(&wins.monitors, &monitors)) {
-            replace_wins(&wins, &monitors);
-            background.redraw = true;
-        }
+        // Monitors monitors = {0};
+        // collect_monitors(&monitors);
+        // if (did_monitors_change(&wins.monitors, &monitors)) {
+        //     replace_wins(&wins, &monitors);
+            // background.redraw = true;
+        // }
     }
 
 end:
