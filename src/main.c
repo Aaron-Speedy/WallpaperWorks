@@ -247,13 +247,21 @@ void replace_wins(Wins *wins, Monitors *m) {
     }
 }
 
+void show_message_box(char *text, bool err, bool block) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+    Win win = {0};
+    new_win(win, "Message Box", 300, 100);
+#elif _WIN32
+    unsigned int flags = (block * MB_APPLMODAL) | (err * MB_ICONERROR);
+    MessageBoxA(0, text, 0, flags);
+#endif
+}
+
 int main() {
     usleep(1000000);
     if (is_program_already_open(APP_NAME)) {
-        MessageBoxA(
-            0, APP_NAME" is already open!",
-            0, MB_APPLMODAL | MB_ICONERROR
-        );
+        show_message_box(APP_NAME" is already open!", true, true);
         return 1;
     }
 
@@ -416,7 +424,7 @@ int main() {
                 WinEvent event = win->event_queue[i];
                 switch (event.type) {
                 case EVENT_QUIT: goto end;
-                case EVENT_SYS_TRAY: { // TODO: fix the stupid event loop
+                case EVENT_SYS_TRAY: {
                     int c = event.click;
                     if (c == CLICK_L_UP ||
                         c == CLICK_M_UP ||
