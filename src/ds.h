@@ -84,7 +84,7 @@ void s8_fprint(FILE *restrict stream, s8 s);
 u64 s8_hash(s8 s);
 s8 s8_errno();
 s8 s8_err(s8 s);
-s8 s8_read_file(Arena *perm, Arena scratch, s8 p);
+s8 s8_read_file(Arena *perm, s8 p);
 s8 s8_write_to_file(Arena scratch, s8 p, s8 data);
 
 u64 s8_to_u64(s8 s); // TODO: check for errors
@@ -202,8 +202,14 @@ s8 s8_err(s8 s) {
   return s;
 }
 
-s8 s8_read_file(Arena *perm, Arena scratch, s8 p) {
+s8 s8_read_file(Arena *perm, s8 p) {
   s8 ret = {0};
+
+  u8 _scratch_buf[1024] = {0};
+  Arena scratch = {
+    .buf = _scratch_buf,
+    .cap = arrlen(_scratch_buf),
+  };
 
   FILE *fp = NULL;
   {
