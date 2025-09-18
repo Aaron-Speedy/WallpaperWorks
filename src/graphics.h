@@ -1,22 +1,28 @@
+// TODO: Fix the flickering on Linux (maybe by using pixmap?)
 // TODO: See if dpi_x == dpi_y on Linux
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 
 #ifdef __linux__
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
 typedef enum {
-    COLOR_R,
-    COLOR_G,
     COLOR_B,
+    COLOR_G,
+    COLOR_R,
     COLOR_A,
 } PlatformColorEnum;
+typedef struct {
+    int do_not_use;
+} PlatformMonitor;
 typedef struct {
     Window win;
     Display *display;
@@ -85,11 +91,11 @@ typedef struct Win {
 } Win;
 
 void new_win(Win *win, char *name, int w, int h);
-void make_win_bg(Win *win, HWND worker_w);
+void make_win_bg(Win *win);
 void show_win(Win *win);
 void draw_to_win(Win *win);
 void collect_monitors(Monitors *m);
-void get_events_timeout(int timeout_ms);
+void get_events_timeout(Win *win, int timeout_ms);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
 void kill_sys_tray_icon(Win *win, int icon_id);
 void close_win(Win *win);
@@ -102,41 +108,31 @@ bool is_program_already_open(char *id);
 #ifndef GRAPHICS_IMPL_GUARD
 #define GRAPHICS_IMPL_GUARD
 
-#ifdef _WIN32
-
-#define SYS_TRAY_MSG (WM_USER + 1)
-
-// https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
-
-BOOL _make_worker_w_cb(HWND top, LPARAM vv) {
-    HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
-    if (p) {
-        *((HWND *) vv) = FindWindowExA(0, top, "WorkerW", 0);
-        return false;
-    }
-    return true;
-}
-
-HWND _make_worker_w() {
-    HWND progman = FindWindowA("Progman", 0);
-    if (!progman) return 0;
-
-    SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
-
-    HWND ret = 0;
-    
-    EnumWindows(_make_worker_w_cb, (LPARAM) &ret);
-
-    // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
-
-    return ret;
-}
-
 void _resize_win(Win *win) {
+#ifdef __linux__
+    if (win->buf) XDestroyImage(win->p.img); // NOTE: XDestroyImage frees win->buf (X11...)
+    win->buf = 0;
+#endif
+
+    win->resized = true;
+    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+#ifdef __linux__
+    win->dpi_x = win->w /
+                ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
+    win->dpi_y = win->h /
+                ((float) DisplayHeightMM(win->p.display, win->p.screen) / 25.4);
+    win->p.img = XCreateImage(
+        win->p.display,
+        DefaultVisual(win->p.display, win->p.screen),
+        24, ZPixmap, 0, (char *) win->buf, win->w, win->h, 32, 0
+    );
+
+#elif _WIN32
     if (win->buf) {
         free(win->buf);
+        win->buf = 0;
     }
-
+    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
     win->p.bitmap_info = (BITMAPINFO) {
         .bmiHeader = {
             .biSize = sizeof(win->p.bitmap_info.bmiHeader),
@@ -146,13 +142,12 @@ void _resize_win(Win *win) {
             .biBitCount = 32,
         },
     };
-
-    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
-    win->resized = true;
+#endif
 }
 
 void _fill_working_area(Win *win) {
+#ifdef __linux__
+#elif _WIN32
     RECT old;
     GetClientRect(win->p.win, &old);
 
@@ -187,6 +182,45 @@ void _fill_working_area(Win *win) {
             SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
         );
     }
+#endif
+}
+
+#ifdef _WIN32
+
+#define SYS_TRAY_MSG (WM_USER + 1)
+
+BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
+    Monitors *m = (Monitors *) vv;
+    m->buf[m->len++] = (PlatformMonitor) {
+        .rect = *rect,
+    };
+    return true;
+}
+
+// https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
+
+BOOL _make_worker_w_cb(HWND top, LPARAM vv) {
+    HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
+    if (p) {
+        *((HWND *) vv) = FindWindowExA(0, top, "WorkerW", 0);
+        return false;
+    }
+    return true;
+}
+
+HWND _make_worker_w() {
+    HWND progman = FindWindowA("Progman", 0);
+    if (!progman) return 0;
+
+    SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
+
+    HWND ret = 0;
+    
+    EnumWindows(_make_worker_w_cb, (LPARAM) &ret);
+
+    // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
+
+    return ret;
 }
 
 LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
@@ -257,29 +291,23 @@ void new_win(Win *win, char *name, int w, int h) {
 
 #ifdef __linux__
     win->p.display = XOpenDisplay(0);
-    if (win->p.display == 0) err("Failed to open display.");
+    if (!win->p.display) err("Failed to open display.");
 
     win->p.screen = DefaultScreen(win->p.display);
-    win->p.win = DefaultRootWindow(win->p.display);
-    XSelectInput(win->p.display, win->p.win, ExposureMask);
+    win->p.win = XCreateSimpleWindow(
+        win->p.display,
+        DefaultRootWindow(win->p.display),
+        0, 0, w, h,
+        1, 0, 0
+    ); // TODO: check for errors
+    XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
     XMapWindow(win->p.display, win->p.win);
 
     win->p.gc = DefaultGC(win->p.display, win->p.screen);
 
-    win->w = XDisplayWidth(win->p.display, win->p.screen);
-    win->h = XDisplayHeight(win->p.display, win->p.screen);
-    win->dpi_x = win->w /
-                ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
-    win->dpi_y = win->h /
-                ((float) DisplayHeightMM(win->p.display, win->p.screen) / 25.4);
-
-    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-
-    win->p.img = XCreateImage(
-        win->p.display,
-        DefaultVisual(win->p.display, win->p.screen),
-        24, ZPixmap, 0, (char *) buf, w, h, 32, 0
-    );
+    win->w = w;
+    win->h = h;
+    _resize_win(win);
 
     if (win->p.img == 0) err("Failed to create window.");
 
@@ -317,10 +345,28 @@ void new_win(Win *win, char *name, int w, int h) {
 #endif
 }
 
-void make_win_bg(Win *win, HWND worker_w) {
+// TODO: worker_w
+void make_win_bg(Win *win) {
     win->is_bg = true;
 #ifdef __linux__
-    assert(!"Unimplemented")
+    close_win(win);
+
+    win->p.display = XOpenDisplay(0);
+    if (!win->p.display) err("Failed to open display.");
+
+    win->p.screen = DefaultScreen(win->p.display);
+    win->p.win = DefaultRootWindow(win->p.display);
+    XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
+    XMapWindow(win->p.display, win->p.win);
+
+    win->p.gc = DefaultGC(win->p.display, win->p.screen);
+
+    win->w = XDisplayWidth(win->p.display, win->p.screen);
+    win->h = XDisplayHeight(win->p.display, win->p.screen);
+    _resize_win(win);
+
+    if (win->p.img == 0) err("Failed to make the window the background.");
+
 #elif _WIN32
     SetParent(win->p.win, worker_w);
 
@@ -336,7 +382,7 @@ void make_win_bg(Win *win, HWND worker_w) {
 
 void show_win(Win *win) {
 #ifdef __linux__
-    assert(!"Unimplemented")
+    assert(!"Unimplemented");
 #elif _WIN32
     ShowWindow(win->p.win, SW_NORMAL);
 #endif
@@ -351,7 +397,7 @@ void draw_to_win(Win *win) {
         win->p.img->width, win->p.img->height
     );
 
-    XFlush(win->display);
+    XFlush(win->p.display);
 #elif _WIN32
     HDC ctx = GetDC(win->p.win);
     StretchDIBits(
@@ -365,14 +411,6 @@ void draw_to_win(Win *win) {
     );
     ReleaseDC(win->p.win, ctx);
 #endif
-}
-
-BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
-    Monitors *m = (Monitors *) vv;
-    m->buf[m->len++] = (PlatformMonitor) {
-        .rect = *rect,
-    };
-    return true;
 }
 
 void collect_monitors(Monitors *m) {
@@ -415,12 +453,11 @@ bool did_monitors_change(Monitors *a, Monitors *b) {
     return false;
 }
 
-void get_events_timeout(int timeout_ms) {
+void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get events for all windows
 #ifdef __linux__
-    assert(!"Unimplemented");
     fd_set fds;
     struct timeval tv;
-    int x11_fd = ConnectionNumber(win->display);
+    int x11_fd = ConnectionNumber(win->p.display);
 
     FD_ZERO(&fds);
     FD_SET(x11_fd, &fds);
@@ -429,15 +466,34 @@ void get_events_timeout(int timeout_ms) {
 
     int select_ret = select(x11_fd + 1, &fds, 0, 0, &tv);
 
-    XEvent e;
-    if (select_ret > 0) {
-        XNextEvent(win->display, &e);
-        // win->event.type = EVENT_EVENT;
-        // TODO: handle events
-    } else if (select_ret < 0) {
-        win->event.type = EVENT_ERR;
+    while (select_ret > 0 && XPending(win->p.display)) {
+        WinEvent win_event = {0};
+        XEvent e;
+        XNextEvent(win->p.display, &e);
+
+        switch (e.type) {
+        // TODO: Handle window closing
+        case Expose: draw_to_win(win); break;
+        case ConfigureNotify: {
+            XConfigureEvent c = e.xconfigure;
+            // if (c.width != win->w || c.height != win->h) { // TODO: see about this
+                win->w = c.width; win->h = c.height;
+                printf("OLD: %d %d %d %d\n", win->w, win->h, win->p.img->width, win->p.img->height);
+                _resize_win(win);
+                printf("NEW: %d %d %d %d\n", win->w, win->h, win->p.img->width, win->p.img->height);
+            // }
+        } break;
+        default: break;
+        }
+
+        if (win_event.type) win->event_queue[win->event_queue_len++] = win_event;
+    }
+    if (select_ret <= 0) {
+        WinEvent win_event = { .type = EVENT_ERR, };
+        win->event_queue[win->event_queue_len++] = win_event;
     } else {
-        win->event.type = EVENT_TIMEOUT;
+        WinEvent win_event = { .type = EVENT_TIMEOUT, };
+        win->event_queue[win->event_queue_len++] = win_event;
     }
 #elif _WIN32
     UINT_PTR timer_id = SetTimer(0, 1, timeout_ms, 0);
@@ -474,16 +530,23 @@ void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
 }
 
 void kill_sys_tray_icon(Win *win, int icon_id) {
+#ifdef __linux__
+    assert(!"Unimplemented");
+#elif _WIN32
     NOTIFYICONDATA nid = {
         .cbSize = sizeof(NOTIFYICONDATA),
         .hWnd = win->p.win,
         .uID = icon_id,
     };
     Shell_NotifyIcon(NIM_DELETE, &nid);
+#endif
 }
 
 void close_win(Win *win) {
+    free(win->buf);
+    win->buf = 0;
 #ifdef __linux__
+    XDestroyWindow(win->p.display, win->p.win);
     XCloseDisplay(win->p.display);
 #elif _WIN32
     if (win->is_bg) {
