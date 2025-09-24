@@ -11,7 +11,7 @@ APP_NAME="WallpaperWorks"
 cp resources/favicon.ico build/
 cp resources/font.ttf build/tmp/
 
-cc src/hex_dump.c -o build/tmp/hex_dump.c
+cc src/hex_dump.c -o build/tmp/hex_dump.c -ggdb
 
 ./build/tmp/hex_dump.c build/tmp/font.ttf raw_font_buf > build/tmp/raw_font_buf.h
 echo "!define APP_NAME \"$APP_NAME\"" > build/app_name.nsh
