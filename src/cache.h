@@ -23,7 +23,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
         cache.buf = (u8 *) getenv("XDG_CACHE_HOME");
         if (cache.buf != NULL) {
             cache.len = strlen((char *) cache.buf);
-            s8_copy(perm, cache);
+            cache = s8_copy(perm, cache);
             break;
         }
 
@@ -33,10 +33,6 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
             cache = s8_newcat(perm, cache, s8("/.cache"));
             break;
         }
-
-        warning(
-            "Could not get system cache directory. Disabling cache support."
-        );
         return (s8) {0};
     } while (0);
 
@@ -60,6 +56,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     }
 
     cache.len -= 1; // remove null terminator
+    perm->len -= 1;
 
     return cache;
 }

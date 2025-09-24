@@ -1,5 +1,6 @@
 // TODO: Fix the flickering on Linux (maybe by using pixmap?)
 // TODO: See if dpi_x == dpi_y on Linux
+// TODO: make err(...) do something different depending on the function 
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
@@ -31,6 +32,7 @@ typedef struct {
     int screen;
     GC gc;
     XImage *img;
+    bool draw_to_img;
 } PlatformWin;
 #elif _WIN32
 #include <Windows.h>
@@ -103,6 +105,7 @@ void kill_sys_tray_icon(Win *win, int icon_id);
 void close_win(Win *win);
 
 bool is_program_already_open(char *id);
+s8 get_desktop_name();
 
 #endif // GRAPHICS_H
 
@@ -112,10 +115,10 @@ bool is_program_already_open(char *id);
 
 void _resize_win(Win *win) {
 #ifdef __linux__
-    if (win->buf) XDestroyImage(win->p.img); // NOTE: XDestroyImage frees win->buf (X11...)
+    if (!win->p.draw_to_img && win->buf) XDestroyImage(win->p.img); // NOTE: XDestroyImage frees win->buf (X11...)
+    else free(win->buf);
     win->buf = 0;
 #endif
-
     win->resized = true;
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
 #ifdef __linux__
@@ -123,12 +126,13 @@ void _resize_win(Win *win) {
                 ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
     win->dpi_y = win->h /
                 ((float) DisplayHeightMM(win->p.display, win->p.screen) / 25.4);
-    win->p.img = XCreateImage(
-        win->p.display,
-        DefaultVisual(win->p.display, win->p.screen),
-        24, ZPixmap, 0, (char *) win->buf, win->w, win->h, 32, 0
-    );
-
+    if (!win->p.draw_to_img) {
+        win->p.img = XCreateImage(
+            win->p.display,
+            DefaultVisual(win->p.display, win->p.screen),
+            24, ZPixmap, 0, (char *) win->buf, win->w, win->h, 32, 0
+        );
+    }
 #elif _WIN32
     if (win->buf) {
         free(win->buf);
@@ -353,27 +357,69 @@ void new_win(Win *win, char *name, int w, int h) {
     win->buf = calloc(w * h, sizeof(*win->buf));
 #endif
 }
+void set_desktop_window_type(Display *display, Window window) {
+    // Get the atoms for the property name and the property value.
+    // XInternAtom queries the X server for the unique ID (Atom) of a string.
+    Atom wm_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+    Atom wm_desktop = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+
+    // XChangeProperty is used to change a property on a window.
+    // The arguments are:
+    // 1. display: The Display.
+    // 2. window: The Window ID.
+    // 3. property: The Atom for the property name (_NET_WM_WINDOW_TYPE).
+    // 4. type: The Atom for the data type of the property (XA_ATOM for an atom).
+    // 5. format: The size of the data elements in bits (32 for atoms).
+    // 6. mode: How to set the property. PropModeReplace replaces the existing value.
+    // 7. data: A pointer to the data to set. In this case, a pointer to our atom.
+    // 8. nelements: The number of items in the data array (1 for a single atom).
+    XChangeProperty(
+        display,
+        window,
+        wm_type,
+        XA_ATOM,
+        32,
+        PropModeReplace,
+        (unsigned char *)&wm_desktop,
+        1
+    );
+
+    // Flush the output buffer to make sure the request is sent to the server immediately.
+    XFlush(display);
+}
 
 // TODO: worker_w
-void make_win_bg(Win *win) {
+void make_win_bg(Win *win, PlatformMonitor monitor) {
     win->is_bg = true;
+
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     close_win(win);
 
     win->p.display = XOpenDisplay(0);
     if (!win->p.display) err("Failed to open display.");
 
     win->p.screen = DefaultScreen(win->p.display);
-    win->p.win = DefaultRootWindow(win->p.display);
+
+    if (get_desktop_name().len) {
+        win->p.win = XCreateSimpleWindow(
+            win->p.display,
+            DefaultRootWindow(win->p.display),
+            0, 0, 500, 500,
+            1, 0, 0
+        ); // TODO: check for errors
+        set_desktop_window_type(win->p.display, win->p.win);
+    } else win->p.win = DefaultRootWindow(win->p.display);
+
     XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
 
     win->p.gc = DefaultGC(win->p.display, win->p.screen);
 
-    win->w = XDisplayWidth(win->p.display, win->p.screen);
-    win->h = XDisplayHeight(win->p.display, win->p.screen);
-    _resize_win(win);
+    // _resize_win(win);
+    _fill_working_area(win, monitor);
 
-    if (win->p.img == 0) err("Failed to make the window the background.");
+    if (!win->p.img) err("Failed to make the window the background.");
 
 #elif _WIN32
     SetParent(win->p.win, worker_w);
@@ -384,12 +430,14 @@ void make_win_bg(Win *win) {
         WS_POPUP | WS_SYSMENU
     );
 
-    _fill_working_area(win);
+    _fill_working_area(win, monitor);
 #endif
 }
 
 void show_win(Win *win) {
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     XMapWindow(win->p.display, win->p.win);
 #elif _WIN32
     ShowWindow(win->p.win, SW_NORMAL);
@@ -398,6 +446,8 @@ void show_win(Win *win) {
 
 void draw_to_win(Win *win) {
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     XPutImage(
         win->p.display, 
         win->p.win, win->p.gc, win->p.img,
@@ -455,6 +505,8 @@ void collect_monitors(Monitors *m) {
 
 void move_win_to_monitor(Win *win, PlatformMonitor m) {
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     assert(!"Unimplemented");
 #elif _WIN32
     SetWindowPos(
@@ -487,6 +539,8 @@ bool did_monitors_change(Monitors *a, Monitors *b) {
 
 void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get events for all windows
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     fd_set fds;
     struct timeval tv;
     int x11_fd = ConnectionNumber(win->p.display);
@@ -577,7 +631,10 @@ void kill_sys_tray_icon(Win *win, int icon_id) {
 void close_win(Win *win) {
     free(win->buf);
     win->buf = 0;
+
 #ifdef __linux__
+    if (win->p.draw_to_img) return;
+
     XDestroyWindow(win->p.display, win->p.win);
     XCloseDisplay(win->p.display);
 #elif _WIN32
@@ -608,6 +665,12 @@ bool is_program_already_open(char *id) {
 
     return (GetLastError() == ERROR_ALREADY_EXISTS);
 #endif
+}
+
+s8 get_desktop_name() {
+    s8 ret = { .buf = getenv("XDG_CURRENT_DESKTOP"), };
+    if (ret.buf) ret.len = strlen(ret.buf);
+    return ret;
 }
 
 #endif // GRAPHICS_IMPL_GUARD

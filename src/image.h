@@ -22,6 +22,8 @@ Image combine_bound(Image a, Image b);
 Color mix_colors(Color a, Color b);
 void place_img(Image onto, Image img, int px, int py, bool mix);
 
+s8 write_img_to_file(s8 p, Image img);
+
 #endif // IMAGE_H
 
 #ifdef IMAGE_IMPL
@@ -95,7 +97,7 @@ Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
 
             if (y1 >= img.h) y1 = floor(a);
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 float v00 = img_at(&img, x0, y0)->c[i],
                       v01 = img_at(&img, x0, y1)->c[i],
                       v10 = img_at(&img, x1, y0)->c[i],
@@ -155,6 +157,46 @@ Image combine_bound(Image a, Image b) {
         .w = right - x,
         .h = bottom - y,
     };
+}
+
+int _img_write_s8(s8 s, FILE *fp) {
+    return s.len != fwrite(s.buf, 1, s.len, fp);
+}
+
+s8 write_img_to_file(s8 p, Image img) {
+    s8 ret = {0};
+
+    new_static_arena(scratch, 1 * KiB);
+
+    FILE *fp = NULL;
+    {
+        s8 n = s8_newcat(&scratch, p, s8("\0"));
+        fp = fopen((char *) n.buf, "w");
+    }
+    if (fp == NULL) return s8_errno();
+
+    do {
+        if (_img_write_s8(s8("P6\n"), fp)) goto err;
+        if (_img_write_s8(u64_to_s8(&scratch, img.w, 0), fp)) goto err;
+        if (_img_write_s8(s8(" "), fp)) goto err;
+        if (_img_write_s8(u64_to_s8(&scratch, img.h, 0), fp)) goto err;
+        if (_img_write_s8(s8("\n 255\n"), fp)) goto err;
+
+        for (int i = 0; i < img.w * img.h; i++) {
+            Color c = img.buf[i];
+            u8 w[] = { c.c[COLOR_R], c.c[COLOR_G], c.c[COLOR_B], };
+            s8 s = { .buf = w, .len = arrlen(w), };
+            if (_img_write_s8(s, fp)) goto err;
+        }
+        break;
+err:
+        ret = s8_err(s8("fwrite"));
+    } while (0);
+
+end:
+    if (fclose(fp) && !ret.len) ret = s8_errno();
+
+    return ret;
 }
 
 #endif // IMAGE_IMPL_GUARD

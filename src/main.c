@@ -53,6 +53,10 @@ int usleep(useconds_t useconds);
 #include "../build/tmp/app_name.h"
 
 typedef struct {
+    s8 desktop, cmd;
+} DesktopCmd;
+
+typedef struct {
     bool redraw;
     Image img;
 } Background;
@@ -75,6 +79,11 @@ void *background_thread() {
 #endif
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
+    if (cache_dir.len <= 0) {
+        warning(
+            "Could not get system cache directory. Disabling cache support."
+        );
+    }
     int timeout_s = 60;
     bool initial = true;
 
@@ -98,7 +107,7 @@ void *background_thread() {
                 network_mode = data.buf != NULL;
 
                 if (network_mode) {
-                    s8_write_to_file(scratch, path, data);
+                    s8_write_to_file(path, data);
                 } else data = s8_read_file(&scratch, path);
 
                 n = s8_to_u64(data);
@@ -126,7 +135,7 @@ void *background_thread() {
 
                     if (!network_mode) continue; // try another image;
 
-                    s8_write_to_file(scratch, path, img_data);
+                    s8_write_to_file(path, img_data);
                 }
             }
 
@@ -156,6 +165,7 @@ void *background_thread() {
                         .c[COLOR_R] = d.c[0],
                         .c[COLOR_G] = d.c[1],
                         .c[COLOR_B] = d.c[2],
+                        .c[COLOR_A] = 255,
                     };
                 }
             }
@@ -193,13 +203,14 @@ typedef struct {
     int raw_len;
     float time_pt, date_pt;
     float time_size, date_size;
+    s8 cmd;
     // HWND worker_w;
 } Wins;
 
 void replace_wins(Wins *wins, Monitors *m) {
     for (int i = 0; i < wins->monitors.len; i++) {
         Win *w = &wins->wins[i];
-        w->is_bg = false; // to make sure the wallpaper isn't cleared
+        w->is_bg = false; // TODO: make sure the wallpaper isn't cleared
         free_font(wins->time_fonts[i]);
         free_font(wins->date_fonts[i]);
         close_win(w);
@@ -208,12 +219,18 @@ void replace_wins(Wins *wins, Monitors *m) {
     wins->monitors.len = m->len;
     for (int i = 0; i < wins->monitors.len; i++) {
         Win *w = &wins->wins[i];
-        wins->monitors.buf[i] = m->buf[i];
+        PlatformMonitor *monitor = &m->buf[i];
+        printf("replace_wins: %d %d\n", monitor->w, monitor->h);
+        wins->monitors.buf[i] = *monitor;
 
         new_win(w, APP_NAME, 500, 500);
-        make_win_bg(w);
-        // move_win_to_monitor(w, m->buf[i]);
-        _fill_working_area(w);
+
+        if (wins->cmd.len) w->p.draw_to_img = true;
+
+        make_win_bg(w, *monitor);
+
+        // move_win_to_monitor(w, *monitor);
+        _fill_working_area(w, *monitor);
 
         int d = w->w < w->h ? w->w : w->h;
 
@@ -268,6 +285,53 @@ int main() {
 
     Arena perm = new_arena(1 * GiB);
 
+    enum {
+        DESKTOP_NONE,
+        DESKTOP_XFCE,
+    };
+    DesktopCmd desktop_wallpaper_cmds[] = {
+        [DESKTOP_XFCE] = { s8("XFCE"), s8("xfconf-query --channel xfce4-desktop --property "), },
+    };
+
+    {
+        Arena cmd_arena = new_arena(10 * KiB);
+
+        s8 xfce = desktop_wallpaper_cmds[DESKTOP_XFCE].cmd;
+        s8 s = s8_system(&cmd_arena, s8("xfconf-query --channel xfce4-desktop --list"), 5 * KiB);
+        s8 file = {0};
+
+        for (int i = 0; i < s.len; i++) {
+            s8 cmp1 = s8("last-image"), cmp2 = s8("image-path");
+            bool b1 = (s8_equals(cmp1, (s8) slice(s, i, cmp1.len))),
+                 b2 = (s8_equals(cmp2, (s8) slice(s, i, cmp2.len)));
+
+            if (b1 || b2){
+                int begin = 0, end = s.len - 1;
+
+                for (int j = i; j >= 0; j--) {
+                    if (s.buf[j] == '\n') {
+                        begin = j + 1;
+                        break;
+                    }
+                }
+
+                for (int j = i; j < s.len; j++) {
+                    if (s.buf[j] == '\n') {
+                        end = j - 1;
+                        break;
+                    }
+                }
+
+                file = (s8) slice(s, begin, end - begin + 1);
+                break;
+            }
+        }
+
+        s8 cmd = s8_newcat(&cmd_arena, xfce, file);
+        s8_modcat(&cmd_arena, &cmd, s8(" --set "));
+        desktop_wallpaper_cmds[DESKTOP_XFCE].cmd = cmd;
+    }
+
     float time_x = 0.04, time_y = 0.06, // from the bottom-right
           time_size = 0.18,
           time_shadow_x = 0.002, time_shadow_y = 0.002;
@@ -288,9 +352,18 @@ int main() {
         .date_size = date_size,
     };
 
+
+    s8 desktop = get_desktop_name();
+    for (int i = 0; i < arrlen(desktop_wallpaper_cmds); i++) {
+        if (s8_equals(desktop_wallpaper_cmds[i].desktop, desktop)) {
+            wins.cmd = desktop_wallpaper_cmds[i].cmd;
+            break;
+        }
+    }
+
     {
         Monitors m = { .len = 1, };
-        // collect_monitors(&m);
+        collect_monitors(&m);
         replace_wins(&wins, &m);
     }
 
@@ -301,7 +374,11 @@ int main() {
         err("Failed to create background thread.");
     }
 
+    bool xfce_hack = 0;
+
     while (1) {
+        xfce_hack = !xfce_hack;
+
         while (true) {
             pthread_mutex_lock(&lock);
             bool end = background.img.buf;
@@ -423,15 +500,38 @@ int main() {
 
             win->event_queue_len = 0;
 
-            draw_to_win(win);
+            if (win->p.draw_to_img) {
+                new_static_arena(scratch, 3 * KiB);
+
+                s8 a0 = get_or_make_cache_dir(&scratch, s8(APP_NAME));
+                        assert(a0.len > 0);
+                        s8_copy(&scratch, s8("/"));
+                        u64_to_s8(&scratch, xfce_hack, 0); // hack for XFCE
+                s8 al = s8_copy(&scratch, s8("current_wallpaper.ppm"));
+                s8 path = s8_masscat(scratch, a0, al);
+                s8_print(path);
+
+                Image img = { .buf = win->buf, .w = win->w, .h = win->h, };
+                write_img_to_file(path, img);
+                printf("\nDone.\n");
+
+                s8 cmd = s8_newcat(&scratch, wins.cmd, s8(" "));
+                s8_modcat(&scratch, &cmd, path);
+                s8_modcat(&scratch, &cmd, s8("\0"));
+                system(cmd.buf);
+                s8_print(cmd);
+                printf("\n");
+
+                sleep(1);
+            } else draw_to_win(win);
         }
 
-        // Monitors monitors = {0};
-        // collect_monitors(&monitors);
-        // if (did_monitors_change(&wins.monitors, &monitors)) {
-        //     replace_wins(&wins, &monitors);
-            // background.redraw = true;
-        // }
+        Monitors monitors = {0};
+        collect_monitors(&monitors);
+        if (did_monitors_change(&wins.monitors, &monitors)) {
+            replace_wins(&wins, &monitors);
+            background.redraw = true;
+        }
     }
 
 end:
