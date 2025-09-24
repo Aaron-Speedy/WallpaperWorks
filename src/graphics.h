@@ -11,6 +11,8 @@
 #ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xinerama.h>
+#include <X11/Xatom.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -21,7 +23,7 @@ typedef enum {
     COLOR_A,
 } PlatformColorEnum;
 typedef struct {
-    int do_not_use;
+    int x, y, w, h;
 } PlatformMonitor;
 typedef struct {
     Window win;
@@ -91,7 +93,7 @@ typedef struct Win {
 } Win;
 
 void new_win(Win *win, char *name, int w, int h);
-void make_win_bg(Win *win);
+void make_win_bg(Win *win, PlatformMonitor monitor);
 void show_win(Win *win);
 void draw_to_win(Win *win);
 void collect_monitors(Monitors *m);
@@ -145,8 +147,12 @@ void _resize_win(Win *win) {
 #endif
 }
 
-void _fill_working_area(Win *win) {
+void _fill_working_area(Win *win, PlatformMonitor m) {
 #ifdef __linux__
+    if (!win->p.draw_to_img) XMoveResizeWindow(win->p.display, win->p.win, m.x, m.y, m.w, m.h);
+    win->w = m.w;
+    win->h = m.h;
+    _resize_win(win);
 #elif _WIN32
     RECT old;
     GetClientRect(win->p.win, &old);
@@ -246,7 +252,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     switch (msg) {
     case WM_TIMER: {
         win_event.type = EVENT_TIMEOUT;
-        if (win->is_bg) _fill_working_area(win);
+        if (win->is_bg) _fill_working_area(win, NULL);
     } break;
     case WM_SIZE: _resize_win(win); break;
     case WM_DESTROY: case WM_CLOSE: {
@@ -307,6 +313,10 @@ void new_win(Win *win, char *name, int w, int h) {
     win->w = w;
     win->h = h;
     _resize_win(win);
+
+     // TODO: make this transfer when make_win_bg is called
+    XStoreName(win->p.display, win->p.win, name);
+    // win->name = name;
 
     if (win->p.img == 0) err("Failed to create window.");
 
@@ -412,8 +422,32 @@ void draw_to_win(Win *win) {
 }
 
 void collect_monitors(Monitors *m) {
+    *m = (Monitors) {0};
 #ifdef __linux__
-    assert(!"Unimplemented");
+    Display *display = XOpenDisplay(NULL);
+    if (!display) err("Can't open display.");
+
+    int major, minor;
+    if (!XineramaQueryVersion(display, &major, &minor)) {
+        err("Xinerama extension is not available.");
+    }
+
+    if (!XineramaIsActive(display)) err("Xinerama is not active.");
+
+    XineramaScreenInfo *screens = XineramaQueryScreens(display, &m->len);
+    if (!screens) err("No screens are connected.");
+
+    for (int i = 0; i < m->len; i++) {
+        m->buf[i] = (PlatformMonitor) {
+            .x = screens[i].x_org,
+            .y = screens[i].y_org,
+            .w = screens[i].width,
+            .h = screens[i].height,
+        };
+    }
+    XFree(screens);
+
+    XCloseDisplay(display);
 #elif _WIN32
     EnumDisplayMonitors(NULL, NULL, _collect_monitors_cb, (LPARAM) m);
 #endif
@@ -435,7 +469,7 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 
 bool are_monitors_equal(PlatformMonitor a, PlatformMonitor b) {
 #ifdef __linux__
-    assert(!"Unimplemented");
+    return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
 #elif _WIN32
     // print("%ld, %ld, %ld, %ld", a.rect.left, a.rect.top, a.rect.right, a.rect.bottom);
     // print("%ld, %ld, %ld, %ld", b.rect.left, b.rect.top, b.rect.right, b.rect.bottom);

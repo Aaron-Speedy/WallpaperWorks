@@ -46,7 +46,7 @@ if [[ "$OS" == "windows"* ]]; then
 elif [[ "$OS" == "linux"* ]]; then
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
-    WINDOWING="-L/usr/X11R6/lib -lX11"
+    WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
 else
     echo "Unknown platform. Exiting..."

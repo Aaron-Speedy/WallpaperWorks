@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 
     printf("%s", tab);
     for (size_t i = 0; i < file.len; ++i) {
-        printf("0x%02x,", (unsigned char)file.buf[i]);
+        printf("0x%02x,", (unsigned char) file.buf[i]);
         if ((i + 1) % 16 == 0) printf("\n%s", tab);
         else printf(" ");
     }

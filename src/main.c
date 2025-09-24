@@ -16,7 +16,7 @@ int usleep(useconds_t useconds);
   fprintf(stderr, "Error: "); \
   fprintf(stderr, __VA_ARGS__); \
   fprintf(stderr, "\n"); \
-  exit(1); \
+  *((int *) 0) = 0; \
 } while (0);
 
 #define warning(...) do { \
