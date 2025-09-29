@@ -17,6 +17,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
+int usleep(useconds_t usec);
 typedef enum {
     COLOR_B,
     COLOR_G,
@@ -522,7 +523,9 @@ bool did_monitors_change(Monitors *a, Monitors *b) {
 
 void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get events for all windows
 #ifdef __linux__
-    if (win->p.draw_to_img) return;
+    if (win->p.draw_to_img) {
+        usleep(1000 * timeout_ms);
+    }
 
     fd_set fds;
     struct timeval tv;
