@@ -90,7 +90,7 @@ void *background_thread() {
         Image b = {0};
 
         while (true) {
-            s8 base = s8("https://infotoast.org/images");
+            s8 base = s8("https://infotoast.org/img");
             bool network_mode = true;
 
             u64 n = 0;
