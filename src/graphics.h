@@ -92,10 +92,11 @@ typedef struct Win {
     WinEvent event_queue[MAX_EVENT_QUEUE_LEN];
     int event_queue_len;
     PlatformWin p;
+    u64 hash;
 } Win;
 
 void new_win(Win *win, char *name, int w, int h);
-void make_win_bg(Win *win, PlatformMonitor monitor);
+void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root);
 void show_win(Win *win);
 void draw_to_win(Win *win);
 void collect_monitors(Monitors *m);
@@ -357,39 +358,9 @@ void new_win(Win *win, char *name, int w, int h) {
     win->buf = calloc(w * h, sizeof(*win->buf));
 #endif
 }
-void set_desktop_window_type(Display *display, Window window) {
-    // Get the atoms for the property name and the property value.
-    // XInternAtom queries the X server for the unique ID (Atom) of a string.
-    Atom wm_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
-    Atom wm_desktop = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
-
-    // XChangeProperty is used to change a property on a window.
-    // The arguments are:
-    // 1. display: The Display.
-    // 2. window: The Window ID.
-    // 3. property: The Atom for the property name (_NET_WM_WINDOW_TYPE).
-    // 4. type: The Atom for the data type of the property (XA_ATOM for an atom).
-    // 5. format: The size of the data elements in bits (32 for atoms).
-    // 6. mode: How to set the property. PropModeReplace replaces the existing value.
-    // 7. data: A pointer to the data to set. In this case, a pointer to our atom.
-    // 8. nelements: The number of items in the data array (1 for a single atom).
-    XChangeProperty(
-        display,
-        window,
-        wm_type,
-        XA_ATOM,
-        32,
-        PropModeReplace,
-        (unsigned char *)&wm_desktop,
-        1
-    );
-
-    // Flush the output buffer to make sure the request is sent to the server immediately.
-    XFlush(display);
-}
 
 // TODO: worker_w
-void make_win_bg(Win *win, PlatformMonitor monitor) {
+void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     win->is_bg = true;
 
 #ifdef __linux__
@@ -402,15 +373,27 @@ void make_win_bg(Win *win, PlatformMonitor monitor) {
 
     win->p.screen = DefaultScreen(win->p.display);
 
-    if (get_desktop_name().len) {
+    if (draw_to_root) win->p.win = DefaultRootWindow(win->p.display);
+    else {
         win->p.win = XCreateSimpleWindow(
             win->p.display,
             DefaultRootWindow(win->p.display),
             0, 0, 500, 500,
             1, 0, 0
         ); // TODO: check for errors
-        set_desktop_window_type(win->p.display, win->p.win);
-    } else win->p.win = DefaultRootWindow(win->p.display);
+
+        Atom wm_type = XInternAtom(win->p.display, "_NET_WM_WINDOW_TYPE", False);
+        Atom wm_desktop = XInternAtom(win->p.display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+
+        XChangeProperty(
+            win->p.display, win->p.win,
+            wm_type, XA_ATOM, 32,
+            PropModeReplace,
+            (unsigned char *) &wm_desktop, 1
+        );
+
+        XFlush(win->p.display);
+    }
 
     XSelectInput(win->p.display, win->p.win, ExposureMask | StructureNotifyMask);
 

@@ -53,10 +53,6 @@ int usleep(useconds_t useconds);
 #include "../build/tmp/app_name.h"
 
 typedef struct {
-    s8 desktop, cmd;
-} DesktopCmd;
-
-typedef struct {
     bool redraw;
     Image img;
 } Background;
@@ -204,8 +200,62 @@ typedef struct {
     float time_pt, date_pt;
     float time_size, date_size;
     s8 cmd;
+    bool draw_to_img, draw_to_root;
+    Arena cmd_arena;
     // HWND worker_w;
 } Wins;
+
+void set_cmd_and_platform(Wins *wins) {
+    wins->cmd_arena.len = 0;
+
+    s8 desktop = get_desktop_name();
+
+    if (s8_equals(desktop, s8("XFCE"))) {
+        wins->draw_to_img = true;
+        wins->cmd = s8("xfconf-query --channel xfce4-desktop --property ");
+
+        s8 s = s8_system(
+            &wins->cmd_arena,
+            s8("xfconf-query --channel xfce4-desktop --list"),
+            5 * KiB
+        );
+        s8 file = {0};
+
+        for (int i = 0; i < s.len; i++) {
+            s8 cmp1 = s8("last-image"), cmp2 = s8("image-path");
+            bool b1 = (s8_equals(cmp1, (s8) slice(s, i, cmp1.len))),
+                 b2 = (s8_equals(cmp2, (s8) slice(s, i, cmp2.len)));
+
+            if (b1 || b2){
+                int begin = 0, end = s.len - 1;
+
+                for (int j = i; j >= 0; j--) {
+                    if (s.buf[j] == '\n') {
+                        begin = j + 1;
+                        break;
+                    }
+                }
+
+                for (int j = i; j < s.len; j++) {
+                    if (s.buf[j] == '\n') {
+                        end = j - 1;
+                        break;
+                    }
+                }
+
+                file = (s8) slice(s, begin, end - begin + 1);
+                break;
+            }
+        }
+
+        wins->cmd = s8_newcat(&wins->cmd_arena, wins->cmd, file);
+        s8_modcat(&wins->cmd_arena, &wins->cmd, s8(" --set "));
+        return;
+    } else if (s8_equals(desktop, s8("GNOME"))) {
+        wins->draw_to_root = false;
+        wins->cmd = s8_copy(&wins->cmd_arena, s8("gsettings set org.gnome.desktop.background picture-uri-dark file://"));
+    }  else if (s8_equals(desktop, s8(""))) wins->draw_to_root = true;
+}
 
 void replace_wins(Wins *wins, Monitors *m) {
     for (int i = 0; i < wins->monitors.len; i++) {
@@ -225,9 +275,9 @@ void replace_wins(Wins *wins, Monitors *m) {
 
         new_win(w, APP_NAME, 500, 500);
 
-        if (wins->cmd.len) w->p.draw_to_img = true;
+        if (wins->draw_to_img) w->p.draw_to_img = true;
 
-        make_win_bg(w, *monitor);
+        make_win_bg(w, *monitor, wins->draw_to_root);
 
         // move_win_to_monitor(w, *monitor);
         _fill_working_area(w, *monitor);
@@ -285,53 +335,6 @@ int main() {
 
     Arena perm = new_arena(1 * GiB);
 
-    enum {
-        DESKTOP_NONE,
-        DESKTOP_XFCE,
-    };
-    DesktopCmd desktop_wallpaper_cmds[] = {
-        [DESKTOP_XFCE] = { s8("XFCE"), s8("xfconf-query --channel xfce4-desktop --property "), },
-    };
-
-    {
-        Arena cmd_arena = new_arena(10 * KiB);
-
-        s8 xfce = desktop_wallpaper_cmds[DESKTOP_XFCE].cmd;
-        s8 s = s8_system(&cmd_arena, s8("xfconf-query --channel xfce4-desktop --list"), 5 * KiB);
-        s8 file = {0};
-
-        for (int i = 0; i < s.len; i++) {
-            s8 cmp1 = s8("last-image"), cmp2 = s8("image-path");
-            bool b1 = (s8_equals(cmp1, (s8) slice(s, i, cmp1.len))),
-                 b2 = (s8_equals(cmp2, (s8) slice(s, i, cmp2.len)));
-
-            if (b1 || b2){
-                int begin = 0, end = s.len - 1;
-
-                for (int j = i; j >= 0; j--) {
-                    if (s.buf[j] == '\n') {
-                        begin = j + 1;
-                        break;
-                    }
-                }
-
-                for (int j = i; j < s.len; j++) {
-                    if (s.buf[j] == '\n') {
-                        end = j - 1;
-                        break;
-                    }
-                }
-
-                file = (s8) slice(s, begin, end - begin + 1);
-                break;
-            }
-        }
-
-        s8 cmd = s8_newcat(&cmd_arena, xfce, file);
-        s8_modcat(&cmd_arena, &cmd, s8(" --set "));
-        desktop_wallpaper_cmds[DESKTOP_XFCE].cmd = cmd;
-    }
-
     float time_x = 0.04, time_y = 0.06, // from the bottom-right
           time_size = 0.18,
           time_shadow_x = 0.002, time_shadow_y = 0.002;
@@ -350,16 +353,10 @@ int main() {
         .date_pt = 26,
         .time_size = time_size,
         .date_size = date_size,
+        .cmd_arena = new_arena(4 * KiB),
     };
 
-
-    s8 desktop = get_desktop_name();
-    for (int i = 0; i < arrlen(desktop_wallpaper_cmds); i++) {
-        if (s8_equals(desktop_wallpaper_cmds[i].desktop, desktop)) {
-            wins.cmd = desktop_wallpaper_cmds[i].cmd;
-            break;
-        }
-    }
+    set_cmd_and_platform(&wins);
 
     {
         Monitors m = { .len = 1, };
@@ -500,30 +497,43 @@ int main() {
 
             win->event_queue_len = 0;
 
-            if (win->p.draw_to_img) {
-                new_static_arena(scratch, 3 * KiB);
+            if (!win->p.draw_to_img) draw_to_win(win);
 
-                s8 a0 = get_or_make_cache_dir(&scratch, s8(APP_NAME));
-                        assert(a0.len > 0);
-                        s8_copy(&scratch, s8("/"));
-                        u64_to_s8(&scratch, xfce_hack, 0); // hack for XFCE
-                s8 al = s8_copy(&scratch, s8("current_wallpaper.ppm"));
-                s8 path = s8_masscat(scratch, a0, al);
-                s8_print(path);
+            if (win->p.draw_to_img || wins.cmd.len) {
+                u64 hash = 0;
+                {
+                    s8 s = {
+                        .buf = (u8 *) win->buf,
+                        .len = win->w * win->h * sizeof(*win->buf),
+                    };
+                    hash = s8_hash(s);
+                }
+                printf("%llu\n", hash);
 
-                Image img = { .buf = win->buf, .w = win->w, .h = win->h, };
-                write_img_to_file(path, img);
-                printf("\nDone.\n");
+                if (hash != win->hash) {
+                    win->hash = hash;
 
-                s8 cmd = s8_newcat(&scratch, wins.cmd, s8(" "));
-                s8_modcat(&scratch, &cmd, path);
-                s8_modcat(&scratch, &cmd, s8("\0"));
-                system(cmd.buf);
-                s8_print(cmd);
-                printf("\n");
+                    new_static_arena(scratch, 3 * KiB);
 
-                sleep(1);
-            } else draw_to_win(win);
+                    s8 a0 = get_or_make_cache_dir(&scratch, s8(APP_NAME));
+                            assert(a0.len > 0);
+                            s8_copy(&scratch, s8("/"));
+                            u64_to_s8(&scratch, xfce_hack, 0); // hack for XFCE
+                    s8 al = s8_copy(&scratch, s8("current_wallpaper.ppm"));
+                    s8 path = s8_masscat(scratch, a0, al);
+                    s8_print(path);
+
+                    Image img = { .buf = win->buf, .w = win->w, .h = win->h, };
+                    write_img_to_file(path, img);
+                    printf("\nDone.\n");
+
+                    s8 cmd = s8_newcat(&scratch, wins.cmd, path);
+                    s8_modcat(&scratch, &cmd, s8("\0"));
+                    system(cmd.buf);
+                    s8_print(cmd);
+                    printf("\n");
+                }
+            }
         }
 
         Monitors monitors = {0};
