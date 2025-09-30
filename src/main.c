@@ -90,7 +90,7 @@ void *background_thread() {
         Image b = {0};
 
         while (true) {
-            s8 base = s8("https://infotoast.org/img");
+            s8 base = s8("https://infotoast.org/images");
             bool network_mode = true;
 
             u64 n = 0;
@@ -202,9 +202,9 @@ typedef struct {
     s8 cmd;
     bool draw_to_img, draw_to_root;
     Arena cmd_arena;
-    // HWND worker_w;
 } Wins;
 
+#ifdef __linux__
 void set_cmd_and_platform(Wins *wins) {
     wins->cmd_arena.len = 0;
 
@@ -256,6 +256,7 @@ void set_cmd_and_platform(Wins *wins) {
         wins->cmd = s8_copy(&wins->cmd_arena, s8("gsettings set org.gnome.desktop.background picture-uri-dark file://"));
     }  else if (s8_equals(desktop, s8(""))) wins->draw_to_root = true;
 }
+#endif
 
 void replace_wins(Wins *wins, Monitors *m) {
     for (int i = 0; i < wins->monitors.len; i++) {
@@ -270,17 +271,23 @@ void replace_wins(Wins *wins, Monitors *m) {
     for (int i = 0; i < wins->monitors.len; i++) {
         Win *w = &wins->wins[i];
         PlatformMonitor *monitor = &m->buf[i];
-        printf("replace_wins: %d %d\n", monitor->w, monitor->h);
         wins->monitors.buf[i] = *monitor;
 
         new_win(w, APP_NAME, 500, 500);
+        assert(w->buf);
 
+#ifdef __linux__
         if (wins->draw_to_img) w->p.draw_to_img = true;
+#endif
 
+        assert(w->buf && "First pos.");
         make_win_bg(w, *monitor, wins->draw_to_root);
+        assert(w->buf && "Second pos.");
 
-        // move_win_to_monitor(w, *monitor);
+        move_win_to_monitor(w, *monitor);
+        assert(w->buf && "Third pos.");
         _fill_working_area(w, *monitor);
+        assert(w->buf && "Fourth pos.");
 
         int d = w->w < w->h ? w->w : w->h;
 
@@ -356,7 +363,9 @@ int main() {
         .cmd_arena = new_arena(4 * KiB),
     };
 
+#ifdef __linux__
     set_cmd_and_platform(&wins);
+#endif
 
     {
         Monitors m = { .len = 1, };
@@ -364,7 +373,7 @@ int main() {
         replace_wins(&wins, &m);
     }
 
-    // show_sys_tray_icon(&wins.wins[0], ICON_ID, "Close " APP_NAME);
+    show_sys_tray_icon(&wins.wins[0], ICON_ID, "Close " APP_NAME);
 
     pthread_t thread;
     if (pthread_create(&thread, NULL, background_thread, NULL)) {
@@ -378,7 +387,7 @@ int main() {
 
         while (true) {
             pthread_mutex_lock(&lock);
-            bool end = background.img.buf;
+                bool end = background.img.buf;
             pthread_mutex_unlock(&lock);
             if (end) break;
             usleep(1/20 * 1000000);
@@ -497,6 +506,7 @@ int main() {
 
             win->event_queue_len = 0;
 
+#ifdef __linux__
             if (!win->p.draw_to_img) draw_to_win(win);
 
             if (win->p.draw_to_img || wins.cmd.len) {
@@ -534,7 +544,11 @@ int main() {
                     printf("\n");
                 }
             }
+#else
+            draw_to_win(win);
+#endif
         }
+
 
         Monitors monitors = {0};
         collect_monitors(&monitors);

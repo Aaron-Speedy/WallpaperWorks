@@ -50,6 +50,7 @@ typedef struct {
     HWND win;
     BITMAPINFO bitmap_info;
 } PlatformWin;
+HWND _worker_w = 0;
 #else
 #error "Unsupported platform!"
 #endif
@@ -120,10 +121,10 @@ void _resize_win(Win *win) {
     if (!win->p.draw_to_img && win->buf) XDestroyImage(win->p.img); // NOTE: XDestroyImage frees win->buf (X11...)
     else free(win->buf);
     win->buf = 0;
-#endif
+
     win->resized = true;
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-#ifdef __linux__
+
     win->dpi_x = win->w /
                 ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
     win->dpi_y = win->h /
@@ -140,7 +141,12 @@ void _resize_win(Win *win) {
         free(win->buf);
         win->buf = 0;
     }
+
+    win->resized = true;
+    win->buf = calloc(win->w * win->h, sizeof(*win->buf));
+
     win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
+
     win->p.bitmap_info = (BITMAPINFO) {
         .bmiHeader = {
             .biSize = sizeof(win->p.bitmap_info.bmiHeader),
@@ -160,6 +166,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     win->h = m.h;
     _resize_win(win);
 #elif _WIN32
+    assert(win->buf);
     RECT old;
     GetClientRect(win->p.win, &old);
 
@@ -258,7 +265,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     switch (msg) {
     case WM_TIMER: {
         win_event.type = EVENT_TIMEOUT;
-        if (win->is_bg) _fill_working_area(win, NULL);
+        if (win->is_bg) _fill_working_area(win, (PlatformMonitor) {0}); // the PlatformMontior parameter is not used on Winodws
     } break;
     case WM_SIZE: _resize_win(win); break;
     case WM_DESTROY: case WM_CLOSE: {
@@ -360,7 +367,6 @@ void new_win(Win *win, char *name, int w, int h) {
 #endif
 }
 
-// TODO: worker_w
 void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     win->is_bg = true;
 
@@ -406,7 +412,9 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     if (!win->p.img) err("Failed to make the window the background.");
 
 #elif _WIN32
-    SetParent(win->p.win, worker_w);
+
+    if (!_worker_w) _worker_w = _make_worker_w();
+    SetParent(win->p.win, _worker_w);
 
     SetWindowLongPtrA(
         win->p.win,
