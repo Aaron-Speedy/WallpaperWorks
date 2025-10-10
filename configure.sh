@@ -20,7 +20,7 @@ if [[ "$OS" == "windows"* ]]; then
 
     cp -r ../freetype .
     (cd freetype/ && ./configure && make)
-elif [[ "$OS" == "linux"* ]]; then
+elif [[ "$OS" == "linux"*  || "$OS" == "darwin" ]]; then
 true
 else
     echo "Unknown platform. Exiting..."
