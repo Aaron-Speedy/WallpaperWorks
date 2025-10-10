@@ -10,8 +10,8 @@ and icon. To do this, first clone the repository and enter it
 project root and copy a ``font.ttf`` and ``favicon.ico`` of your liking
 into it. For the best experience, we recommend using an icon encoded at
 multiple sizes. You can convert a regular image to an ico file by going
-to [iconconverter.com](icoconverter.com), or by using the following
-[ImageMagick](imagemagick.org) command.
+to [icoconverter.com](https://icoconverter.com/), or by using the following
+[ImageMagick](https://imagemagick.org/) command.
 
 ```sh
 convert in.jpg -define icon:auto-resize=32,48,64,128,256 -compress zip favicon.ico
