@@ -35,6 +35,7 @@ typedef struct {
     XImage *img;
     bool draw_to_img;
 } PlatformWin;
+
 #elif _WIN32
 #include <Windows.h>
 typedef enum {
@@ -51,6 +52,15 @@ typedef struct {
     BITMAPINFO bitmap_info;
 } PlatformWin;
 HWND _worker_w = 0;
+
+#elif __APPLE__
+#include <TargetConditionals.h>
+#ifdef TARGET_OS_MAC
+
+#else
+#error "Unknown Apple Platform"
+#endif
+
 #else
 #error "Unsupported platform!"
 #endif

@@ -320,7 +320,6 @@ s8 s8_system(Arena *perm, s8 cmd, ssize max_read_len) {
     perm->len -= ret.len - read_len;
     ret.len = read_len;
 
-err:
     int status = pclose(fp);
     if (status == -1 && !ret.len) ret = s8_errno();
 
