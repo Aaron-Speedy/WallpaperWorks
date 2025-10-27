@@ -51,7 +51,8 @@ elif [[ "$OS" == "linux"* ]]; then
 elif [[ "$OS" == "darwin" ]]; then
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
-    FREETYPE="-lfreetype"
+    FREETYPE=""
+    WINDOWING="-framework Cocoa"
 else
     echo "Unknown platform. Exiting..."
     exit
@@ -65,7 +66,7 @@ $CURL \
 $FREETYPE \
 "
 
-cc src/main.c -o build/$APP_NAME $CFLAGS $LIBS $OTHER
-# cc test.c -o build/test $CFLAGS $LIBS -Wno-unused-parameter # TODO: remove -Wno...
+# cc $CFLAGS $LIBS $OTHER -o build/$APP_NAME src/main.c
+cc $CFLAGS $LIBS $OTHER -o build/test test.c
 
 rm -rf build/tmp
