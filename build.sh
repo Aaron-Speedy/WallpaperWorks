@@ -17,8 +17,8 @@ cc src/hex_dump.c -o build/tmp/hex_dump.c -ggdb
 echo "!define APP_NAME \"$APP_NAME\"" > build/app_name.nsh
 echo "#define APP_NAME \"$APP_NAME\"" > build/tmp/app_name.h
 
-# TODO: Remove -Wno-unused-parameter
-CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
+# SAN="-fsanitize=undefined,thread"
+CFLAGS="-Wall -Wextra -ggdb -O3 -std=gnu11"
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 

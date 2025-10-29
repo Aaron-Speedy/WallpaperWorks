@@ -61,14 +61,14 @@ int main(void) {
     }
 
     while (true) {
-        struct timeval time_val;
-        gettimeofday(&time_val, NULL);
-
         Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
         context.screen = &screen;
         context.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
 
         app_loop(&context);
+
+        struct timeval time_val;
+        gettimeofday(&time_val, NULL);
 
         get_events_timeout(
             &win,

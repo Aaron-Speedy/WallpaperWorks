@@ -34,6 +34,7 @@ FFont date_font;
 Background background = { .initial = true, };
 Image scaled_background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+u64 tick = 0;
 
 void *background_thread() {
     srand(time(0));
@@ -191,13 +192,17 @@ void start(Context *ctx) {
         d * date_size
     );
 
-    while (!background.img.buf) {}
+    while (true) {
+        bool stop = 0;
+        pthread_mutex_lock(&lock);
+            stop = background.img.buf != 0;
+        pthread_mutex_unlock(&lock);
+        if (stop) break;
+    }
 }
 
 void app_loop(Context *ctx) {
     Image *screen = ctx->screen;
-
-    s8 text = s8("Empires fall, but real bros stay together forever.");
 
     new_static_arena(scratch, 500);
 
