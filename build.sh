@@ -53,9 +53,9 @@ elif [[ "$OS" == "linux"* ]]; then
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
-    LIBWEBP="$WEBP_DIR/src/libwebp.a"
-    CURL="-lcurl"
-    FREETYPE=""
+    # LIBWEBP="$WEBP_DIR/src/libwebp.a"
+    # CURL="-lcurl"
+    # FREETYPE=""
     WINDOWING="-framework Cocoa"
     SOURCE="-x objective-c src/main_osx.m"
 else
