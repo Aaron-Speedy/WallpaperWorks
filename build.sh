@@ -57,7 +57,7 @@ elif [[ "$OS" == "darwin" ]]; then
     CURL="-lcurl"
     FREETYPE=""
     WINDOWING="-framework Cocoa"
-    SOURCE="-x objective-c src/main_osx.c"
+    SOURCE="-x objective-c src/main_osx.m"
 else
     echo "Unknown platform. Exiting..."
     exit
