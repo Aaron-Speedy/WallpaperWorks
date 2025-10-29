@@ -66,7 +66,6 @@ $CURL \
 $FREETYPE \
 "
 
-# cc $CFLAGS $LIBS $OTHER -o build/$APP_NAME src/main.c
-cc $CFLAGS $LIBS $OTHER -o build/test test.c
+cc -o build/$APP_NAME src/main_x11.c $CFLAGS $LIBS $OTHER
 
 rm -rf build/tmp

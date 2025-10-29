@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#include "ds.h"
+
 #ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -125,6 +127,9 @@ s8 get_desktop_name();
 #ifdef GRAPHICS_IMPL
 #ifndef GRAPHICS_IMPL_GUARD
 #define GRAPHICS_IMPL_GUARD
+
+#define DS_IMPL
+#include "ds.h"
 
 void _resize_win(Win *win) {
 #ifdef __linux__
@@ -509,7 +514,7 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 #ifdef __linux__
     if (win->p.draw_to_img) return;
 
-    assert(!"Unimplemented");
+    // assert(!"Unimplemented");
 #elif _WIN32
     SetWindowPos(
         win->p.win,
@@ -568,9 +573,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
             XConfigureEvent c = e.xconfigure;
             // if (c.width != win->w || c.height != win->h) { // TODO: see about this
                 win->w = c.width; win->h = c.height;
-                printf("OLD: %d %d %d %d\n", win->w, win->h, win->p.img->width, win->p.img->height);
                 _resize_win(win);
-                printf("NEW: %d %d %d %d\n", win->w, win->h, win->p.img->width, win->p.img->height);
             // }
         } break;
         default: break;
@@ -604,7 +607,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
     #ifdef __linux__
     (void) win;
-    assert(!"Unimplemented");
+    // assert(!"Unimplemented");
     #elif _WIN32
     NOTIFYICONDATA nid = {
         .cbSize = sizeof(NOTIFYICONDATA),
@@ -621,7 +624,7 @@ void show_sys_tray_icon(Win *win, int icon_id, char *tooltip) {
 
 void kill_sys_tray_icon(Win *win, int icon_id) {
 #ifdef __linux__
-    assert(!"Unimplemented");
+    // assert(!"Unimplemented");
 #elif _WIN32
     NOTIFYICONDATA nid = {
         .cbSize = sizeof(NOTIFYICONDATA),
@@ -653,7 +656,7 @@ void close_win(Win *win) {
 
 bool is_program_already_open(char *id) {
 #ifdef __linux__
-    assert(!"Unimplemented");
+    // assert(!"Unimplemented");
 #elif _WIN32
     char path[1024] = { 'L', 'o', 'c', 'a', 'l', '\\', '$', };
     int path_len = strlen(path);

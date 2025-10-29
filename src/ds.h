@@ -38,7 +38,7 @@ typedef struct {
 } Arena;
 
 typedef struct {
-    u8 *buf;
+    char *buf;
     ssize len;
 } s8;
 
@@ -77,7 +77,7 @@ Arena new_arena(ssize cap);
 #define new_static_arena(name, c) u8 _stack_buf_##name[c] = {0}; Arena name = { .buf = _stack_buf_##name, .cap = c, }
 void *arena_alloc(Arena *a, ssize size, ssize align, ssize count);
 
-#define s8(lit) (s8){ .buf = (u8 *) lit, .len = arrlen(lit) - 1, }
+#define s8(lit) (s8){ .buf = (char *) lit, .len = arrlen(lit) - 1, }
 
 s8 new_s8(Arena *perm, ssize len);
 s8 s8_copy(Arena *perm, s8 s);

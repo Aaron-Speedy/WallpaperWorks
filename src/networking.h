@@ -2,6 +2,7 @@
 #define NETWORKING_H
 
 #include "ds.h"
+#include <curl/curl.h>
 
 typedef struct {
     Arena *perm;
