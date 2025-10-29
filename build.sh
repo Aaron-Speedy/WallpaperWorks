@@ -27,6 +27,7 @@ CURL=""
 WINDOWING=""
 FREETYPE=""
 OTHER=""
+SOURCE=""
 
 CURL_DIR="third_party/real/curl"
 FT_DIR="third_party/real/freetype"
@@ -43,16 +44,20 @@ if [[ "$OS" == "windows"* ]]; then
 
     windres src/recs.rc -O coff -o build/recs.res
     OTHER="build/recs.res"
+
+    SOURCE="src/main_x11.c"
 elif [[ "$OS" == "linux"* ]]; then
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
+    SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE=""
     WINDOWING="-framework Cocoa"
+    SOURCE="-x objective-c src/main_osx.c"
 else
     echo "Unknown platform. Exiting..."
     exit
@@ -66,6 +71,6 @@ $CURL \
 $FREETYPE \
 "
 
-cc -o build/$APP_NAME src/main_x11.c $CFLAGS $LIBS $OTHER
+cc -o build/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
 
 rm -rf build/tmp

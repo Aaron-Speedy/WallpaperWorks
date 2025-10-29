@@ -52,7 +52,6 @@ int main(void) {
     Context context = {0};
 
     {
-
         Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
         context.screen = &screen;
         context.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
