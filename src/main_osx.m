@@ -117,6 +117,7 @@ int main(void) {
                                           styleMask:win_style
                                           backing:NSBackingStoreBuffered
                                           defer:NO];
+    make_win_bg(win);
     [win autorelease];
     NSWindowController * win_controller = [[NSWindowController alloc] initWithWindow:win];
     [win_controller autorelease];
@@ -124,8 +125,6 @@ int main(void) {
     MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
     [drawing_view autorelease];
     [win setContentView:drawing_view];
-
-    make_win_bg(win);
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
