@@ -24,27 +24,27 @@ void make_win_bg(NSWindow * win) {
 }
 
 @interface MyDrawingView : NSView {
-    CGContextRef cg_ctx;
+    CGContextRef bitmap_ctx;
     unsigned char *buf;
     size_t w, h;
 }
 
-- (void) setup_cg_ctx;
+- (void) setup_bitmap_ctx;
 - (void) draw_buf;
-- (void) cleanup_cg_ctx;
+- (void) cleanup_bitmap_ctx;
 
 @end
 
 @implementation MyDrawingView
 
-- (void) setup_cg_ctx {
+- (void) setup_bitmap_ctx {
     width = (size_t) [self bounds].size.width;
     height = (size_t) [self bounds].size.height;
 
     buf = calloc(height * width * 4, sizeof(unsigned char));
 
     CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-    cg_ctx = CGBitmapContextCreate(
+    bitmap_ctx = CGBitmapContextCreate(
         buf,
         width, height,
         8, 4 * width,
@@ -54,17 +54,17 @@ void make_win_bg(NSWindow * win) {
     CGColorSpaceRelease(color_space);
 }
 
-- (void) cleanup_cg_ctx {
-    if (cg_ctx) {
-        CGContextRelease(cg_ctx);
-        cg_ctx = 0;
+- (void) cleanup_bitmap_ctx {
+    if (bitmap_ctx) {
+        CGContextRelease(bitmap_ctx);
+        bitmap_ctx = 0;
     }
     free(buf);
     buf = 0;
 }
 
 - (void) dealloc {
-    [self cleanup_cg_ctx];
+    [self cleanup_bitmap_ctx];
     [super dealloc];
 }
 
@@ -88,12 +88,14 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) drawRect : (NSRect) dirtyRect {
-    NSGraphicsContext *context = [NSGraphicsContext currentContext];
+    [self draw_buf];
 
-    [[NSColor blueColor] setFill];
-
-    NSRect rect = [self bounds];
-    NSRectFill(rect);
+    CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
+    CGContextRef screen_ctx = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
+    if (image) { // TODO: handle errors
+        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, width, height), image);
+        CGImageRelease(image);
+    }
 }
 
 @end
