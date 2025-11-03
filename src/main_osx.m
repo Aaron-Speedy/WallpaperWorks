@@ -37,6 +37,14 @@ void make_win_bg(NSWindow * win) {
 
 @implementation MyDrawingView
 
+- (id) initWithFrame : (NSRect) frameRect {
+    self = [super initWithFrame:frameRect];
+    if (self) {
+        [self setup_bigmap_ctx];
+    }
+    return self;
+}
+
 - (void) setup_bitmap_ctx {
     w = (size_t) [self bounds].size.width;
     h = (size_t) [self bounds].size.height;
@@ -117,7 +125,7 @@ int main(void) {
     [drawing_view autorelease];
     [win setContentView:drawing_view];
 
-    make_win_bg(win);
+    // make_win_bg(win);
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
