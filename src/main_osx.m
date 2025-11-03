@@ -134,16 +134,6 @@ void make_win_bg(NSWindow * win) {
     Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
     context = (Context) { .dpi = 72, .screen = &screen, };
     app_loop(&context);
-
-    for (size_t x = 0; x < w; x++) {
-        for (size_t y = 0; y < h; y++) {
-            size_t i = (x + y * w) * 4;
-            buf[i + 0] = (255 * sin(x * 0.05 + y * 0.05) + 128);
-            buf[i + 1] = 255;
-            buf[i + 2] = 255;
-            buf[i + 3] = 255;
-        }
-    }
 }
 
 - (void) drawRect : (NSRect) dirty_rect {
