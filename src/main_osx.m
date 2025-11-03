@@ -93,7 +93,7 @@ void make_win_bg(NSWindow * win) {
     CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
     CGContextRef screen_ctx = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
     if (image) { // TODO: handle errors
-        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, width, height), image);
+        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
         CGImageRelease(image);
     }
 }
