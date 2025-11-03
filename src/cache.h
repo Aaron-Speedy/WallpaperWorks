@@ -16,6 +16,12 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #define DS_IMPL
 #include "ds.h"
 
+#ifdef __APPLE__
+#define _CACHE_DIR_123 "/Library/Caches"
+#elif
+#define _CACHE_DIR_123 "/.cache"
+#endif
+
 s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     s8 cache;
 
@@ -30,7 +36,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
         cache.buf = (u8 *) getenv("HOME");
         if (cache.buf != NULL) {
             cache.len = strlen((char *) cache.buf);
-            cache = s8_newcat(perm, cache, s8("/.cache"));
+            cache = s8_newcat(perm, cache, s8(_CACHE_DIR_123));
             break;
         }
         return (s8) {0};
