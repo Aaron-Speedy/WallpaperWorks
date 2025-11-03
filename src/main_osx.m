@@ -40,7 +40,7 @@ void make_win_bg(NSWindow * win) {
 - (id) initWithFrame : (NSRect) frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
-        [self setup_bigmap_ctx];
+        [self setup_bitmap_ctx];
     }
     return self;
 }
