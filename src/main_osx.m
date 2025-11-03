@@ -1,5 +1,21 @@
 #include <Cocoa/Cocoa.h>
 
+@interface MyDrawingView : NSView
+@end
+
+@implementation MyDrawingView
+
+- (void)drawRect:(NSRect)dirtyRect {
+    NSGraphicsContext *context = [NSGraphicsContext currentContext];
+
+    [[NSColor blueColor] setFill];
+
+    NSRect rect = NSMakeRect(50, 50, 300, 300);
+    NSRectFill(rect);
+}
+
+@end
+
 int main(void) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     [NSApplication sharedApplication];
@@ -12,12 +28,14 @@ int main(void) {
     [win autorelease];
     NSWindowController * win_controller = [[NSWindowController alloc] initWithWindow:win];
     [win_controller autorelease];
-    NSTextView * text_view = [[NSTextView alloc] initWithFrame:win_rect];
-    [text_view autorelease];
-    [win setContentView:text_view];
-    [text_view insertText:@"Hello OSX/Cocoa world!"];
+
+    MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
+    [drawing_view autorelease];
+    [win setContentView:drawing_view];
+
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
+
     [win orderFrontRegardless];
     [NSApp run];
     [pool drain];
