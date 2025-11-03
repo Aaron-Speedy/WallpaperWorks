@@ -1,11 +1,34 @@
 #include <Cocoa/Cocoa.h>
+#include <CoreGraphics/CGWindowLevel.h>
+
+void make_win_bg(NSWindow * win) {
+    [win setStyleMask:NSWindowStyleMaskBorderless];
+
+    [win setOpaque:NO];
+    [win setBackgroundColor:[NSColor clearColor]];
+    [win setHasShadow:NO];
+
+    [win setLevel:kCGDesktopWindowLevel - 1];
+
+    [win setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary];
+
+    NSScreen *mainScreen = [NSScreen mainScreen];
+    NSRect screenRect = [mainScreen frame];
+    
+    [win setFrame:screenRect display:YES];
+    
+    [win setMovable:NO];
+    
+    // Optional: Hide the app from the Dock and Cmd-Tab switcher (This needs to be set 
+    // in the application's Info.plist using the 'LSUIElement' key set to 'YES')
+}
 
 @interface MyDrawingView : NSView
 @end
 
 @implementation MyDrawingView
 
-- (void)drawRect:(NSRect)dirtyRect {
+- (void) drawRect : (NSRect) dirtyRect {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
 
     [[NSColor blueColor] setFill];
@@ -32,6 +55,7 @@ int main(void) {
     MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
     [drawing_view autorelease];
     [win setContentView:drawing_view];
+    [win make_win_bg];
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
