@@ -1,6 +1,37 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreGraphics/CGWindowLevel.h>
 
+#include <stdint.h>
+
+#define IMAGE_IMPL
+#include "image.h"
+
+typedef struct {
+    uint8_t c[4];
+} Color;
+
+typedef struct {
+    COLOR_R,
+    COLOR_G,
+    COLOR_B,
+    COLOR_A,
+} PlatformColorEnum;
+
+Color color(u8 r, u8 g, u8 b, u8 a) {
+    return (Color) {
+        .c[COLOR_R] = r,
+        .c[COLOR_G] = g,
+        .c[COLOR_B] = b,
+        .c[COLOR_A] = a,
+    };
+}
+
+typedef struct {
+    Image *screen;
+    int dpi;
+    void *data;
+} Context;
+
 #include "main.c"
 
 void make_win_bg(NSWindow * win) {
@@ -29,11 +60,14 @@ void make_win_bg(NSWindow * win) {
     CGContextRef bitmap_ctx;
     unsigned char *buf;
     size_t w, h;
+    float animation_time;
+
 }
 
 - (void) setup_bitmap_ctx;
 - (void) draw_buf;
 - (void) cleanup_bitmap_ctx;
+- (void) start_animation;
 
 @end
 
@@ -94,7 +128,7 @@ void make_win_bg(NSWindow * win) {
     }
 }
 
-- (void) drawRect : (NSRect) dirtyRect {
+- (void) drawRect : (NSRect) dirty_rect {
     [self draw_buf];
 
     CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
@@ -103,6 +137,20 @@ void make_win_bg(NSWindow * win) {
         CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
         CGImageRelease(image);
     }
+}
+
+- (void) start_animation {
+    NSTimeInterval = 1;
+    [NSTimer scheduledTimerWithTimeInterval:interval
+                                         target:self
+                                       selector:@selector(update_display:) 
+                                       userInfo:nil 
+                                        repeats:YES];
+}
+
+- (void) update_display : (NSTimer *) timer {
+    self.animation_time += 0.05; 
+    [self setNeedsDisplay:YES];
 }
 
 @end
@@ -125,6 +173,7 @@ int main(void) {
     make_win_bg(win);
 
     [drawing_view setup_bitmap_ctx];
+    [drawing_view start_animation];
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)

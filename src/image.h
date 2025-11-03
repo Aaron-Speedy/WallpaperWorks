@@ -2,7 +2,6 @@
 #define IMAGE_H
 
 #include "ds.h"
-#include "graphics.h"
 
 typedef struct {
     Color *buf;
@@ -34,9 +33,6 @@ s8 write_img_to_file(s8 p, Image img);
 
 #define DS_IMPL
 #include "ds.h"
-
-#define GRAPHICS_IMPL
-#include "graphics.h"
 
 Color *img_at(Image *m, int x, int y) {
     // assert(x < m->w);
