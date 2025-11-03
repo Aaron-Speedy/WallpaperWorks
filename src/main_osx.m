@@ -140,7 +140,7 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) start_animation {
-    NSTimeInterval = 1;
+    NSTimeInterval interval = 1;
     [NSTimer scheduledTimerWithTimeInterval:interval
                                          target:self
                                        selector:@selector(update_display:) 
@@ -149,7 +149,7 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) update_display : (NSTimer *) timer {
-    self.animation_time += 0.05; 
+    self->animation_time += 0.05; 
     [self setNeedsDisplay:YES];
 }
 
