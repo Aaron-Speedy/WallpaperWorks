@@ -7,7 +7,7 @@ typedef struct {
     uint8_t c[4];
 } Color;
 
-typedef struct {
+typedef enum {
     COLOR_R,
     COLOR_G,
     COLOR_B,
