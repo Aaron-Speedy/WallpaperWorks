@@ -1,6 +1,8 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreGraphics/CGWindowLevel.h>
 
+#include "main.c"
+
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
 
