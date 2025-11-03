@@ -55,7 +55,8 @@ int main(void) {
     MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
     [drawing_view autorelease];
     [win setContentView:drawing_view];
-    [win make_win_bg];
+
+    make_win_bg(win);
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
