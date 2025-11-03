@@ -66,6 +66,7 @@ Image copy_img(Arena *perm, Image m) {
 
 // Bilinear interpolation
 Image rescale_img(Arena *perm, Image img, int new_w, int new_h) {
+    printf("%d %d\n", new_w, new_h);
     assert(new_w >= 0);
     assert(new_h >= 0);
 
