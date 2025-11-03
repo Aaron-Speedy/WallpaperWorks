@@ -10,7 +10,7 @@
 
     [[NSColor blueColor] setFill];
 
-    NSRect rect = NSMakeRect(50, 50, 300, 300);
+    NSRect rect = [self bounds];
     NSRectFill(rect);
 }
 
