@@ -23,10 +23,69 @@ void make_win_bg(NSWindow * win) {
     // in the application's Info.plist using the 'LSUIElement' key set to 'YES')
 }
 
-@interface MyDrawingView : NSView
+@interface MyDrawingView : NSView {
+    CGContextRef cg_ctx;
+    unsigned char *buf;
+    size_t w, h;
+}
+
+- (void) setup_cg_ctx;
+- (void) draw_buf;
+- (void) cleanup_cg_ctx;
+
 @end
 
 @implementation MyDrawingView
+
+- (void) setup_cg_ctx {
+    width = (size_t) [self bounds].size.width;
+    height = (size_t) [self bounds].size.height;
+
+    buf = calloc(height * width * 4, sizeof(unsigned char));
+
+    CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+    cg_ctx = CGBitmapContextCreate(
+        buf,
+        width, height,
+        8, 4 * width,
+        color_space,
+        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
+    );
+    CGColorSpaceRelease(color_space);
+}
+
+- (void) cleanup_cg_ctx {
+    if (cg_ctx) {
+        CGContextRelease(cg_ctx);
+        cg_ctx = 0;
+    }
+    free(buf);
+    buf = 0;
+}
+
+- (void) dealloc {
+    [self cleanup_cg_ctx];
+    [super dealloc];
+}
+
+- (void) draw_buf {
+    if (!buf) return;
+
+    for (size_t x = 0; x < width; x++) {
+        for (size_t y = 0; y < height; y++) {
+            size_t i = (x + y * width) * 4;
+
+            unsigned char r = (unsigned char) (255 * sin(x * 0.05 + y * 0.05) + 128);
+            unsigned char g = (unsigned char) (x % 256);
+            unsigned char b = (unsigned char) (y % 256);
+
+            buf[i + 0] = r;
+            buf[i + 1] = g;
+            buf[i + 2] = b;
+            buf[i + 3] = 255;
+        }
+    }
+}
 
 - (void) drawRect : (NSRect) dirtyRect {
     NSGraphicsContext *context = [NSGraphicsContext currentContext];
