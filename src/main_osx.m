@@ -131,6 +131,9 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
+    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    app_loop(&context);
+
     for (size_t x = 0; x < w; x++) {
         for (size_t y = 0; y < h; y++) {
             size_t i = (x + y * w) * 4;
