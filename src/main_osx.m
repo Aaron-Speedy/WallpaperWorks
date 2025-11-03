@@ -1,7 +1,7 @@
 #include <Cocoa/Cocoa.h>
 
 int main(void) {
-    NSAutoreleasePool *poll = [[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     [NSApplication sharedApplication];
     NSUInteger win_style = NSTitledWindowMask | NSClosableWindowMask | NSResizableWindowMask;
     NSRect win_rect = NSMakeRect(100, 100, 400, 400);
