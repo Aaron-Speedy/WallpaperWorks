@@ -3,6 +3,19 @@
 
 #include <stdint.h>
 
+#define err(...) do { \
+  fprintf(stderr, "Error: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+  *((int *) 0) = 0; \
+} while (0);
+
+#define warning(...) do { \
+  fprintf(stderr, "Warning: "); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n"); \
+} while (0);
+
 typedef struct {
     uint8_t c[4];
 } Color;
