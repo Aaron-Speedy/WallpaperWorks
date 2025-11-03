@@ -74,6 +74,7 @@ void make_win_bg(NSWindow * win) {
     unsigned char *buf;
     size_t w, h;
     float animation_time;
+    Context context;
 
 }
 
@@ -159,10 +160,13 @@ void make_win_bg(NSWindow * win) {
                                        selector:@selector(update_display:) 
                                        userInfo:nil 
                                         repeats:YES];
+    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    context = (Context) { .dpi = 72, .screen = &screen, }; // TODO: get DPI
+    start(&context);
 }
 
 - (void) update_display : (NSTimer *) timer {
-    self->animation_time += 0.05; 
+    animation_time += 0.05; 
     [self setNeedsDisplay:YES];
 }
 
