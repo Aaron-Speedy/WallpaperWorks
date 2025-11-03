@@ -132,6 +132,7 @@ void make_win_bg(NSWindow * win) {
     if (!buf) return;
 
     Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    context = (Context) { .dpi = 72, .screen = &screen, };
     app_loop(&context);
 
     for (size_t x = 0; x < w; x++) {
