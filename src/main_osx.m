@@ -125,7 +125,7 @@ int main(void) {
     [drawing_view autorelease];
     [win setContentView:drawing_view];
 
-    // make_win_bg(win);
+    make_win_bg(win);
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
