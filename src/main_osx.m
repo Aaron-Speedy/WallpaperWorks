@@ -84,11 +84,6 @@ void make_win_bg(NSWindow * win) {
     for (size_t x = 0; x < w; x++) {
         for (size_t y = 0; y < h; y++) {
             size_t i = (x + y * w) * 4;
-
-            unsigned char r = (unsigned char) (255 * sin(x * 0.05 + y * 0.05) + 128);
-            unsigned char g = (unsigned char) (x % 256);
-            unsigned char b = (unsigned char) (y % 256);
-
             buf[i + 0] = r;
             buf[i + 1] = g;
             buf[i + 2] = b;
