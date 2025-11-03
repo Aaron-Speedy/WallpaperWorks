@@ -46,6 +46,8 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) setup_bitmap_ctx {
+    [self cleanup_bitmap_ctx];
+
     w = (size_t) [self bounds].size.width;
     h = (size_t) [self bounds].size.height;
 
@@ -117,14 +119,15 @@ int main(void) {
                                           styleMask:win_style
                                           backing:NSBackingStoreBuffered
                                           defer:NO];
-    make_win_bg(win);
     [win autorelease];
-    NSWindowController * win_controller = [[NSWindowController alloc] initWithWindow:win];
-    [win_controller autorelease];
 
     MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
     [drawing_view autorelease];
     [win setContentView:drawing_view];
+
+    make_win_bg(win);
+
+    [drawing_view setup_bitmap_ctx];
 
     // TODO: Create app delegate to handle system events.
     // TODO: Create menus (especially Quit!)
