@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#define IMAGE_IMPL
-#include "image.h"
-
 typedef struct {
     uint8_t c[4];
 } Color;
@@ -16,6 +13,9 @@ typedef struct {
     COLOR_B,
     COLOR_A,
 } PlatformColorEnum;
+
+#define IMAGE_IMPL
+#include "image.h"
 
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
