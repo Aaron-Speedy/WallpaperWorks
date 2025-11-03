@@ -38,16 +38,16 @@ void make_win_bg(NSWindow * win) {
 @implementation MyDrawingView
 
 - (void) setup_bitmap_ctx {
-    width = (size_t) [self bounds].size.width;
-    height = (size_t) [self bounds].size.height;
+    w = (size_t) [self bounds].size.width;
+    h = (size_t) [self bounds].size.height;
 
-    buf = calloc(height * width * 4, sizeof(unsigned char));
+    buf = calloc(h * w * 4, sizeof(unsigned char));
 
     CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
     bitmap_ctx = CGBitmapContextCreate(
         buf,
-        width, height,
-        8, 4 * width,
+        w, h,
+        8, 4 * w,
         color_space,
         kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
     );
