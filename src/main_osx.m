@@ -7,7 +7,7 @@
   fprintf(stderr, "Error: "); \
   fprintf(stderr, __VA_ARGS__); \
   fprintf(stderr, "\n"); \
-  *((int *) 0) = 0; \
+  exit(1);
 } while (0);
 
 #define warning(...) do { \
