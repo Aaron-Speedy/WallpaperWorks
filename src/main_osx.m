@@ -100,7 +100,6 @@ void make_win_bg(NSWindow * win) {
     CGContextRef bitmap_ctx;
     unsigned char *buf;
     size_t w, h;
-    float animation_time;
     Context context;
 
 }
@@ -188,7 +187,6 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) update_display : (NSTimer *) timer {
-    animation_time += 0.05; 
     [self setNeedsDisplay:YES];
 }
 
