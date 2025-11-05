@@ -96,6 +96,22 @@ void make_win_bg(NSWindow * win) {
     // in the application's Info.plist using the 'LSUIElement' key set to 'YES')
 }
 
+@interface AppDelegate : NSObject <NSApplicationDelegate>
+- (void) applicationDidFinishLaunching : (NSNotification *) notification;
+// - (NSMenu *) applicationDockMenu : (NSApplication *) sender;
+@end
+
+@implementation AppDelegate
+- (void) applicationDidFinishLaunching : (NSNotification *) notification {
+    NSString *path = @"resources/favicon.icns"; // TODO: bundle resources
+    NSImage *icon = [[NSImage alloc] initWithContentsOfFile:path];
+    if (icon) {
+        [NSApp setApplicationIconImage:dockIcon];
+        [icon release];
+    } else err("Could not load .icns file.\n") // TODO: make this a warning and improve logging
+}
+@end
+
 @interface MyDrawingView : NSView {
     CGContextRef bitmap_ctx;
     unsigned char *buf;
