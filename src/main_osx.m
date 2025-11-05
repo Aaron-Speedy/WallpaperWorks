@@ -210,7 +210,15 @@ void make_win_bg(NSWindow * win) {
 
 int main(void) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+    NSApplication *app = [NSApplication sharedApplication];
+
+    AppDelegate *app_delegate = [[AppDelegate alloc] init];
+    [app_delegate autorelease];
+    [app setDelegate:app_delegate];
+
     [NSApplication sharedApplication];
+
     NSUInteger win_style = NSTitledWindowMask | NSClosableWindowMask | NSResizableWindowMask;
     NSRect win_rect = NSMakeRect(100, 100, 400, 400);
     NSWindow *win = [[NSWindow alloc] initWithContentRect:win_rect
