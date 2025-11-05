@@ -106,7 +106,7 @@ void make_win_bg(NSWindow * win) {
     NSString *path = @"resources/favicon.icns"; // TODO: bundle resources
     NSImage *icon = [[NSImage alloc] initWithContentsOfFile:path];
     if (icon) {
-        [NSApp setApplicationIconImage:dockIcon];
+        [NSApp setApplicationIconImage:icon];
         [icon release];
     } else err("Could not load .icns file.\n") // TODO: make this a warning and improve logging
 }
