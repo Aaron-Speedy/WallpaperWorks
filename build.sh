@@ -71,6 +71,6 @@ $CURL \
 $FREETYPE \
 "
 
-cc -o build/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
+clang -o build/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
 
 rm -rf build/tmp
