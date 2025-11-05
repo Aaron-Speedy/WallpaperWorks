@@ -22,6 +22,7 @@ const float date_x = 0.04, date_y = time_y + 0.17, // from the bottom-right
 #include "../build/tmp/app_name.h"
 
 #include <pthread.h>
+#include <dirent.h>
 
 typedef struct {
     bool redraw, initial;
@@ -36,6 +37,102 @@ Image scaled_background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 u64 tick = 0;
 
+s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
+    s8 base = s8("https://infotoast.org/images");
+    bool network_mode = true;
+
+    u64 n = 0;
+    {
+        s8 f = s8("/num.txt");
+        s8 url = s8_newcat(perm, base, f);
+        s8 path = s8_newcat(perm, cache_dir, f);
+
+        s8 data = download(perm, curl, url);
+        network_mode = data.buf != 0;
+
+        if (network_mode) {
+            s8_write_to_file(path, data);
+            n = s8_to_u64(data);
+        }
+    }
+
+    s8 img_data = {0};
+    if (network_mode) {
+        s8 a0 = s8_copy(perm, s8("/"));
+                u64_to_s8(perm, rand() % (n + 1), 0);
+        s8 al = s8_copy(perm, s8(".webp"));
+        s8 name = s8_masscat(*perm, a0, al);
+
+        s8 url = s8_newcat(perm, base, name);
+        s8 path = s8_newcat(perm, cache_dir, name);
+
+        img_data = s8_read_file(perm, path);
+
+        // File was not found
+        if (img_data.len <= 0) {
+            if (!network_mode) goto pick_random_downloaded_image;
+
+            img_data = download(perm, curl, url);
+            network_mode = img_data.buf != 0;
+
+            if (!network_mode) goto pick_random_downloaded_image;
+
+            s8_write_to_file(path, img_data);
+        }
+    } else { pick_random_downloaded_image:
+        char *cache_dir_cstr = s8_newcat(perm, cache_dir, s8("\0")).buf;
+
+        struct dirent **names;
+        int n = scandir(cache_dir_cstr, &names, 0, alphasort);
+        if (n <= 3) return (s8) {0}; // there is at most num.txt, ., and ..
+
+        while (true) {
+            char *name = names[rand() % n]->d_name;
+            char *pattern = "*.webp";
+            bool ok = true;
+
+            for (char *c = name, *p = pattern;;) {
+                if (!ok) break;
+                if (!(*c && *p)) {
+                    if (*c != *p) ok = false;
+                    break;
+                }
+
+                switch (*p) {
+                case '*': {
+                    if (!p[1] || *c != p[1]) *c++;
+                    else *p++;
+                } break;
+                default: {
+                    if (*c == *p) { *c++; *p++; }
+                    else ok = false;
+                }
+                }
+            }
+
+            if (ok) {
+                s8 a0 = s8_copy(perm, cache_dir);
+                    s8_copy(perm, s8("/"));
+                s8 al = s8_copy(perm, (s8) { .buf = name, .len = strlen(name)});
+                s8 path = s8_masscat(*perm, a0, al);
+
+                img_data = s8_read_file(perm, path);
+                printf("Offline image: ");
+                s8_print(path);
+                printf("\n");
+                break;
+            }
+        }
+
+        while (n--) {
+            free(names[n]);
+        }
+        free(names);
+    }
+
+    return img_data;
+}
+
 void *background_thread() {
     srand(time(0));
 
@@ -49,7 +146,9 @@ void *background_thread() {
 #endif
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
+    bool no_cache_support = 0;
     if (cache_dir.len <= 0) {
+        no_cache_support = true;
         warning(
             "Could not get system cache directory. Disabling cache support."
         );
@@ -63,84 +162,38 @@ void *background_thread() {
         time_t a_time = time(0);
         Image b = {0};
 
-        while (true) {
-            s8 base = s8("https://infotoast.org/images");
-            bool network_mode = true;
+        s8 img_data = get_random_image(&scratch, curl, cache_dir);
+        if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
 
-            u64 n = 0;
-            {
-                s8 f = s8("/num.txt");
-                s8 url = s8_newcat(&scratch, base, f);
-                s8 path = s8_newcat(&scratch, cache_dir, f);
+        // TODO: check this
+        WebPGetInfo(
+            img_data.buf, img_data.len,
+            &b.w, &b.h
+        );
+        printf("Decoding image of size %dx%d\n", b.w, b.h);
 
-                s8 data = download(&scratch, curl, url);
-                network_mode = data.buf != 0;
+        Image decoded = {
+            .alloc_w = b.w,
+            .w = b.w,
+            .h = b.h,
+        };
+        decoded.buf = (Color *) WebPDecodeRGBA(
+            img_data.buf, img_data.len,
+            &b.w, &b.h
+        ),
 
-                if (network_mode) {
-                    s8_write_to_file(path, data);
-                } else data = s8_read_file(&scratch, path);
+        b = new_img(0, b);
 
-                n = s8_to_u64(data);
+        for (int x = 0; x < b.w; x++) {
+            for (int y = 0; y < b.h; y++) {
+                Color d = *img_at(&decoded, x, y);
+                *img_at(&b, x, y) = color(d.c[0], d.c[1], d.c[2], 255);
             }
-
-            s8 img_data = {0};
-            {
-
-                s8 a0 = s8_copy(&scratch, s8("/"));
-                        u64_to_s8(&scratch, rand() % (n + 1), 0);
-                s8 al = s8_copy(&scratch, s8(".webp"));
-                s8 name = s8_masscat(scratch, a0, al);
-
-                s8 url = s8_newcat(&scratch, base, name);
-                s8 path = s8_newcat(&scratch, cache_dir, name);
-
-                img_data = s8_read_file(&scratch, path);
-
-                // File was not found
-                if (img_data.len <= 0) {
-                    if (!network_mode) continue; // try another image
-
-                    img_data = download(&scratch, curl, url);
-                    network_mode = img_data.buf != 0;
-
-                    if (!network_mode) continue; // try another image;
-
-                    s8_write_to_file(path, img_data);
-                }
-            }
-
-            // TODO: check this
-            WebPGetInfo(
-                img_data.buf, img_data.len,
-                &b.w, &b.h
-            );
-            printf("Decoding image of size %dx%d\n", b.w, b.h);
-
-            Image decoded = {
-                .alloc_w = b.w,
-                .w = b.w,
-                .h = b.h,
-            };
-            decoded.buf = (Color *) WebPDecodeRGBA(
-                img_data.buf, img_data.len,
-                &b.w, &b.h
-            ),
-
-            b = new_img(NULL, b);
-
-            for (int x = 0; x < b.w; x++) {
-                for (int y = 0; y < b.h; y++) {
-                    Color d = *img_at(&decoded, x, y);
-                    *img_at(&b, x, y) = color(d.c[0], d.c[1], d.c[2], 255);
-                }
-            }
-
-            WebPFree(decoded.buf);
-
-            break;
         }
 
-        int wait = timeout_s - (time(NULL) - a_time);
+        WebPFree(decoded.buf);
+
+        int wait = timeout_s - (time(0) - a_time);
         if (wait > 0 && !initial) sleep(wait);
 
         pthread_mutex_lock(&lock);
@@ -159,7 +212,7 @@ void *background_thread() {
 
 void start(Context *ctx) {
     pthread_t thread;
-    if (pthread_create(&thread, NULL, background_thread, NULL)) {
+    if (pthread_create(&thread, 0, background_thread, 0)) {
         err("Failed to create background thread.");
     }
 
@@ -208,7 +261,7 @@ void app_loop(Context *ctx) {
 
     s8 time_str = {0}, date_str = {0};
     {
-        time_t ftime = time(NULL) + 1;
+        time_t ftime = time(0) + 1;
         struct tm *lt = localtime(&ftime);
 
         {
@@ -242,7 +295,7 @@ void app_loop(Context *ctx) {
         if (background.redraw) {
             free(scaled_background.buf);
             scaled_background = rescale_img(
-                NULL,
+                0,
                 background.img,
                 screen->w, screen->h
             );

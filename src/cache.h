@@ -17,8 +17,8 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #include "ds.h"
 
 #ifdef __APPLE__
-#define _CACHE_DIR_123 "/Library/Caches"
-#elif
+#define _CACHE_DIR_123 "/Library/Application Support"
+#else
 #define _CACHE_DIR_123 "/.cache"
 #endif
 
@@ -46,13 +46,12 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     s8_modcat(perm, &cache, name);
     s8_modcat(perm, &cache, s8("\0"));
 
-#ifdef __linux__
-    int r = mkdir((char *) cache.buf, 0700);
-#elif _WIN32
+#ifdef _WIN32
     int r = mkdir((char *) cache.buf);
-#elif __APPLE__
+#else
     int r = mkdir((char *) cache.buf, 0700);
 #endif
+
     if (!r) {
         printf("No cache directory. Making one at %s.\n", cache.buf);
     } else if (errno != EEXIST) {
