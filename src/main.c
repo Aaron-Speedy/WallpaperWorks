@@ -79,8 +79,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
 
             s8_write_to_file(path, img_data);
         }
-    } else {
-        pick_random_downloaded_image:
+    } else { pick_random_downloaded_image: {}
         char *cache_dir_cstr = s8_newcat(perm, cache_dir, s8("\0")).buf;
 
         struct dirent **names;
