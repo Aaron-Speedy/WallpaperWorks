@@ -71,8 +71,6 @@ CGSize get_dpi(NSScreen *screen) {
     dpi.width  = (width / physical_size_mm.width) * mm_per_inch;
     dpi.height = (height / physical_size_mm.height) * mm_per_inch;
 
-    printf("%f\n", dpi.width);
-
     return dpi;
 }
 
