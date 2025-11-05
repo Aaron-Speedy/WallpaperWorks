@@ -1,5 +1,6 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreGraphics/CGWindowLevel.h>
+#include <CoreGraphics/CGDisplayConfiguration.h>
 
 #include <stdint.h>
 
@@ -46,6 +47,32 @@ typedef struct {
 } Context;
 
 #include "main.c"
+
+CGSize get_dpi(NSScreen *screen) {
+    NSDictionary *description = [screen deviceDescription];
+    NSNumber *screen_num = [description objectForKey:@"NSScreenNumber"];
+    CGDirectDisplayID display_id = [screen_num unsignedIntValue];
+
+    CGSize physicalSizeMM = CGDisplayScreenSize(display_id);
+    
+    if (physicalSizeMM.width == 0 || physicalSizeMM.height == 0) {
+        return CGSizeMake(72.0, 72.0);
+    }
+    
+    CGFloat backing_scale = [screen backingScaleFactor];
+    NSRect screen_frame = [screen frame];
+    
+    CGFloat width = screen_frame.size.width * backing_scale;
+    CGFloat height = screen_frame.size.height * backing_scale;
+
+    CGFloat mm_per_inch = 25.4;
+    
+    CGSize dpi;
+    dpi.width  = (totalPixelsWide / physicalSizeMM.width) * mm_per_inch;
+    dpi.height = (height / physicalSizeMM.height) * mm_per_inch;
+
+    return dpi;
+}
 
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
@@ -132,7 +159,7 @@ void make_win_bg(NSWindow * win) {
     if (!buf) return;
 
     Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = 72, .screen = &screen, };
+    context = (Context) { .dpi = get_dpi.width, .screen = &screen, };
     app_loop(&context);
 }
 

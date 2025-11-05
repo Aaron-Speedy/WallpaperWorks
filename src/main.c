@@ -216,7 +216,7 @@ void start(Context *ctx) {
         err("Failed to create background thread.");
     }
 
-    // TODO: update the font sizes whenver the screen size changes
+    // TODO: update the font sizes whenver the screen resizes
 
     int d = ctx->screen->w < ctx->screen->h ? ctx->screen->w : ctx->screen->h;
 
