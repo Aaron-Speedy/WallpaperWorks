@@ -56,6 +56,7 @@ CGSize get_dpi(NSScreen *screen) {
     CGSize physical_size_mm = CGDisplayScreenSize(display_id);
     
     if (physical_size_mm.width == 0 || physical_size_mm.height == 0) {
+        printf("yo.\n");
         return CGSizeMake(72.0, 72.0);
     }
     
@@ -182,7 +183,8 @@ void make_win_bg(NSWindow * win) {
                                        userInfo:nil 
                                         repeats:YES];
     Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = 72, .screen = &screen, }; // TODO: get DPI
+    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
+
     start(&context);
 }
 
