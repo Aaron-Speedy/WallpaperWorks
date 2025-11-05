@@ -56,7 +56,6 @@ CGSize get_dpi(NSScreen *screen) {
     CGSize physical_size_mm = CGDisplayScreenSize(display_id);
     
     if (physical_size_mm.width == 0 || physical_size_mm.height == 0) {
-        printf("yo.\n");
         return CGSizeMake(72.0, 72.0);
     }
     
@@ -71,6 +70,8 @@ CGSize get_dpi(NSScreen *screen) {
     CGSize dpi;
     dpi.width  = (width / physical_size_mm.width) * mm_per_inch;
     dpi.height = (height / physical_size_mm.height) * mm_per_inch;
+
+    printf("%f\n", dpi.width);
 
     return dpi;
 }
