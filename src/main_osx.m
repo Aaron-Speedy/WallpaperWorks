@@ -53,9 +53,9 @@ CGSize get_dpi(NSScreen *screen) {
     NSNumber *screen_num = [description objectForKey:@"NSScreenNumber"];
     CGDirectDisplayID display_id = [screen_num unsignedIntValue];
 
-    CGSize physicalSizeMM = CGDisplayScreenSize(display_id);
+    CGSize physical_size_mm = CGDisplayScreenSize(display_id);
     
-    if (physicalSizeMM.width == 0 || physicalSizeMM.height == 0) {
+    if (physical_size_mm.width == 0 || physical_size_mm.height == 0) {
         return CGSizeMake(72.0, 72.0);
     }
     
@@ -68,8 +68,8 @@ CGSize get_dpi(NSScreen *screen) {
     CGFloat mm_per_inch = 25.4;
     
     CGSize dpi;
-    dpi.width  = (totalPixelsWide / physicalSizeMM.width) * mm_per_inch;
-    dpi.height = (height / physicalSizeMM.height) * mm_per_inch;
+    dpi.width  = (width / physical_size_mm.width) * mm_per_inch;
+    dpi.height = (height / physical_size_mm.height) * mm_per_inch;
 
     return dpi;
 }
