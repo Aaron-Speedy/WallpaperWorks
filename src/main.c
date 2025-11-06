@@ -48,7 +48,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
         s8 path = s8_newcat(perm, cache_dir, f);
 
         s8 data = download(perm, curl, url);
-        network_mode = data.buf != 0;
+        network_mode = data.len != 0;
 
         if (network_mode) {
             s8_write_to_file(path, data);
@@ -73,7 +73,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
             if (!network_mode) goto pick_random_downloaded_image;
 
             img_data = download(perm, curl, url);
-            network_mode = img_data.buf != 0;
+            network_mode = img_data.len != 0;
 
             if (!network_mode) goto pick_random_downloaded_image;
 

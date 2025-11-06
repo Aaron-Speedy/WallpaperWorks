@@ -17,8 +17,8 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #include "ds.h"
 
 #ifdef __APPLE__
-#define _CACHE_DIR_123 "/Library/Application Support"
-#else
+#define _CACHE_DIR_123 "/Library/Caches"
+#elif __linux__
 #define _CACHE_DIR_123 "/.cache"
 #endif
 
@@ -26,13 +26,14 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     s8 cache;
 
     do {
+#ifdef __linux__
         cache.buf = (u8 *) getenv("XDG_CACHE_HOME");
         if (cache.buf != NULL) {
             cache.len = strlen((char *) cache.buf);
             cache = s8_copy(perm, cache);
             break;
         }
-
+#endif
         cache.buf = (u8 *) getenv("HOME");
         if (cache.buf != NULL) {
             cache.len = strlen((char *) cache.buf);
