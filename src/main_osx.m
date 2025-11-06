@@ -125,11 +125,11 @@ void make_win_bg(NSWindow * win) {
 
     // [menu addItem:[NSMenuItem separatorItem]];
 
-    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Quit"
-                                                  action:@selector(menuItemAction:) 
-                                           keyEquivalent:@""];
-    [item setTarget:self];
-    [menu addItem:item];
+    // NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Item"
+    //                                               action:@selector(menuItemAction:) 
+    //                                        keyEquivalent:@""];
+    // [item setTarget:self];
+    // [menu addItem:item];
 
     NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
                                                      action:@selector(terminate:) 
