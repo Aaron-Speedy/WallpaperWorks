@@ -32,6 +32,7 @@ SOURCE=""
 CURL_DIR="third_party/real/curl"
 FT_DIR="third_party/real/freetype"
 WEBP_DIR="third_party/real/libwebp"
+OUT_DIR="build"
 
 if [[ "$OS" == "windows"* ]]; then
     LIBWEBP="third_party/real/libwebp/src/libwebp.a"
@@ -58,6 +59,15 @@ elif [[ "$OS" == "darwin" ]]; then
     FREETYPE="-lfreetype -I third_party/freetype/include/"
     WINDOWING="-framework Cocoa"
     SOURCE="-x objective-c src/main_osx.m -x none"
+
+    mkdir build/$APP_NAME.app/
+    mkdir build/$APP_NAME.app/Contents/
+    mkdir build/$APP_NAME.app/Contents/MacOS
+    mkdir build/$APP_NAME.app/Contents/Resources
+
+    OUT_DIR="build/$APP_NAME.app/Contents/MacOS"
+
+    cp resources/favicon.icns build/$APP_NAME.app/Contents/Resources
 else
     echo "Unknown platform. Exiting..."
     exit
@@ -71,6 +81,6 @@ $CURL \
 $FREETYPE \
 "
 
-cc -o build/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
+cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
 
 rm -rf build/tmp
