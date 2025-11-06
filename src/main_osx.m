@@ -110,7 +110,7 @@ void make_win_bg(NSWindow * win) {
     NSStatusBarButton *button = self.status_item.button;
 
     if (button) {
-        NSImage *icon = [NSImage imageNamed:@"favicon"];
+        NSImage *icon = [NSImage imageNamed:@"resources/favicon"];
         [icon setTemplate:YES];
         [button setImage:icon];
         // [button setTitle:@"WHATEVER ... MOM ..."];
