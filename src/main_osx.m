@@ -98,17 +98,46 @@ void make_win_bg(NSWindow * win) {
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
-// - (NSMenu *) applicationDockMenu : (NSApplication *) sender;
+- (NSMenu *) createStatusMenu;
+
+    @property (nonatomic, strong) NSStatusItem *status_item;
 @end
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
-    NSString *path = @"resources/favicon.icns"; // TODO: bundle resources
-    NSImage *icon = [[NSImage alloc] initWithContentsOfFile:path];
-    if (icon) {
-        [NSApp setApplicationIconImage:icon];
-        [icon release];
-    } else err("Could not load .icns file.\n") // TODO: make this a warning and improve logging
+    NSStatusBar *status_bar = [NSStatusBar systemStatusBar];
+    self.status_item = [status_bar statusItemWithLength:NSVariableStatusItemLength];
+    NSStatusBarButton *button = self.status_item.button;
+
+    if (button) {
+        NSImage *icon = [NSImage imageNamed:@"favicon"];
+        [icon setTemplate:YES];
+        [button setImage:icon];
+        // [button setTitle:@"WHATEVER ... MOM ..."];
+        // [button setToolTip:@"WHATEVER ... MOM ..."];
+    }
+
+    self.status_item.menu = [self createStatusMenu];
+}
+
+- (NSMenu *) createStatusMenu {
+    NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
+
+    // [menu addItem:[NSMenuItem separatorItem]];
+
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Quit"
+                                                  action:@selector(menuItemAction:) 
+                                           keyEquivalent:@""];
+    [item setTarget:self];
+    [menu addItem:item];
+
+    NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
+                                                     action:@selector(terminate:) 
+                                              keyEquivalent:@"q"];
+    [quit_item setTarget:NSApp];
+    [menu addItem:quit_item];
+
+    return menu;
 }
 @end
 
@@ -117,7 +146,6 @@ void make_win_bg(NSWindow * win) {
     unsigned char *buf;
     size_t w, h;
     Context context;
-
 }
 
 - (void) setup_bitmap_ctx;
@@ -140,16 +168,16 @@ void make_win_bg(NSWindow * win) {
 - (void) setup_bitmap_ctx {
     [self cleanup_bitmap_ctx];
 
-    w = (size_t) [self bounds].size.width;
-    h = (size_t) [self bounds].size.height;
+    self.w = (size_t) [self bounds].size.width;
+    self.h = (size_t) [self bounds].size.height;
 
-    buf = calloc(h * w * 4, sizeof(unsigned char));
+    self.buf = calloc(self.h * self.w * 4, sizeof(unsigned char));
 
     CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-    bitmap_ctx = CGBitmapContextCreate(
-        buf,
-        w, h,
-        8, 4 * w,
+    self.bitmap_ctx = CGBitmapContextCreate(
+        self.buf,
+        self.w, self.h,
+        8, 4 * self.w,
         color_space,
         kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
     );
@@ -157,12 +185,12 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) cleanup_bitmap_ctx {
-    if (bitmap_ctx) {
-        CGContextRelease(bitmap_ctx);
-        bitmap_ctx = 0;
+    if (self.bitmap_ctx) {
+        CGContextRelease(self.bitmap_ctx);
+        self.bitmap_ctx = 0;
     }
-    free(buf);
-    buf = 0;
+    free(self.buf);
+    self.buf = 0;
 }
 
 - (void) dealloc {
@@ -171,20 +199,20 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) draw_buf {
-    if (!buf) return;
+    if (!self.buf) return;
 
-    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
-    app_loop(&context);
+    Image screen = { .buf = self.buf, .alloc_w = self.w, .w = self.w, .h = self.h, };
+    self.context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
+    app_loop(&self.context);
 }
 
 - (void) drawRect : (NSRect) dirty_rect {
     [self draw_buf];
 
-    CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
+    CGImageRef image = CGBitmapContextCreateImage(self.bitmap_ctx);
     CGContextRef screen_ctx = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
     if (image) { // TODO: handle errors
-        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
+        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, self.w, self.h), image);
         CGImageRelease(image);
     }
 }
@@ -196,10 +224,10 @@ void make_win_bg(NSWindow * win) {
                                        selector:@selector(update_display:) 
                                        userInfo:nil 
                                         repeats:YES];
-    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
+    Image screen = { .buf = self.buf, .alloc_w = self.w, .w = self.w, .h = self.h, };
+    self.context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
 
-    start(&context);
+    start(&self.context);
 }
 
 - (void) update_display : (NSTimer *) timer {
