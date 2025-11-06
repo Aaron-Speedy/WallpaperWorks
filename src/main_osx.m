@@ -168,16 +168,16 @@ void make_win_bg(NSWindow * win) {
 - (void) setup_bitmap_ctx {
     [self cleanup_bitmap_ctx];
 
-    self.w = (size_t) [self bounds].size.width;
-    self.h = (size_t) [self bounds].size.height;
+    w = (size_t) [self bounds].size.width;
+    h = (size_t) [self bounds].size.height;
 
-    self.buf = calloc(self.h * self.w * 4, sizeof(unsigned char));
+    buf = calloc(h * w * 4, sizeof(unsigned char));
 
     CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-    self.bitmap_ctx = CGBitmapContextCreate(
-        self.buf,
-        self.w, self.h,
-        8, 4 * self.w,
+    bitmap_ctx = CGBitmapContextCreate(
+        buf,
+        w, h,
+        8, 4 * w,
         color_space,
         kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
     );
@@ -185,12 +185,12 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) cleanup_bitmap_ctx {
-    if (self.bitmap_ctx) {
-        CGContextRelease(self.bitmap_ctx);
-        self.bitmap_ctx = 0;
+    if (bitmap_ctx) {
+        CGContextRelease(bitmap_ctx);
+        bitmap_ctx = 0;
     }
-    free(self.buf);
-    self.buf = 0;
+    free(buf);
+    buf = 0;
 }
 
 - (void) dealloc {
@@ -199,20 +199,20 @@ void make_win_bg(NSWindow * win) {
 }
 
 - (void) draw_buf {
-    if (!self.buf) return;
+    if (!buf) return;
 
-    Image screen = { .buf = self.buf, .alloc_w = self.w, .w = self.w, .h = self.h, };
-    self.context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
-    app_loop(&self.context);
+    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
+    app_loop(&context);
 }
 
 - (void) drawRect : (NSRect) dirty_rect {
     [self draw_buf];
 
-    CGImageRef image = CGBitmapContextCreateImage(self.bitmap_ctx);
+    CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
     CGContextRef screen_ctx = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
     if (image) { // TODO: handle errors
-        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, self.w, self.h), image);
+        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
         CGImageRelease(image);
     }
 }
@@ -224,10 +224,10 @@ void make_win_bg(NSWindow * win) {
                                        selector:@selector(update_display:) 
                                        userInfo:nil 
                                         repeats:YES];
-    Image screen = { .buf = self.buf, .alloc_w = self.w, .w = self.w, .h = self.h, };
-    self.context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
+    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
 
-    start(&self.context);
+    start(&context);
 }
 
 - (void) update_display : (NSTimer *) timer {
