@@ -112,7 +112,7 @@ void make_win_bg(NSWindow * win) {
     if (button) {
         NSImage *icon = [NSImage imageNamed:@"favicon"];
         [icon setTemplate:NO];
-        [icon setSize:NSMakeSize(20, 20)];
+        [icon setSize:NSMakeSize(30, 30)];
         [button setImage:icon];
         // [button setTitle:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
         // [button setToolTip:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
