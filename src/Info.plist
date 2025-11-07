@@ -38,5 +38,9 @@
     <string>en</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+
+    <!-- Put the icon in the task bar and hide it from the dock -->
+    <key>LSUIElement</key>
+    <true/>
 </dict>
 </plist>
