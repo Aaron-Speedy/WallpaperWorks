@@ -124,6 +124,8 @@ void make_win_bg(NSWindow * win) {
     }
 
     self.status_item.menu = [self create_status_menu];
+
+    [self enable_login_item]
 }
 
 - (NSMenu *) create_status_menu {
