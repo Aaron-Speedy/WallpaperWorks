@@ -150,6 +150,7 @@ void make_win_bg(NSWindow * win) {
         if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
     } else {
         NSLog(@"Login item is already registered or requires approval."); // TODO: show an alert or something
+        [SMAppService openSystemSettingsLoginItems];
     }
 }
 
@@ -160,12 +161,7 @@ void make_win_bg(NSWindow * win) {
     NSError *error = nil;
     BOOL success = [service unregisterAndReturnError:&error];
     
-    if (success) {
-        NSLog(@"Login item unregistration successful.");
-    } else {
-        NSLog(@"Login item unregistration failed with error: %@", error);
-        // Handle error
-    }
+    if (!success) NSLog(@"Login item unregistration failed with error: %@", error);
 }
 
 @end
