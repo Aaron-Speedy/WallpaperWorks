@@ -102,9 +102,9 @@ void make_win_bg(NSWindow * win) {
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
-- (NSMenu *) createStatusMenu;
-- (void) enableLoginItem;
-- (void) disableLoginItem;
+- (NSMenu *) create_status_menu;
+- (void) enable_login_item;
+- (void) disable_login_item;
 
 @property (nonatomic, strong) NSStatusItem *status_item;
 @end
@@ -123,10 +123,10 @@ void make_win_bg(NSWindow * win) {
         // [button setToolTip:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
     }
 
-    self.status_item.menu = [self createStatusMenu];
+    self.status_item.menu = [self create_status_menu];
 }
 
-- (NSMenu *) createStatusMenu {
+- (NSMenu *) create_status_menu {
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
 
     NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
@@ -138,7 +138,7 @@ void make_win_bg(NSWindow * win) {
     return menu;
 }
 
-- (void) enableLoginItem {
+- (void) enable_login_item {
     SMAppService *service = [SMAppService mainAppService];
     
     if (service.status == SMAppServiceStatusNotRegistered) {
@@ -151,7 +151,7 @@ void make_win_bg(NSWindow * win) {
     }
 }
 
-- (void) disableLoginItem {
+- (void) disable_login_item {
     SMAppService *service = [SMAppService mainAppService];
     
     // Unregister the service
