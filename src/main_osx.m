@@ -156,7 +156,6 @@ void make_win_bg(NSWindow * win) {
         NSLog(@"Login item requires approval.");
         [SMAppService openSystemSettingsLoginItems];
     }
-    }
 }
 
 - (void) disable_login_item {
