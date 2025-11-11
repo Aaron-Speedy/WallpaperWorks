@@ -1,6 +1,8 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreGraphics/CGWindowLevel.h>
 #include <CoreGraphics/CGDisplayConfiguration.h>
+#include <CoreFoundation/CoreFoundation.h>
+#import <ServiceManagement/SMAppService.h>
 
 #include <stdint.h>
 
@@ -47,6 +49,8 @@ typedef struct {
 } Context;
 
 #include "main.c"
+
+Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
 
 CGSize get_dpi(NSScreen *screen) {
     NSDictionary *description = [screen deviceDescription];
@@ -99,8 +103,10 @@ void make_win_bg(NSWindow * win) {
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (NSMenu *) createStatusMenu;
+- (void) enableLoginItem;
+- (void) disableLoginItem;
 
-    @property (nonatomic, strong) NSStatusItem *status_item;
+@property (nonatomic, strong) NSStatusItem *status_item;
 @end
 
 @implementation AppDelegate
@@ -131,6 +137,35 @@ void make_win_bg(NSWindow * win) {
 
     return menu;
 }
+
+- (void) enableLoginItem {
+    SMAppService *service = [SMAppService mainAppService];
+    
+    if (service.status == SMAppServiceStatusNotRegistered) {
+        NSError *error = nil;
+        BOOL success = [service registerAndReturnError:&error];
+        
+        if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
+    } else {
+        NSLog(@"Login item is already registered or requires approval."); // TODO: show an alert or something
+    }
+}
+
+- (void) disableLoginItem {
+    SMAppService *service = [SMAppService mainAppService];
+    
+    // Unregister the service
+    NSError *error = nil;
+    BOOL success = [service unregisterAndReturnError:&error];
+    
+    if (success) {
+        NSLog(@"Login item unregistration successful.");
+    } else {
+        NSLog(@"Login item unregistration failed with error: %@", error);
+        // Handle error
+    }
+}
+
 @end
 
 @interface MyDrawingView : NSView {

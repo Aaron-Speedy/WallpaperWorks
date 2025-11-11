@@ -57,7 +57,7 @@ elif [[ "$OS" == "darwin" ]]; then
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE="-lfreetype -I third_party/freetype/include/"
-    WINDOWING="-framework Cocoa"
+    WINDOWING="-framework Cocoa -framework ServiceManagement"
     SOURCE="-x objective-c src/main_osx.m -x none"
 
     mkdir build/$APP_NAME.app/
