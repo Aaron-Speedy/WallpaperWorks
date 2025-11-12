@@ -143,9 +143,8 @@ void make_win_bg(NSWindow * win) {
 - (void) enable_login_item {
     SMAppService *service = [SMAppService mainAppService];
 
-    BOOL success = [service registerAndReturnError:&error];
-    
     NSError *error = nil;
+    BOOL success = [service registerAndReturnError:&error];
     if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
 
     // if (service.status == SMAppServiceStatusNotRegistered) {
