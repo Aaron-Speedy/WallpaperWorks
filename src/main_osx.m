@@ -146,7 +146,6 @@ void make_win_bg(NSWindow * win) {
     NSError *error = nil;
     BOOL success = [service registerAndReturnError:&error];
     if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
-    [SMAppService openSystemSettingsLoginItems];
 
     // if (service.status == SMAppServiceStatusNotRegistered) {
     //     NSError *error = nil;
@@ -156,6 +155,7 @@ void make_win_bg(NSWindow * win) {
     //     NSLog(@"Login item is already registered.");
     // } else if (service.status == SMAppServiceStatusRequiresApproval) {
     //     NSLog(@"Login item requires approval.");
+    //     [SMAppService openSystemSettingsLoginItems];
     // }
 }
 
