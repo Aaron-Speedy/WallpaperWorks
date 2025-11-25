@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+extern void NSLog(NSString * format, ...);
+
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
