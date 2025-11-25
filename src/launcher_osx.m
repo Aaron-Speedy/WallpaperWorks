@@ -57,9 +57,10 @@ int main(void) {
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *currentPath = [fileManager currentDirectoryPath];
     NSString *executablePath = [[NSBundle mainBundle] executablePath];
+    NSString *appBundlePath = [[NSBundle mainBundle] bundlePath];
     NSString *parentDirectory = [executablePath stringByDeletingLastPathComponent];
     NSLog(@"Current Directory Path: %@", currentPath);
-    NSLog(@"Executable Path: %@", parentDirectory);
+    NSLog(@"Bundle Path: %@", appBundlePath);
 
     [NSApp run];
     [pool drain];
