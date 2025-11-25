@@ -1,6 +1,7 @@
 #include <Cocoa/Cocoa.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <ServiceManagement/SMAppService.h>
+#include <Foundation/Foundation.h>
 
 #include <stdint.h>
 
