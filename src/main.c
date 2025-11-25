@@ -153,7 +153,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 10;
+    int timeout_s = 60;
     bool initial = true;
 
     while (true) {
@@ -164,7 +164,6 @@ void *background_thread() {
 
         s8 img_data = get_random_image(&scratch, curl, cache_dir);
         if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
-        printf("img_data.len = %d\n", img_data.len);
 
         // TODO: check this
         WebPGetInfo(

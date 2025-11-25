@@ -69,6 +69,8 @@ elif [[ "$OS" == "darwin" ]]; then
 
     cp resources/favicon.icns build/$APP_NAME.app/Contents/Resources
     cp src/Info.plist build/$APP_NAME.app/Contents/
+
+    cc -o $OUT_DIR/launcher -x objective-c src/launcher_osx.m -x none $CFLAGS $LIBS $OTHER $SAN
 else
     echo "Unknown platform. Exiting..."
     exit
@@ -82,6 +84,7 @@ $CURL \
 $FREETYPE \
 "
 
-cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER
+SAN="-fsanitize=address,undefined"
+cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
 
 rm -rf build/tmp

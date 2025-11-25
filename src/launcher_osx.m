@@ -1,0 +1,57 @@
+#include <Cocoa/Cocoa.h>
+#include <CoreFoundation/CoreFoundation.h>
+#import <ServiceManagement/SMAppService.h>
+
+#include <stdint.h>
+
+Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
+
+@interface AppDelegate : NSObject <NSApplicationDelegate>
+- (void) applicationDidFinishLaunching : (NSNotification *) notification;
+- (void) enable_login_item;
+- (void) disable_login_item;
+@property (nonatomic, strong) NSStatusItem *status_item;
+@end
+
+@implementation AppDelegate
+
+- (void) applicationDidFinishLaunching : (NSNotification *) notification {
+    [self enable_login_item];
+}
+
+- (void) enable_login_item {
+    SMAppService *service = [SMAppService mainAppService];
+
+    NSError *error = nil;
+    BOOL success = [service registerAndReturnError:&error];
+    if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
+}
+
+- (void) disable_login_item {
+    SMAppService *service = [SMAppService mainAppService];
+    
+    NSError *error = nil;
+    BOOL success = [service unregisterAndReturnError:&error];
+    
+    if (!success) NSLog(@"Login item unregistration failed with error: %@", error);
+}
+
+@end
+
+int main(void) {
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+    NSApplication *app = [NSApplication sharedApplication];
+
+    AppDelegate *app_delegate = [[AppDelegate alloc] init];
+    [app_delegate autorelease];
+    [app setDelegate:app_delegate];
+
+    [NSApplication sharedApplication];
+
+    // TODO: Create app delegate to handle system events.
+
+    [NSApp run];
+    [pool drain];
+    return 0;
+}
