@@ -53,7 +53,7 @@ int main(void) {
 
     // TODO: Create app delegate to handle system events.
 
-    NSLog(currentDirectoryPath());
+    NSLog(currentDirectoryPath);
 
     [NSApp run];
     [pool drain];
