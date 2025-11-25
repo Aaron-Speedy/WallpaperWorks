@@ -54,6 +54,7 @@ int main(void) {
 
     // TODO: Create app delegate to handle system events.
 
+    NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *currentPath = [fileManager currentDirectoryPath];
     NSLog(@"Current Directory Path: %@", currentPath);
 
