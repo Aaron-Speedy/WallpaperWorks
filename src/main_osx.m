@@ -277,7 +277,7 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
         char *block = new(perm, char, len);
         vsnprintf(block, len, fmt, args);
     va_end(args);
-    return (s8) { .buf = len = len, };
+    return (s8) { .buf = block, .len = len, };
 }
 
 // void request_auth() {
