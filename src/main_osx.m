@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    bool needs_update = argc > 1;
+    bool needs_update = argc == 1;
     if (needs_update) {
         @autoreleasepool {
             NSTask *task = [[NSTask alloc] init];
