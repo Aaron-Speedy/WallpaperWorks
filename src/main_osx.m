@@ -320,11 +320,13 @@ int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
     alert(@"Yo yo yo yo!");
-    if (argc == 3 && !strcmp(argv[1], "--launch_updater")) {
+    if (argc == 4 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
+            kill(s8_to_u64((s8) { .buf = argv[2], .len = strlen(argv[2])}), SIGKILL);
+
             NSFileManager *file_manager = [NSFileManager defaultManager];
             NSString *old_bundle = [
-                NSString stringWithCString:argv[2]
+                NSString stringWithCString:argv[3]
                 encoding:NSUTF8StringEncoding
             ];
             NSString *new_bundle = [[NSBundle mainBundle] bundlePath];
@@ -356,7 +358,7 @@ int main(int argc, char *argv[]) {
                 NSError *error = 0;
                 [task setLaunchPath:@"/usr/bin/open"];
                 [task setArguments:@[
-                    @"/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+                    @"/Users/aaron/Programming/WallpaperWorks/build/WallpaperWorks.app",
                     @"--args",
                     @"--todo_remove_this_flag",
                 ]];
@@ -379,6 +381,7 @@ int main(int argc, char *argv[]) {
                 @"--args",
                 @"--launch_updater",
                 [[NSBundle mainBundle] bundlePath],
+                [NSString stringWithFormat:@"%d", getpid()],
             ]];
             [task launchAndReturnError:&error];
             exit(0);
