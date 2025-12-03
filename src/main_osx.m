@@ -334,6 +334,7 @@ int main(int argc, char *argv[]) {
             if ([file_manager fileExistsAtPath:old_bundle]) {
                 NSError *error = 0;
                 if ([file_manager removeItemAtPath:old_bundle error:&error]) {
+                    alert(@"like man, there's an error here man");
                     NSLog(@"Folder deleted successfully.");
                 } else {
                     NSLog(
@@ -349,7 +350,7 @@ int main(int argc, char *argv[]) {
                     copyItemAtPath:old_bundle
                     toPath:[old_bundle stringByDeletingLastPathComponent]
                     error:error
-                ];
+                ]
             }
 
 
