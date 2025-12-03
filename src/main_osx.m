@@ -307,7 +307,7 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
 //     }
 // }
 
-void alert(NSString *msg, NSString *info) {
+void alert(NSString *msg) {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:msg];
     [alert setInformativeText:"Information"];
