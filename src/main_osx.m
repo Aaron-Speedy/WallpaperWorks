@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
     alert(@"Outside.\n");
-    if (argc > 1) {
+    if (argc == 3) {
         alert(@"Inside.\n");
         u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
         NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
 
         char *args[] = {
             "open",
-            "/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+            "./WallpaperWorks.app",
             "--args",
             arena_printf(&scratch, "%d%c", getpid(), 0).buf,
             [[[NSBundle mainBundle] bundlePath] UTF8String],
