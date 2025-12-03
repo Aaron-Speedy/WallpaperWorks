@@ -345,11 +345,11 @@ int main(int argc, char *argv[]) {
 
             if ([file_manager fileExistsAtPath:new_bundle]) {
                 NSError *error = 0;
-                if (![file_manager
+                [file_manager
                     copyItemAtPath:old_bundle
                     toPath:[old_bundle stringByDeletingLastPathComponent]
                     error:error
-                ]) alert(@"like man, there's an error here man");
+                ];
             }
 
 
