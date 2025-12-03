@@ -358,7 +358,7 @@ int main(int argc, char *argv[]) {
                 NSError *error = 0;
                 [task setLaunchPath:@"/usr/bin/open"];
                 [task setArguments:@[
-                    @"/Users/aaron/Programming/WallpaperWorks/build/WallpaperWorks.app",
+                    old_bundle,
                     @"--args",
                     @"--todo_remove_this_flag",
                 ]];
