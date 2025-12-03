@@ -353,9 +353,6 @@ int main(int argc, char *argv[]) {
             [task setLaunchPath:@"/usr/bin/open"];
             [task setArguments:@[
                 @"./Users/aaron/Programming/WallpaperWorks.app",
-                @"--args",
-                [NSString stringWithFormat:@"%d", getpid()],
-                [[NSBundle mainBundle] bundlePath]
             ]];
             [task launchAndReturnError:&error];
             [task waitUntilExit];
