@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
 
         char *args[] = {
             "open",
-            "./WallpaperWorks.app",
+            "/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
             "--args",
             arena_printf(&scratch, "%d%c", getpid(), 0).buf,
             [[[NSBundle mainBundle] bundlePath] UTF8String],
