@@ -307,14 +307,10 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
 //     }
 // }
 
-void remove_
-
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
     if (argc == 3) {
-        NSString *bundle_path
-
         u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
         NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
 
@@ -351,8 +347,6 @@ int main(int argc, char *argv[]) {
             [[[NSBundle mainBundle] bundlePath] UTF8String],
         };
         if (execvp(args[0], args) < 0) { /* something went terrible wrong */ }
-
-        system(cmd);
     }
 
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
