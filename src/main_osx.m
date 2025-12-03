@@ -275,9 +275,9 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
     va_start(args, fmt);
         int len = vsnprintf(0, 0, fmt, args);
         char *block = new(perm, char, len);
-        vsnprintf(block, len, fmt, args)
+        vsnprintf(block, len, fmt, args);
     va_end(args);
-    return (s8) { .buf = .len = len, };
+    return (s8) { .buf = len = len, };
 }
 
 // void request_auth() {
@@ -343,7 +343,7 @@ int main(int argc, char *argv[]) {
             "open",
             "./WallpaperWorks.app",
             "--args",
-            arena_printf(&scratch, "%d%c", getpid(), 0),
+            arena_printf(&scratch, "%d%c", getpid(), 0).buf,
             [[[NSBundle mainBundle] bundlePath] UTF8String],
         };
         if (execvp(args[0], args) < 0) { /* something went terrible wrong */ }
