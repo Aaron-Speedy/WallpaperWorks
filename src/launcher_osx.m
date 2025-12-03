@@ -54,13 +54,28 @@ int main(void) {
 
     // TODO: Create app delegate to handle system events.
 
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *currentPath = [fileManager currentDirectoryPath];
-    NSString *executablePath = [[NSBundle mainBundle] executablePath];
-    NSString *appBundlePath = [[NSBundle mainBundle] bundlePath];
-    NSString *parentDirectory = [executablePath stringByDeletingLastPathComponent];
-    NSLog(@"Current Directory Path: %@", currentPath);
-    NSLog(@"Bundle Path: %@", appBundlePath);
+    @autoreleasepool {
+        do {
+            NSFileManager file_manager = [NSFileManager defaultManager];
+            NSBundle bundle = [NSBundle mainBundle]
+            NSString *cur_path = [file_manager currentDirectoryPath];
+            NSString *exec_path = [bundle executablePath];
+            NSString *bundle_path = [bundle bundlePath];
+            NSString *replacement_path = @"";
+            NSLog(@"Current Directory Path: %@", cur_path);
+            NSLog(@"Bundle Path: %@", bundle_path);
+
+            NSError *error = nil;
+            if (![file_manager fileExistsAtPath:bundle_path]) break;
+            if (![file_manager fileExistsAtPath:bundle_path]) break;
+        } while (0);
+    }
+
+    // 1. Check for updates
+    // 2. If updates exist, download them to a temporary location.
+    // 3. Unzip the updated application.
+    // 4. Run the updater script in the update. At the same time, close the original app.
+    // 5. Clse
 
     [NSApp run];
     [pool drain];

@@ -1,10 +1,13 @@
 #include <Cocoa/Cocoa.h>
-#include <CoreGraphics/CGWindowLevel.h>
-#include <CoreGraphics/CGDisplayConfiguration.h>
 #include <CoreFoundation/CoreFoundation.h>
-#import <ServiceManagement/SMAppService.h>
+#include <CoreGraphics/CGDisplayConfiguration.h>
+#include <CoreGraphics/CGWindowLevel.h>
+#include <Security/Security.h>
+#include <ServiceManagement/SMAppService.h>
 
 #include <stdint.h>
+#include <unistd.h>
+#include <stdarg.h>
 
 #define err(...) do { \
   fprintf(stderr, "Error: "); \
@@ -266,7 +269,92 @@ void make_win_bg(NSWindow * win) {
 
 @end
 
-int main(void) {
+s8 arena_printf(Arena *perm, const char *fmt, ...) {
+    s8 ret = {0};
+    va_list args;
+    va_start(args, fmt);
+        int len = vsnprintf(0, 0, fmt, args);
+        char *block = new(perm, char, len);
+        vsnprintf(block, len, fmt, args)
+    va_end(args);
+    return (s8) { .buf = .len = len, };
+}
+
+// void request_auth() {
+//     AuthorizationRef auth_ref;
+//     AuthorizationStatus status = AuthorizationCreate(
+//         0,
+//         kAuthorizationEmptyEnvironment,
+//         kAuthorizationFlagDefaults,
+//         &auth_ref
+//     );
+
+//     if (status == errAuthorizationSuccess) {
+//         // Create an authorization item and execute a privileged operation
+//         AuthorizationItem auth_item = { kAuthorizationRightExecute, 0, 0, 0 };
+//         AuthorizationRights auth_rights = { 1, &authItem };
+//         AuthorizationFlags flags = kAuthorizationFlagDefaults;
+
+//         status = AuthorizationCopyRights(authRef, &authRights, kAuthorizationEmptyEnvironment, flags, NULL);
+
+//         if (status == errAuthorizationSuccess) {
+//             NSLog(@"Permission granted.");
+//         } else {
+//             NSLog(@"Permission denied.");
+//         }
+
+//         AuthorizationFree(authRef, kAuthorizationFlagDefaults);
+//     }
+// }
+
+void remove_
+
+int main(int argc, char *argv[]) {
+    Arena scratch = new_arena(10 * KiB);
+
+    if (argc == 3) {
+        NSString *bundle_path
+
+        u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
+        NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
+
+        if (!kill(pid, SIGKILL)) {
+            NSFileManager *file_manager = [NSFileManager defaultManager];
+            NSString *new_bundle = [[NSBundle mainBundle] bundlePath];
+
+            if ([file_manager fileExistsAtPath:old_bundle]) {
+                NSError *error = nil;
+                bool success = [file_manager removeItemAtPath:old_bundle error:&error];
+                
+                if (success) {
+                    NSLog(@"Folder deleted successfully.");
+                } else {
+                    NSLog(@"Could not delete folder: %@", [error localizedDescription]);
+                }
+            } else {
+                NSLog(@"Folder does not exist.");
+            }
+
+            // copy dir
+        }
+    }
+
+    bool needs_update = true;
+    if (needs_update) {
+        // download
+
+        char *args[] = {
+            "open",
+            "./WallpaperWorks.app",
+            "--args",
+            arena_printf(&scratch, "%d%c", getpid(), 0),
+            [[[NSBundle mainBundle] bundlePath] UTF8String],
+        };
+        if (execvp(args[0], args) < 0) { /* something went terrible wrong */ }
+
+        system(cmd);
+    }
+
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSApplication *app = [NSApplication sharedApplication];
