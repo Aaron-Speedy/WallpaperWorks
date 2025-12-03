@@ -351,11 +351,8 @@ int main(int argc, char *argv[]) {
         // download
 
         char *args[] = {
-            "open",
-            "./WallpaperWorks.app",
-            "--args",
-            arena_printf(&scratch, "%d%c", getpid(), 0).buf,
-            [[[NSBundle mainBundle] bundlePath] UTF8String],
+            "touch",
+            "cool_file",
             0,
         };
         if (execvp(args[0], args) < 0) {
