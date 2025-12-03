@@ -86,5 +86,6 @@ SAN="-fsanitize=address,undefined"
 cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
 
 cp -r build/WallpaperWorks.app .
+touch WallpaperWorks.app/AOK
 
 rm -rf build/tmp
