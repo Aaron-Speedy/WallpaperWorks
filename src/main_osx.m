@@ -307,12 +307,21 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
 //     }
 // }
 
+void alert(NSString msg, NSString info) {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:msg];
+    [alert setInformativeText:info];
+    [alert addButtonWithTitle:@"Cancel"];
+    [alert addButtonWithTitle:@"Ok"];
+    [alert runModal];
+}
+
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
-    NSLog(@"Outside.\n");
+    alert(@"Outside.\n");
     if (argc == 3) {
-        NSLog(@"Inside.\n");
+        alert(@"Inside.\n");
         u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
         NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
 
