@@ -319,30 +319,49 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
-    alert(@"Outside.\n");
-    if (argc == 3) {
-        alert(@"Inside.\n");
-        // u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
-        // NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
+    if (argc == 3 && !strcmp(argv[1], "--launch_updater")) {
+        @autoreleasepool {
+            NSFileManager *file_manager = [NSFileManager defaultManager];
+            NSString *old_bundle = [
+                NSString stringWithCString:argv[2]
+                encoding:NSUTF8StringEncoding
+            ];
+            NSString *new_bundle = [[NSBundle mainBundle] bundlePath];
 
-        // if (!kill(pid, SIGKILL)) {
-        //     NSFileManager *file_manager = [NSFileManager defaultManager];
-        //     NSString *new_bundle = [[NSBundle mainBundle] bundlePath];
+            if ([file_manager fileExistsAtPath:old_bundle]) {
+                NSError *error = 0;
+                if ([file_manager removeItemAtPath:old_bundle error:&error]) {
+                    NSLog(@"Folder deleted successfully.");
+                } else {
+                    NSLog(
+                        @"Could not delete folder: //@",
+                        [error localizedDescription]
+                    );
+                }
+            }
 
-        //     if ([file_manager fileExistsAtPath:old_bundle]) {
-        //         NSError *error = 0;
-        //         bool success = [file_manager removeItemAtPath:old_bundle error:&error];
-        //         if (success) {
-        //             NSLog(@"Folder deleted successfully.");
-        //         } else {
-        //             NSLog(@"Could not delete folder: //@", [error localizedDescription]);
-        //         }
-        //     } else {
-        //         NSLog(@"Folder does not exist.");
-        //     }
+            if ([file_manager fileExistsAtPath:new_bundle]) {
+                NSError *error = 0;
+                [file_manager
+                    copyItemAtPath:old_bundle
+                    toPath:[old_bundle stringByDeletingLastPathComponent]
+                    error:error
+                ];
+            }
 
-        //     // copy dir
-        // }
+
+            if ([file_manager fileExistsAtPath:old_bundle]) {
+                NSTask *task = [[NSTask alloc] init];
+                NSError *error = 0;
+                [task setLaunchPath:@"/usr/bin/open"];
+                [task setArguments:@[
+                    @"/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+                ]];
+                [task launchAndReturnError:&error];
+            }
+
+            exit(0);
+        }
     }
 
     bool needs_update = true;
@@ -353,9 +372,12 @@ int main(int argc, char *argv[]) {
             [task setLaunchPath:@"/usr/bin/open"];
             [task setArguments:@[
                 @"/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+                @"--args",
+                @"--launch_updater",
+                [[NSBundle mainBundle] bundlePath],
             ]];
             [task launchAndReturnError:&error];
-            [task waitUntilExit];
+            exit(0);
         }
     }
 
