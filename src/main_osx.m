@@ -319,9 +319,9 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
+    alert(@"Yo yo yo yo!");
     if (argc == 3 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
-            alert(@"Yo yo yo yo!");
             NSFileManager *file_manager = [NSFileManager defaultManager];
             NSString *old_bundle = [
                 NSString stringWithCString:argv[2]
