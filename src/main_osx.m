@@ -6,8 +6,8 @@
 int main(void) {
     @autoreleasepool {
         NSTask *task = [[NSTask alloc] init];
-        [task setLaunchPath:@"/usr/bin/defaults"];
-        [task setArguments:@[@"touch", @"AOK"]];
+        [task setLaunchPath:@"/usr/bin/touch"];
+        [task setArguments:@[@@"AOK"]];
         [task launch];
         [task waitUntilExit];
     }
