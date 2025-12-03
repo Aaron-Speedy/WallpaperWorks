@@ -357,7 +357,9 @@ int main(int argc, char *argv[]) {
             arena_printf(&scratch, "%d%c", getpid(), 0).buf,
             [[[NSBundle mainBundle] bundlePath] UTF8String],
         };
-        if (execvp(args[0], args) < 0) { /* something went terrible wrong */ }
+        if (execvp(args[0], args) < 0) {
+            alert(@"Something went terribly wrong.");
+        }
     }
 
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
