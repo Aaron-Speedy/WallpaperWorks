@@ -310,7 +310,9 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
+    NSLog(@"Outside.\n");
     if (argc == 3) {
+        NSLog(@"Inside.\n");
         u64 pid = s8_to_u64((s8) { .buf = argv[1], .len = strlen(argv[1]), });
         NSString *old_bundle = [NSString stringWithCString:argv[2] encoding:NSUTF8StringEncoding];
 
