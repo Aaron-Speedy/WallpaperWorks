@@ -349,7 +349,7 @@ int main(int argc, char *argv[]) {
                     copyItemAtPath:old_bundle
                     toPath:[old_bundle stringByDeletingLastPathComponent]
                     error:error
-                ]) alert("like ... there's an error here man");
+                ]) alert("like man, there's an error here man");
             }
 
 
