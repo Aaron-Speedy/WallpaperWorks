@@ -2,10 +2,12 @@
 #include <unistd.h>
 
 int main(void) {
-    char *args[] = { "touch", "ok", NULL };
-
-    if (execvp(args[0], args) == -1) {
-        perror("execvp failed");
+    @autoreleasepool {
+        NSTask *task = [[NSTask alloc] init];
+        [task setLaunchPath:@"/usr/bin/env"];
+        [task setArguments:@[@"touch", @"AOK"]];
+        [task launch];
+        [task waitUntilExit];
     }
 
     return 0;
