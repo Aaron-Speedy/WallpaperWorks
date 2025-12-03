@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
             NSError *error = 0;
             [task setLaunchPath:@"/usr/bin/open"];
             [task setArguments:@[
-                @"./Users/aaron/Programming/WallpaperWorks.app",
+                @"./Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
             ]];
             [task launchAndReturnError:&error];
             [task waitUntilExit];
