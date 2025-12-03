@@ -356,15 +356,18 @@ int main(int argc, char *argv[]) {
                 [task setLaunchPath:@"/usr/bin/open"];
                 [task setArguments:@[
                     @"/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+                    @"--args",
+                    @"--todo_remove_this_flag",
                 ]];
                 [task launchAndReturnError:&error];
             }
 
-            exit(0);
         }
+
+        exit(0);
     }
 
-    bool needs_update = true;
+    bool needs_update = argc > 1;
     if (needs_update) {
         @autoreleasepool {
             NSTask *task = [[NSTask alloc] init];
