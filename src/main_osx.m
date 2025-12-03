@@ -347,18 +347,6 @@ int main(int argc, char *argv[]) {
 
     bool needs_update = true;
     if (needs_update) {
-        char *args[] = {
-            "open",
-            "./WallpaperWorks.app",
-            "--args",
-            arena_printf(&scratch, "%d%c", getpid(), 0).buf,
-            [[[NSBundle mainBundle] bundlePath] UTF8String],
-            0,
-        };
-        if (execvp(args[0], args) < 0) {
-            alert(@"Something went terribly wrong.");
-        }
-
         @autoreleasepool {
             NSTask *task = [[NSTask alloc] init];
             NSError *error = 0;
