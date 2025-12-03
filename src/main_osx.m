@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
                     copyItemAtPath:old_bundle
                     toPath:[old_bundle stringByDeletingLastPathComponent]
                     error:error
-                ]
+                ];
             }
 
 
