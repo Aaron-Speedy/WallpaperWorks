@@ -319,7 +319,6 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
-    alert(@"Yo yo yo yo!");
     if (argc == 4 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
             kill(s8_to_u64((s8) { .buf = argv[2], .len = strlen(argv[2])}), SIGKILL);
@@ -332,6 +331,7 @@ int main(int argc, char *argv[]) {
             NSString *new_bundle = [[NSBundle mainBundle] bundlePath];
 
             if ([file_manager fileExistsAtPath:old_bundle]) {
+                alert(@"Stage one.");
                 NSError *error = 0;
                 if ([file_manager removeItemAtPath:old_bundle error:&error]) {
                     alert(@"like man, there's an error here man");
@@ -345,6 +345,7 @@ int main(int argc, char *argv[]) {
             }
 
             if ([file_manager fileExistsAtPath:new_bundle] &&
+                alert(@"Stage two.");
                 ![file_manager fileExistsAtPath:old_bundle]) {
                 NSError *error = 0;
                 [file_manager
@@ -355,6 +356,7 @@ int main(int argc, char *argv[]) {
             }
 
             if ([file_manager fileExistsAtPath:old_bundle]) {
+                alert(@"Stage three.");
                 NSTask *task = [[NSTask alloc] init];
                 NSError *error = 0;
                 [task setLaunchPath:@"/usr/bin/open"];
