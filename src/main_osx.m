@@ -345,8 +345,8 @@ int main(int argc, char *argv[]) {
             }
 
             if ([file_manager fileExistsAtPath:new_bundle] &&
-                alert(@"Stage two.");
                 ![file_manager fileExistsAtPath:old_bundle]) {
+                alert(@"Stage two.");
                 NSError *error = 0;
                 [file_manager
                     copyItemAtPath:new_bundle
