@@ -319,7 +319,7 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
-    alert("Stage zero.");
+    alert(@"Stage zero.");
 
     if (argc == 4 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
