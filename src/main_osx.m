@@ -319,6 +319,8 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
+    alert("Stage zero.");
+
     if (argc == 4 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
             kill(s8_to_u64((s8) { .buf = argv[2], .len = strlen(argv[2])}), SIGKILL);
