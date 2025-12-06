@@ -334,9 +334,9 @@ int main(int argc, char *argv[]) {
                 alert(@"Stage one.");
                 NSError *error = 0;
                 if ([file_manager removeItemAtPath:old_bundle error:&error]) {
-                    alert(@"like man, there's an error here man");
                     NSLog(@"Folder deleted successfully.");
                 } else {
+                    alert(@"like man, there's an error here man");
                     NSLog(
                         @"Could not delete folder: //@",
                         [error localizedDescription]
