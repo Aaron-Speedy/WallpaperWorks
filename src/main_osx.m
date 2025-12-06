@@ -347,13 +347,11 @@ int main(int argc, char *argv[]) {
             if ([file_manager fileExistsAtPath:new_bundle] &&
                 ![file_manager fileExistsAtPath:old_bundle]) {
                 alert(@"Stage two.");
-                alert(new_bundle);
-                alert(old_bundle);
-                alert([old_bundle stringByDeletingLastPathComponent]);
                 NSError *error = 0;
                 [file_manager
                     copyItemAtPath:new_bundle
-                    toPath:[old_bundle stringByDeletingLastPathComponent]
+                    // toPath:[old_bundle stringByDeletingLastPathComponent]
+                    toPath:old_bundle
                     error:error
                 ];
             }
