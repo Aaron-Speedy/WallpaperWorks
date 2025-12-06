@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
                 ![file_manager fileExistsAtPath:old_bundle]) {
                 alert(@"Stage two.");
                 alert(new_bundle);
-                alert(o);
+                alert(old_bundle);
                 alert([old_bundle stringByDeletingLastPathComponent]);
                 NSError *error = 0;
                 [file_manager
