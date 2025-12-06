@@ -344,15 +344,15 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            if ([file_manager fileExistsAtPath:new_bundle]) {
+            if ([file_manager fileExistsAtPath:new_bundle] &&
+                ![file_manager fileExistsAtPath:old_bundle]) {
                 NSError *error = 0;
                 [file_manager
-                    copyItemAtPath:old_bundle
+                    copyItemAtPath:new_bundle
                     toPath:[old_bundle stringByDeletingLastPathComponent]
                     error:error
                 ];
             }
-
 
             if ([file_manager fileExistsAtPath:old_bundle]) {
                 NSTask *task = [[NSTask alloc] init];
@@ -365,7 +365,6 @@ int main(int argc, char *argv[]) {
                 ]];
                 [task launchAndReturnError:&error];
             }
-
         }
 
         exit(0);

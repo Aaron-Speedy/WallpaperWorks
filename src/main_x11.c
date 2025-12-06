@@ -92,6 +92,7 @@ int main(void) {
 
         draw_to_win(&win);
     }
+
 end:
     // kill_sys_tray_icon(&win, ICON_ID);
     close_win(&win);
