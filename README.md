@@ -20,7 +20,7 @@ convert in.jpg -define icon:auto-resize=32,48,64,128,256 -compress zip favicon.i
 ### Windows
 
 To build on Windows, first install Git, then download and launch
-[w64devkit](github.com/skeeto/w64devkit). Before you build, you must
+[w64devkit](https://github.com/skeeto/w64devkit). Before you build, you must
 provide resources (see instructions above). Once you have everything
 in order, run
 
