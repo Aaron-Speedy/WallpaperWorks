@@ -346,7 +346,7 @@ void new_win(Win *win, char *name, int w, int h) {
     XStoreName(win->p.display, win->p.win, name);
     // win->name = name;
 
-    if (win->p.img == 0) err("Failed to create window.");
+    if (!win->p.img) err("Failed to create window.");
 
 #elif _WIN32
     WNDCLASS win_class = {

@@ -5,12 +5,17 @@
 #include <curl/curl.h>
 
 typedef struct {
+    s8 data;
+    long code;
+} DownloadResponse;
+
+typedef struct {
     Arena *perm;
     s8 s;
 } S8ArenaPair;
 
 size_t curl_get_data(char *buf, size_t item_len, size_t item_num, void *data);
-s8 download(Arena *perm, CURL *curl, s8 url);
+DownloadResponse download(Arena *perm, CURL *curl, s8 url);
 
 #endif // NETWORKING_H
 
@@ -33,7 +38,9 @@ size_t curl_get_data(char *buf, size_t item_len, size_t item_num, void *data) {
     return n;
 }
 
-s8 download(Arena *perm, CURL *curl, s8 url) {
+DownloadResponse download(Arena *perm, CURL *curl, s8 url) {
+    DownloadResponse ret = {0};
+
     url = s8_newcat(perm, url, s8("\0"));
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_get_data);
@@ -47,7 +54,11 @@ s8 download(Arena *perm, CURL *curl, s8 url) {
     CURLcode result = curl_easy_perform(curl);
     if (result != CURLE_OK) warning("Failed to download resource: %s.", curl_easy_strerror(result));
 
-    return data.s;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &ret.code);
+
+    ret.data = data.s;
+
+    return ret;
 }
 
 #endif // NETWORKING_IMPL_GUARD

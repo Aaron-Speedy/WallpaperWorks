@@ -319,6 +319,9 @@ void alert(NSString *msg) {
 int main(int argc, char *argv[]) {
     Arena scratch = new_arena(10 * KiB);
 
+#define INCLUDE_UPDATER
+#ifdef INCLUDE_UPDATER
+
     if (argc == 4 && !strcmp(argv[1], "--launch_updater")) {
         @autoreleasepool {
             kill(s8_to_u64((s8) { .buf = argv[2], .len = strlen(argv[2])}), SIGKILL);
@@ -380,7 +383,7 @@ int main(int argc, char *argv[]) {
             NSError *error = 0;
             [task setLaunchPath:@"/usr/bin/open"];
             [task setArguments:@[
-                @"/Users/aaron/Programming/WallpaperWorks/WallpaperWorks.app",
+                @"~/tmp/WallpaperWorks.app",
                 @"--args",
                 @"--launch_updater",
                 [NSString stringWithFormat:@"%d", getpid()],
@@ -390,6 +393,8 @@ int main(int argc, char *argv[]) {
             exit(0);
         }
     }
+
+#endif
 
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 

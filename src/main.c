@@ -47,21 +47,31 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
         s8 url = s8_newcat(perm, base, f);
         s8 path = s8_newcat(perm, cache_dir, f);
 
-        s8 data = download(perm, curl, url);
-        network_mode = data.len != 0;
+        DownloadResponse response = download(perm, curl, url);
+        network_mode = response.data.len != 0 && response.code == 200;
 
         if (network_mode) {
-            s8_write_to_file(path, data);
-            n = s8_to_u64(data);
+            s8_write_to_file(path, response.data);
+            n = s8_to_u64(response.data);
         }
     }
 
     s8 img_data = {0};
     if (network_mode) {
+        int times_tried = 0;
+
+try_downloading_another_one:
+
+        times_tried += 1;
+        if (times_tried >= 10) goto pick_random_downloaded_image;
+
         s8 a0 = s8_copy(perm, s8("/"));
                 u64_to_s8(perm, rand() % (n + 1), 0);
         s8 al = s8_copy(perm, s8(".webp"));
         s8 name = s8_masscat(*perm, a0, al);
+
+        s8_print(name);
+        printf("\n");
 
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
@@ -72,14 +82,17 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
         if (img_data.len <= 0) {
             if (!network_mode) goto pick_random_downloaded_image;
 
-            img_data = download(perm, curl, url);
-            network_mode = img_data.len != 0;
+            DownloadResponse response = download(perm, curl, url);
+            if (response.code != 200) goto try_downloading_another_one;
+            img_data = response.data;
+            network_mode = img_data.len != 0 && response.code == 200;
 
             if (!network_mode) goto pick_random_downloaded_image;
 
             s8_write_to_file(path, img_data);
         }
     } else { pick_random_downloaded_image: {}
+        printf("You are in offline mode for now.\n");
         char *cache_dir_cstr = s8_newcat(perm, cache_dir, s8("\0")).buf;
 
         struct dirent **names;
@@ -153,7 +166,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 60;
+    int timeout_s = 1;
     bool initial = true;
 
     while (true) {
@@ -170,7 +183,7 @@ void *background_thread() {
             img_data.buf, img_data.len,
             &b.w, &b.h
         );
-        printf("Decoding image of size %dx%d\n", b.w, b.h);
+        printf("Decoding image of size %dx%d: \n", b.w, b.h);
 
         Image decoded = {
             .alloc_w = b.w,
