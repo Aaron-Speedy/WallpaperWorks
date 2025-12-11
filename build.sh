@@ -28,6 +28,7 @@ WINDOWING=""
 FREETYPE=""
 OTHER=""
 SOURCE=""
+SAN=""
 
 CURL_DIR="third_party/real/curl"
 FT_DIR="third_party/real/freetype"
@@ -35,6 +36,7 @@ WEBP_DIR="third_party/real/libwebp"
 OUT_DIR="build"
 
 if [[ "$OS" == "windows"* ]]; then
+    SAN="-fsanitize=undefined"
     LIBWEBP="third_party/real/libwebp/src/libwebp.a"
     cp $CURL_DIR/bin/libcurl-x64.dll build/
     cp $CURL_DIR/bin/curl-ca-bundle.crt build/
@@ -48,12 +50,14 @@ if [[ "$OS" == "windows"* ]]; then
 
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "linux"* ]]; then
+    SAN="-fsanitize=address,undefined"
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
+    SAN="-fsanitize=address,undefined"
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE="-lfreetype -I third_party/freetype/include/"
@@ -82,7 +86,6 @@ $CURL \
 $FREETYPE \
 "
 
-SAN="-fsanitize=address,undefined"
 cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
 
 rm -rf build/tmp
