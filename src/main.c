@@ -24,6 +24,14 @@ const float date_x = 0.04, date_y = time_y + 0.17, // from the bottom-right
 #include <pthread.h>
 #include <dirent.h>
 
+int scandir(const char *restrict dirp,
+            struct dirent ***restrict namelist,
+            typeof(int (const struct dirent *)) *filter,
+            typeof(int (const struct dirent **, const struct dirent **))
+                *compar);
+
+int alphasort(const struct dirent **a, const struct dirent **b);
+
 typedef struct {
     bool redraw, initial;
     Image img;
@@ -231,7 +239,7 @@ void start(Context *ctx) {
 
     // TODO: update the font sizes whenver the screen resizes
 
-    int d = ctx->screen->w < ctx->screen->h ? ctx->screen->w : ctx->screen->h;
+    int min_dim = ctx->screen->w < ctx->screen->h ? ctx->screen->w : ctx->screen->h;
 
     font_lib = init_ffont();
     load_font(
@@ -242,8 +250,8 @@ void start(Context *ctx) {
     );
     FT_Set_Pixel_Sizes(
         time_font.face,
-        d * time_size,
-        d * time_size
+        min_dim * time_size,
+        min_dim * time_size
     );
 
     load_font(
@@ -254,8 +262,8 @@ void start(Context *ctx) {
     );
     FT_Set_Pixel_Sizes(
         date_font.face,
-        d * date_size,
-        d * date_size
+        min_dim * date_size,
+        min_dim * date_size
     );
 
     while (true) {
@@ -274,7 +282,7 @@ void app_loop(Context *ctx) {
 
     s8 time_str = {0}, date_str = {0};
     {
-        time_t ftime = time(0) + 1;
+        time_t ftime = time(0) + 1; // TODO: merge this magic number with the event timeout
         struct tm *lt = localtime(&ftime);
 
         {

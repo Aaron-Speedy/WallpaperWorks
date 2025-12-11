@@ -24,7 +24,6 @@
 #include "image.h"
 
 #include <sys/time.h>
-#include <sys/dir.h>
 
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
