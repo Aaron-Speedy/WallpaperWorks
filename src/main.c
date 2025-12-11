@@ -24,13 +24,9 @@ const float date_x = 0.04, date_y = time_y + 0.17, // from the bottom-right
 #include <pthread.h>
 #include <dirent.h>
 
-int scandir(const char *restrict dirp,
-            struct dirent ***restrict namelist,
-            typeof(int (const struct dirent *)) *filter,
-            typeof(int (const struct dirent **, const struct dirent **))
-                *compar);
-
-int alphasort(const struct dirent **a, const struct dirent **b);
+#ifdef _WIN32
+#include "../third_party/scandir.c"
+#endif
 
 typedef struct {
     bool redraw, initial;
