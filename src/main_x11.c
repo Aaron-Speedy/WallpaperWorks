@@ -23,6 +23,8 @@
 #define IMAGE_IMPL
 #include "image.h"
 
+#include <sys/time.h>
+
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
         .c[COLOR_R] = r,
