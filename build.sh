@@ -17,7 +17,6 @@ cc src/hex_dump.c -o build/tmp/hex_dump.c -ggdb
 echo "!define APP_NAME \"$APP_NAME\"" > build/app_name.nsh
 echo "#define APP_NAME \"$APP_NAME\"" > build/tmp/app_name.h
 
-# SAN="-fsanitize=undefined,thread"
 CFLAGS="-Wall -Wextra -ggdb -O3 -std=gnu11"
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
@@ -36,7 +35,7 @@ WEBP_DIR="third_party/real/libwebp"
 OUT_DIR="build"
 
 if [[ "$OS" == "windows"* ]]; then
-    SAN="-fsanitize=undefined"
+    SAN=""
     LIBWEBP="third_party/real/libwebp/src/libwebp.a"
     cp $CURL_DIR/bin/libcurl-x64.dll build/
     cp $CURL_DIR/bin/curl-ca-bundle.crt build/
