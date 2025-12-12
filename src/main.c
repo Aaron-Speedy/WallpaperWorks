@@ -24,10 +24,6 @@ const float date_x = 0.04, date_y = time_y + 0.17, // from the bottom-right
 #include <pthread.h>
 #include <dirent.h>
 
-#ifdef _WIN32
-#include "../third_party/scandir.c"
-#endif
-
 typedef struct {
     bool redraw, initial;
     Image img;
@@ -97,14 +93,29 @@ try_downloading_another_one:
         }
     } else { pick_random_downloaded_image: {}
         printf("You are in offline mode for now.\n");
-        char *cache_dir_cstr = s8_newcat(perm, cache_dir, s8("\0")).buf;
 
-        struct dirent **names;
-        int n = scandir(cache_dir_cstr, &names, 0, alphasort);
-        if (n <= 3) return (s8) {0}; // there is at most num.txt, ., and ..
+        struct {
+            struct dirent **buf;
+            ssize len;
+        } names = {0};
+
+        {
+            DIR *dirp = opendir(s8_newcat(perm, cache_dir, s8("\0")).buf);
+            if (!dirp); // handle error
+
+            while (true) {
+                struct dirent *d = readdir(dirp);
+                if (!d) break;
+                if (!strcmp(d->d_name, ".") ||
+                    !strcmp(d->d_name, "..") ||
+                    !strcmp(d->d_name, "num.txt")) continue;
+                names.buf = names.buf ? names.buf : new(perm, d, 1);
+                names.buf[names.len++] = d;
+            }
+        }
 
         while (true) {
-            char *name = names[rand() % n]->d_name;
+            char *name = names.buf[rand() % names.len]->d_name;
             char *pattern = "*.webp";
             bool ok = true;
 
@@ -140,11 +151,6 @@ try_downloading_another_one:
                 break;
             }
         }
-
-        while (n--) {
-            free(names[n]);
-        }
-        free(names);
     }
 
     return img_data;
