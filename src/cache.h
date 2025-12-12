@@ -19,9 +19,9 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #ifdef __APPLE__
 #define _CACHE_DIR_123 "/Library/Caches"
 #elif __linux__
-#define _CACHE_DIR_123 "/.cache"
+#define _CACHE_DIR_123 "~/.cache"
 #elif _WIN32
-#define _CACHE_DIR_123 "/.cache"
+#define _CACHE_DIR_123 "~/.cache"
 #endif
 
 s8 get_or_make_cache_dir(Arena *perm, s8 name) {
