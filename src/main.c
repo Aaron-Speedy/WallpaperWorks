@@ -101,7 +101,7 @@ try_downloading_another_one:
 
         {
             DIR *dirp = opendir(s8_newcat(perm, cache_dir, s8("\0")).buf);
-            if (!dirp); // handle error
+            if (!dirp) return (s8) {0};
 
             while (true) {
                 struct dirent *d = readdir(dirp);
@@ -112,6 +112,8 @@ try_downloading_another_one:
                 names.buf = names.buf ? names.buf : new(perm, d, 1);
                 names.buf[names.len++] = d;
             }
+
+            if (!names.len) return (s8) {0};
         }
 
         while (true) {
