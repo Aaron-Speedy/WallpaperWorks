@@ -36,6 +36,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
             break;
         }
 #endif
+
         cache.buf = (u8 *) getenv("HOME");
         if (cache.buf != NULL) {
             cache.len = strlen((char *) cache.buf);
@@ -51,6 +52,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
 
 #ifdef _WIN32
     int r = mkdir((char *) cache.buf);
+    printf("RAHHHHHHH %d!\n", r);
 #else
     int r = mkdir((char *) cache.buf, 0700);
 #endif
