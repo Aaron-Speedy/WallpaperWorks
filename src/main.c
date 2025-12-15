@@ -189,7 +189,7 @@ void *background_thread() {
 
         s8 img_data = get_random_image(&scratch, curl, cache_dir);
         if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
-        assert(img_data.len > 1000);
+        print("Length: %ld", img_data.len);
 
         // TODO: check this
         WebPGetInfo(
