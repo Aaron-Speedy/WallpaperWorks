@@ -52,7 +52,6 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
 
 #ifdef _WIN32
     int r = mkdir((char *) cache.buf);
-    printf("RAHHHHHHH %d!\n", r);
 #else
     int r = mkdir((char *) cache.buf, 0700);
 #endif
