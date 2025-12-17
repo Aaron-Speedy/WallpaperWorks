@@ -311,14 +311,13 @@ void app_loop(Context *ctx) {
 
     pthread_mutex_lock(&lock);
         if (background.redraw) {
-            scaled_background = background;
-            // free(scaled_background.buf);
-            // scaled_background = rescale_img(
-            //     0,
-            //     background.img,
-            //     screen->w, screen->h
-            // );
-            // background.redraw = false;
+            free(scaled_background.buf);
+            scaled_background = rescale_img(
+                0,
+                background.img,
+                screen->w, screen->h
+            );
+            background.redraw = false;
         }
     pthread_mutex_unlock(&lock);
 
