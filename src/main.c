@@ -29,7 +29,6 @@ FFont date_font;
 Background background = { .initial = true, };
 Image scaled_background = {0};
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-u64 tick = 0;
 
 s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
     s8 base = s8("https://infotoast.org/images");
@@ -235,7 +234,7 @@ void start(Context *ctx) {
         err("Failed to create background thread.");
     }
 
-    // TODO: update the font sizes whenver the screen resizes
+    // TODO: update the font sizes whenever the screen resizes
 
     int min_dim = ctx->screen->w < ctx->screen->h ? ctx->screen->w : ctx->screen->h;
 
@@ -312,13 +311,14 @@ void app_loop(Context *ctx) {
 
     pthread_mutex_lock(&lock);
         if (background.redraw) {
-            free(scaled_background.buf);
-            scaled_background = rescale_img(
-                0,
-                background.img,
-                screen->w, screen->h
-            );
-            background.redraw = false;
+            scaled_background = background;
+            // free(scaled_background.buf);
+            // scaled_background = rescale_img(
+            //     0,
+            //     background.img,
+            //     screen->w, screen->h
+            // );
+            // background.redraw = false;
         }
     pthread_mutex_unlock(&lock);
 
