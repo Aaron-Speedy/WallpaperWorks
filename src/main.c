@@ -171,7 +171,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 1;
+    int timeout_s = 60;
     bool initial = true;
 
     while (true) {
