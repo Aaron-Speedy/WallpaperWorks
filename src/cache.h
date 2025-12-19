@@ -47,6 +47,17 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
         return (s8) {0};
     } while (0);
 
+    {
+        Arena scratch = *perm;
+        s8 tmp_cache = cache;
+        s8_modcat(&scratch, &tmp_cache, s8("\0"));
+#ifdef _WIN32
+        mkdir((char *) tmp_cache.buf);
+#else
+        mkdir((char *) tmp_cache.buf, 0700);
+#endif
+    }
+
     s8_modcat(perm, &cache, s8("/"));
     s8_modcat(perm, &cache, name);
     s8_modcat(perm, &cache, s8("\0"));
