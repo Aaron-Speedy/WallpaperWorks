@@ -67,7 +67,7 @@ try_downloading_another_one:
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
 
-        print("%*.s", path);
+        if (path.len > 0) print("%*.s", path);
 
         // img_data = s8_read_file(perm, path);
 
