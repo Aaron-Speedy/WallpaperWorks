@@ -67,22 +67,22 @@ try_downloading_another_one:
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
 
-        if (path.len > 0) print("%ld: %.*s", path.len, path);
+        if (cache_dir.len > 0) {
+            img_data = s8_read_file(perm, path);
 
-        // img_data = s8_read_file(perm, path);
+            // File was not found
+            if (img_data.len <= 0) {
+                if (!network_mode) goto pick_random_downloaded_image;
 
-        // File was not found
-        if (img_data.len <= 0) {
-            if (!network_mode) goto pick_random_downloaded_image;
+                DownloadResponse response = download(perm, curl, url);
+                if (response.code != 200) goto try_downloading_another_one;
+                img_data = response.data;
+                network_mode = img_data.len != 0 && response.code == 200;
 
-            DownloadResponse response = download(perm, curl, url);
-            if (response.code != 200) goto try_downloading_another_one;
-            img_data = response.data;
-            network_mode = img_data.len != 0 && response.code == 200;
+                if (!network_mode) goto pick_random_downloaded_image;
 
-            if (!network_mode) goto pick_random_downloaded_image;
-
-            // s8_write_to_file(path, img_data);
+                s8_write_to_file(path, img_data);
+            }
         }
     } else { pick_random_downloaded_image: {}
         printf("You are in offline mode for now.\n");
