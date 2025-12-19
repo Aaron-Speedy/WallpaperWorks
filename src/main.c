@@ -67,7 +67,7 @@ try_downloading_another_one:
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
 
-        // img_data = s8_read_file(perm, path);
+        img_data = s8_read_file(perm, path);
 
         // File was not found
         if (img_data.len <= 0) {
