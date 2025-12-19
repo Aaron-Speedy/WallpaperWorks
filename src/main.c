@@ -65,7 +65,7 @@ try_downloading_another_one:
         printf("\n");
 
         s8 url = s8_newcat(perm, base, name);
-        // s8 path = s8_newcat(perm, cache_dir, name);
+        s8 path = s8_newcat(perm, cache_dir, name);
 
         // img_data = s8_read_file(perm, path);
 
