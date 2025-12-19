@@ -52,9 +52,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
     s8 img_data = {0};
     if (network_mode) {
         int times_tried = 0;
-
 try_downloading_another_one:
-
         times_tried += 1;
         if (times_tried >= 10) goto pick_random_downloaded_image;
 
@@ -67,9 +65,9 @@ try_downloading_another_one:
         printf("\n");
 
         s8 url = s8_newcat(perm, base, name);
-        s8 path = s8_newcat(perm, cache_dir, name);
+        // s8 path = s8_newcat(perm, cache_dir, name);
 
-        img_data = s8_read_file(perm, path);
+        // img_data = s8_read_file(perm, path);
 
         // File was not found
         if (img_data.len <= 0) {
@@ -82,7 +80,7 @@ try_downloading_another_one:
 
             if (!network_mode) goto pick_random_downloaded_image;
 
-            s8_write_to_file(path, img_data);
+            // s8_write_to_file(path, img_data);
         }
     } else { pick_random_downloaded_image: {}
         printf("You are in offline mode for now.\n");
@@ -171,7 +169,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 60;
+    int timeout_s = 1;
     bool initial = true;
 
     while (true) {

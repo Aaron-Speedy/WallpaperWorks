@@ -56,11 +56,14 @@ typedef struct {
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
 
 CGSize get_dpi(NSScreen *screen) {
-    NSDictionary *description = [screen deviceDescription];
-    NSNumber *screen_num = [description objectForKey:@"NSScreenNumber"];
-    CGDirectDisplayID display_id = [screen_num unsignedIntValue];
+    CGDirectDisplayID display_id = ;
 
-    CGSize physical_size_mm = CGDisplayScreenSize(display_id);
+    CGSize physical_size_mm = CGDisplayScreenSize(
+        [[[screen
+          deviceDescription]
+          objectForKey:@"NSScreenNumber"]
+          unsignedIntValue]
+    );
     
     if (physical_size_mm.width == 0 || physical_size_mm.height == 0) {
         return CGSizeMake(72.0, 72.0);
@@ -74,33 +77,23 @@ CGSize get_dpi(NSScreen *screen) {
 
     CGFloat mm_per_inch = 25.4;
     
-    CGSize dpi;
-    dpi.width  = (width / physical_size_mm.width) * mm_per_inch;
-    dpi.height = (height / physical_size_mm.height) * mm_per_inch;
+    CGSize dpi = {
+        .width  = (width / physical_size_mm.width) * mm_per_inch,
+        .height = (height / physical_size_mm.height) * mm_per_inch,
+    };
 
     return dpi;
 }
 
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
-
     [win setOpaque:NO];
     [win setBackgroundColor:[NSColor clearColor]];
     [win setHasShadow:NO];
-
     [win setLevel:kCGDesktopWindowLevel - 1];
-
     [win setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary];
-
-    NSScreen *mainScreen = [NSScreen mainScreen];
-    NSRect screenRect = [mainScreen frame];
-    
-    [win setFrame:screenRect display:YES];
-    
+    [win setFrame:[[NSScreen mainScreen] frame] display:YES];
     [win setMovable:NO];
-    
-    // Optional: Hide the app from the Dock and Cmd-Tab switcher (This needs to be set 
-    // in the application's Info.plist using the 'LSUIElement' key set to 'YES')
 }
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
@@ -108,7 +101,6 @@ void make_win_bg(NSWindow * win) {
 - (NSMenu *) create_status_menu;
 - (void) enable_login_item;
 - (void) disable_login_item;
-
 @property (nonatomic, strong) NSStatusItem *status_item;
 @end
 
