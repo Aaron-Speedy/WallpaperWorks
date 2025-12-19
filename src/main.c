@@ -17,7 +17,6 @@
 #include <dirent.h>
 
 typedef struct {
-    bool redraw, initial;
     Image img;
 } Background;
 
@@ -26,8 +25,8 @@ typedef struct {
 FFontLib font_lib;
 FFont time_font;
 FFont date_font;
-Background background = { .initial = true, };
-Image scaled_background = {0};
+Background background;
+int screen_w, screen_h;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
@@ -152,6 +151,7 @@ try_downloading_another_one:
 }
 
 void *background_thread() {
+    // TODO: make the memory management around this cleaner
     srand(time(0));
 
     Arena perm = new_arena(1 * GiB);
@@ -171,7 +171,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 1;
+    int timeout_s = 60;
     bool initial = true;
 
     while (true) {
@@ -214,12 +214,13 @@ void *background_thread() {
         int wait = timeout_s - (time(0) - a_time);
         if (wait > 0 && !initial) sleep(wait);
 
+        Image scaled_background = rescale_img(0, b, screen_w, screen_h);
+        free(b.buf);
+        b = scaled_background;
+
         pthread_mutex_lock(&lock);
             free(background.img.buf);
-            background = (Background) {
-                .img = b,
-                .redraw = true,
-            };
+            background = (Background) { .img = b, };
         pthread_mutex_unlock(&lock);
 
         initial = false;
@@ -229,6 +230,9 @@ void *background_thread() {
 }
 
 void start(Context *ctx) {
+    screen_w = ctx->screen->w;
+    screen_h = ctx->screen->h;
+
     pthread_t thread;
     if (pthread_create(&thread, 0, background_thread, 0)) {
         err("Failed to create background thread.");
@@ -310,18 +314,8 @@ void app_loop(Context *ctx) {
     }
 
     pthread_mutex_lock(&lock);
-        if (background.redraw) {
-            free(scaled_background.buf);
-            scaled_background = rescale_img(
-                0,
-                background.img,
-                screen->w, screen->h
-            );
-            background.redraw = false;
-        }
+        place_img(*screen, background.img, 0, 0, 0);
     pthread_mutex_unlock(&lock);
-
-    place_img(*screen, scaled_background, 0, 0, 0);
 
     Image time_bound = get_bound_of_text(&time_font, time_str);
     time_bound = draw_text_shadow(

@@ -56,8 +56,6 @@ typedef struct {
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
 
 CGSize get_dpi(NSScreen *screen) {
-    CGDirectDisplayID display_id = ;
-
     CGSize physical_size_mm = CGDisplayScreenSize(
         [[[screen
           deviceDescription]
