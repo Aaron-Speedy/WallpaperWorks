@@ -19,9 +19,9 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #ifdef __APPLE__
 #define _CACHE_DIR_123 "/Library/Caches"
 #elif __linux__
-#define _CACHE_DIR_123 "~/.cache"
+#define _CACHE_DIR_123 "/.cache"
 #elif _WIN32
-#define _CACHE_DIR_123 "~/.cache"
+#define _CACHE_DIR_123 "/.cache"
 #endif
 
 s8 get_or_make_cache_dir(Arena *perm, s8 name) {
@@ -30,7 +30,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     do {
 #ifdef __linux__
         cache.buf = (u8 *) getenv("XDG_CACHE_HOME");
-        if (cache.buf != NULL) {
+        if (cache.buf) {
             cache.len = strlen((char *) cache.buf);
             cache = s8_copy(perm, cache);
             break;
@@ -38,11 +38,12 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
 #endif
 
         cache.buf = (u8 *) getenv("HOME");
-        if (cache.buf != NULL) {
+        if (cache.buf) {
             cache.len = strlen((char *) cache.buf);
             cache = s8_newcat(perm, cache, s8(_CACHE_DIR_123));
             break;
         }
+
         return (s8) {0};
     } while (0);
 
