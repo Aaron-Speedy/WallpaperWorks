@@ -98,14 +98,13 @@ void make_win_bg(NSWindow * win) {
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (void) enable_login_item;
 - (void) disable_login_item;
-@property (nonatomic, strong) NSStatusItem *status_item;
 @end
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
     NSStatusBar *status_bar = [NSStatusBar systemStatusBar];
-    self.status_item = [status_bar statusItemWithLength:NSVariableStatusItemLength];
-    NSStatusBarButton *button = self.status_item.button;
+    NSStatusItem *status_item = [status_bar statusItemWithLength:NSVariableStatusItemLength];
+    NSStatusBarButton *button = status_item.button;
 
     if (button) {
         NSImage *icon = [NSImage imageNamed:@"favicon"];
@@ -124,7 +123,7 @@ void make_win_bg(NSWindow * win) {
         [quit_item setTarget:NSApp];
         [menu addItem:quit_item];
 
-        self.status_item.menu = menu;
+        status_item.menu = menu;
     }
 
     [self enable_login_item];
