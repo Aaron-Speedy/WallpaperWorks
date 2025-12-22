@@ -115,6 +115,7 @@ void make_win_bg(NSWindow * win) {
 
     [self.status_item setImage:self.status_off_img];
     [self.status_item setAlternateImage:self.status_on_img];
+    [self.status_item setHighlightMode:YES];
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
     NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
