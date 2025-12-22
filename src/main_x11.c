@@ -46,7 +46,7 @@ int main(void) {
 #ifdef _WIN32
     HKEY hkey = NULL;
     RegCreateKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
-    RegSetValueEx(hkey, L APP_NAME, 0, REG_SZ , (BYTE*)path, (wcslen(path)+1)*2);
+    RegSetValueEx(hkey, APP_NAME, 0, REG_SZ , (BYTE*)path, (wcslen(path)+1)*2);
 #endif
 
     Monitors monitors = {0};
