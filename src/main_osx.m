@@ -117,8 +117,7 @@ void make_win_bg(NSWindow * win) {
 
     if (button) {
         [button setImage:self.status_off_img];
-        [button setTemplate:NO];
-        // [button setAlternateImage:self.status_on_img];
+        [button setAlternateImage:self.status_on_img];
     }
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
