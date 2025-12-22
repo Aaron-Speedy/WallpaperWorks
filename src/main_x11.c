@@ -43,14 +43,16 @@ typedef struct {
 #include "main.c"
 
 int main(int argc, char *argv[]) {
-    TCHAR exe_path[MAX_PATH];
-    GetModuleFileName(NULL, exe_path, MAX_PATH);
-    print("%s\n", exe_path);
-// #ifdef _WIN32
-//     CString csPath = "your path";
-//     HRESULT hres =  RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
-//     hres = RegSetValueEx(hkey, L"your app", 0, REG_SZ , (BYTE*)csPath.GetBuffer(), (wcslen(csPath)+1)*2);
-// #endif
+#ifdef _WIN32
+    {
+        TCHAR exe_path[MAX_PATH];
+        GetModuleFileName(NULL, exe_path, MAX_PATH);
+
+        HKEY hkey = NULL;
+        RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
+        RegSetValueExA(hkey, APP_NAME, 0, REG_SZ , exe_path, strlen(exe_path) + 1);
+    }
+#endif
 
     Monitors monitors = {0};
     collect_monitors(&monitors);
