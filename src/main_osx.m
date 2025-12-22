@@ -96,7 +96,6 @@ void make_win_bg(NSWindow * win) {
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
-- (NSMenu *) create_status_menu;
 - (void) enable_login_item;
 - (void) disable_login_item;
 @property (nonatomic, strong) NSStatusItem *status_item;
@@ -116,21 +115,19 @@ void make_win_bg(NSWindow * win) {
         // [button setToolTip:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
     }
 
-    self.status_item.menu = [self create_status_menu];
+    {
+        NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
+
+        NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
+                                                           action:@selector(terminate:) 
+                                                    keyEquivalent:@"q"];
+        [quit_item setTarget:NSApp];
+        [menu addItem:quit_item];
+
+        self.status_item.menu = menu;
+    }
 
     [self enable_login_item];
-}
-
-- (NSMenu *) create_status_menu {
-    NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
-
-    NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
-                                                     action:@selector(terminate:) 
-                                              keyEquivalent:@"q"];
-    [quit_item setTarget:NSApp];
-    [menu addItem:quit_item];
-
-    return menu;
 }
 
 - (void) enable_login_item {
