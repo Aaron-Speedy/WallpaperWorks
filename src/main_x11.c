@@ -42,12 +42,13 @@ typedef struct {
 
 #include "main.c"
 
-int main(void) {
-#ifdef _WIN32
-    HKEY hkey = NULL;
-    RegCreateKey(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
-    RegSetValueEx(hkey, APP_NAME, 0, REG_SZ , (BYTE*)path, (wcslen(path)+1)*2);
-#endif
+int main(int argc, char *argv[]) {
+    print("%s\n", argv[0])
+// #ifdef _WIN32
+//     CString csPath = "your path";
+//     HRESULT hres =  RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
+//     hres = RegSetValueEx(hkey, L"your app", 0, REG_SZ , (BYTE*)csPath.GetBuffer(), (wcslen(csPath)+1)*2);
+// #endif
 
     Monitors monitors = {0};
     collect_monitors(&monitors);
