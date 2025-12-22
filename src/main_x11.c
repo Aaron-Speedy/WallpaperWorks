@@ -44,8 +44,8 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
     TCHAR exe_path[MAX_PATH];
-    GetModuleFileName(NULL, exe_path, MAX_PATH)
-    print("%s\n", exe_path)
+    GetModuleFileName(NULL, exe_path, MAX_PATH);
+    print("%s\n", exe_path);
 // #ifdef _WIN32
 //     CString csPath = "your path";
 //     HRESULT hres =  RegCreateKey(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
