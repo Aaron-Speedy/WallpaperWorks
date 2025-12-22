@@ -96,56 +96,45 @@ void make_win_bg(NSWindow * win) {
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
-- (void) enable_login_item;
 - (void) disable_login_item;
 @end
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
-    NSStatusBar *status_bar = [NSStatusBar systemStatusBar];
-    NSStatusItem *status_item = [status_bar statusItemWithLength:NSVariableStatusItemLength];
+    NSStatusItem *status_item = [[NSStatusBar
+                                systemStatusBar]
+                                statusItemWithLength:NSVariableStatusItemLength];
     NSStatusBarButton *button = status_item.button;
 
     if (button) {
         NSImage *icon = [NSImage imageNamed:@"favicon"];
         [icon setTemplate:NO];
         [button setImage:icon];
-        // [button setTitle:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
-        // [button setToolTip:@"WHATEVER ... MOM ... UGHHHHHHHHH"];
     }
+
+    status_item.menu = [[NSMenu alloc] initWithTitle:@""];
+    NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
+                                                       action:@selector(terminate:) 
+                                                keyEquivalent:@"q"];
+    [quit_item setTarget:NSApp];
+    [status_item.menu addItem:quit_item];
 
     {
-        NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
-
-        NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
-                                                           action:@selector(terminate:) 
-                                                    keyEquivalent:@"q"];
-        [quit_item setTarget:NSApp];
-        [menu addItem:quit_item];
-
-        status_item.menu = menu;
+        SMAppService *service = [SMAppService mainAppService];
+        NSError *error = 0;
+        BOOL success = [service registerAndReturnError:&error];
+        if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
+        // if (service.status == SMAppServiceStatusNotRegistered) {
+        //     NSError *error = 0;
+        // } else if (service.status == SMAppServiceStatusNotFound) {
+        //     NSLog(@"App service status is not found.");
+        // } else if (service.status == SMAppServiceStatusEnabled) {
+        //     NSLog(@"Login item is already registered.");
+        // } else if (service.status == SMAppServiceStatusRequiresApproval) {
+        //     NSLog(@"Login item requires approval.");
+        //     [SMAppService openSystemSettingsLoginItems];
+        // }
     }
-
-    [self enable_login_item];
-}
-
-- (void) enable_login_item {
-    SMAppService *service = [SMAppService mainAppService];
-
-    NSError *error = 0;
-    BOOL success = [service registerAndReturnError:&error];
-    if (!success) NSLog(@"Login item registration failed with error: %@", error); // TODO: show an alert or something
-
-    // if (service.status == SMAppServiceStatusNotRegistered) {
-    //     NSError *error = 0;
-    // } else if (service.status == SMAppServiceStatusNotFound) {
-    //     NSLog(@"App service status is not found.");
-    // } else if (service.status == SMAppServiceStatusEnabled) {
-    //     NSLog(@"Login item is already registered.");
-    // } else if (service.status == SMAppServiceStatusRequiresApproval) {
-    //     NSLog(@"Login item requires approval.");
-    //     [SMAppService openSystemSettingsLoginItems];
-    // }
 }
 
 - (void) disable_login_item {
