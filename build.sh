@@ -71,6 +71,8 @@ elif [[ "$OS" == "darwin" ]]; then
     OUT_DIR="build/$APP_NAME.app/Contents/MacOS"
 
     cp resources/favicon.icns build/$APP_NAME.app/Contents/Resources
+    cp resources/status_bar_icon_off.png build/$APP_NAME.app/Contents/Resources
+    cp resources/status_bar_icon_on.png build/$APP_NAME.app/Contents/Resources
     cp src/Info.plist build/$APP_NAME.app/Contents/
 else
     echo "Unknown platform. Exiting..."
