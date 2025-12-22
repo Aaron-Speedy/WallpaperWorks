@@ -104,21 +104,17 @@ void make_win_bg(NSWindow * win) {
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
+    self.status_item = [[NSStatusBar
+                      systemStatusBar]
+                      statusItemWithLength:NSVariableStatusItemLength];
+
     self.status_on_img = [NSImage imageNamed:@"status_bar_icon_on"];
     [self.status_on_img setSize:NSMakeSize(22, 22)];
     self.status_off_img = [NSImage imageNamed:@"status_bar_icon_off"];
     [self.status_off_img setSize:NSMakeSize(22, 22)];
 
-    self.status_item = [[NSStatusBar
-                      systemStatusBar]
-                      statusItemWithLength:NSVariableStatusItemLength];
-
-    NSStatusBarButton *button = self.status_item.button;
-
-    if (button) {
-        [button setImage:self.status_on_img];
-        [button setAlternateImage:self.status_off_img];
-    }
+    [self.status_item setImage:self.status_off_img];
+    [self.status_item setAlternateImage:self.status_on_img];
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
     NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
