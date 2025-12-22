@@ -97,14 +97,15 @@ void make_win_bg(NSWindow * win) {
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (void) disable_login_item;
+@property (nonatomic, strong) NSStatusItem *status_item;
 @end
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
-    NSStatusItem *status_item = [[NSStatusBar
-                                systemStatusBar]
-                                statusItemWithLength:NSVariableStatusItemLength];
-    NSStatusBarButton *button = status_item.button;
+   self.status_item = [[NSStatusBar
+                      systemStatusBar]
+                      statusItemWithLength:NSVariableStatusItemLength];
+    NSStatusBarButton *button = self.status_item.button;
 
     if (button) {
         NSImage *icon = [NSImage imageNamed:@"favicon"];
@@ -112,12 +113,12 @@ void make_win_bg(NSWindow * win) {
         [button setImage:icon];
     }
 
-    status_item.menu = [[NSMenu alloc] initWithTitle:@""];
+    self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
     NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
                                                        action:@selector(terminate:) 
                                                 keyEquivalent:@"q"];
     [quit_item setTarget:NSApp];
-    [status_item.menu addItem:quit_item];
+    [self.status_item.menu addItem:quit_item];
 
     {
         SMAppService *service = [SMAppService mainAppService];
