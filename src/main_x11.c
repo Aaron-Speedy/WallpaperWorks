@@ -44,12 +44,18 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
 #ifdef _WIN32
-    {
+    if (argc == 3 && !strcmp(argv[1], "--path")) {
+        chdir(argv[2]);
+    } else {
         char cmd[3*MAX_PATH];
         ssize cmd_len = 0;
 
-        GetModuleFileNameA(NULL, cmd, arrlen(cmd));
-        cmd_len += strlen(cmd);
+        cmd[cmd_len++] = '"';
+
+        GetModuleFileNameA(NULL, &cmd[cmd_len], arrlen(cmd) - cmd_len);
+        cmd_len += strlen(cmd) - 1;
+
+        cmd[cmd_len++] = '"';
 
         cmd[cmd_len++] = ' ';
         cmd[cmd_len++] = '-';
@@ -59,9 +65,12 @@ int main(int argc, char *argv[]) {
         cmd[cmd_len++] = 't';
         cmd[cmd_len++] = 'h';
         cmd[cmd_len++] = ' ';
+        cmd[cmd_len++] = '"';
 
         char *buf = getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
         if (buf) cmd_len += strlen(buf);
+
+        cmd[cmd_len++] = '"';
 
         print("%s\n", cmd);
 
