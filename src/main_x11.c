@@ -48,11 +48,10 @@ int main(int argc, char *argv[]) {
         TCHAR exe_path[MAX_PATH];
         GetModuleFileName(NULL, exe_path, MAX_PATH);
 
-        HKEY hkey = NULL;
-        RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
-        if (RegSetValueExA(hkey, APP_NAME, 0, REG_SZ , exe_path, strlen(exe_path) + 1)) {
-            print("You failed, idiot! %s", "lol");
-        }
+        HKEY key = NULL;
+        RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &key);
+        RegSetValueExA(key, APP_NAME, 0, REG_SZ , exe_path, strlen(exe_path) + 1);
+        RegCloseKey(key);
     }
 #endif
 
