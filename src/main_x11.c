@@ -52,9 +52,8 @@ int main(int argc, char *argv[]) {
 
         cmd[cmd_len++] = '"';
 
-        char *buf = &cmd[cmd_len];
-        GetModuleFileNameA(NULL, buf, arrlen(cmd) - cmd_len);
-        cmd_len += strlen(buf);
+        GetModuleFileNameA(NULL, &cmd[cmd_len], arrlen(cmd) - cmd_len);
+        cmd_len = strlen(cmd);
 
         cmd[cmd_len++] = '"';
 
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
         cmd[cmd_len++] = '"';
 
         buf = getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
-        if (buf) cmd_len += strlen(buf);
+        cmd_len = strlen(cmd);
 
         cmd[cmd_len++] = '"';
 
