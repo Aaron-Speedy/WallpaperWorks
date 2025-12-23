@@ -72,8 +72,6 @@ int main(int argc, char *argv[]) {
 
         cmd[cmd_len++] = '"';
 
-        print("%s\n", cmd);
-
         HKEY key = NULL;
         RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &key);
         RegSetValueExA(key, APP_NAME, 0, REG_SZ , cmd, strlen(cmd) + 1);
