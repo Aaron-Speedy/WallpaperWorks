@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
         HKEY hkey = NULL;
         RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &hkey);
         if (RegSetValueExA(hkey, APP_NAME, 0, REG_SZ , exe_path, strlen(exe_path) + 1)) {
-            print("You failed, idiot!");
+            print("You failed, idiot! %s", "lol");
         }
     }
 #endif
