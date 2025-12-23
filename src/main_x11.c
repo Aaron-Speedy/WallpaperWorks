@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     if (argc == 3 && !strcmp(argv[1], "--path")) {
         chdir(argv[2]);
     } else {
-        char cmd[3*MAX_PATH];
+        char cmd[3*MAX_PATH] = {0};
         ssize cmd_len = 0;
 
         cmd[cmd_len++] = '"';
