@@ -45,12 +45,29 @@ typedef struct {
 int main(int argc, char *argv[]) {
 #ifdef _WIN32
     {
-        TCHAR exe_path[MAX_PATH];
-        GetModuleFileName(NULL, exe_path, MAX_PATH);
+        char cmd[3*MAX_PATH];
+        ssize cmd_len = 0;
+
+        GetModuleFileNameA(NULL, cmd, arrlen(cmd));
+        cmd_len += strlen(cmd);
+
+        cmd[cmd_len++] = ' ';
+        cmd[cmd_len++] = '-';
+        cmd[cmd_len++] = '-';
+        cmd[cmd_len++] = 'p';
+        cmd[cmd_len++] = 'a';
+        cmd[cmd_len++] = 't';
+        cmd[cmd_len++] = 'h';
+        cmd[cmd_len++] = ' ';
+
+        char *buf = get_cwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
+        if (buf) cmd_len += strlen(buf);
+
+        print("%s\n", cmd);
 
         HKEY key = NULL;
         RegCreateKeyA(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", &key);
-        RegSetValueExA(key, APP_NAME, 0, REG_SZ , exe_path, strlen(exe_path) + 1);
+        RegSetValueExA(key, APP_NAME, 0, REG_SZ , cmd, strlen(cmd) + 1);
         RegCloseKey(key);
     }
 #endif
