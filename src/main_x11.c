@@ -52,8 +52,9 @@ int main(int argc, char *argv[]) {
 
         cmd[cmd_len++] = '"';
 
-        GetModuleFileNameA(NULL, &cmd[cmd_len], arrlen(cmd) - cmd_len);
-        cmd_len += strlen(cmd) - 1;
+        char *buf = &cmd[cmd_len];
+        GetModuleFileNameA(NULL, buf, arrlen(cmd) - cmd_len);
+        cmd_len += strlen(buf);
 
         cmd[cmd_len++] = '"';
 
