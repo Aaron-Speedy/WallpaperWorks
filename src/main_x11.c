@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
         cmd[cmd_len++] = ' ';
         cmd[cmd_len++] = '"';
 
-        buf = getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
+        getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
         cmd_len = strlen(cmd);
 
         cmd[cmd_len++] = '"';
