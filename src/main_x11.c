@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         cmd[cmd_len++] = 'h';
         cmd[cmd_len++] = ' ';
 
-        char *buf = get_cwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
+        char *buf = getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
         if (buf) cmd_len += strlen(buf);
 
         print("%s\n", cmd);
