@@ -56,8 +56,9 @@ elif [[ "$OS" == "linux"* ]]; then
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
-    # Uncomment for debug, comment for release
-    #SAN="-fsanitize=address,undefined"
+    if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
+        SAN="-fsanitize=address,undefined"
+    fi
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE="-lfreetype -I third_party/freetype/include/"
@@ -75,6 +76,10 @@ elif [[ "$OS" == "darwin" ]]; then
     cp resources/status_bar_icon_off.png build/$APP_NAME.app/Contents/Resources
     cp resources/status_bar_icon_on.png build/$APP_NAME.app/Contents/Resources
     cp src/Info.plist build/$APP_NAME.app/Contents/
+
+    if [[ "$WALLWORKS_BUILD_TYPE" == "production" ]]; then
+        scripts/bundle_dylibs.sh -l "../Libraries" build/WallpaperWorks.app
+    fi
 else
     echo "Unknown platform. Exiting..."
     exit
