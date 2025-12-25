@@ -8,6 +8,14 @@ mkdir build/tmp
 
 APP_NAME="WallpaperWorks"
 
+if [[ "$1" == "production" ]]; then
+    WALLWORKS_BUILD_TYPE="production"
+elif [[ "$1" == "development" ]]; then
+    WALLWORKS_BUILD_TYPE="development"
+else
+    WALLWORKS_BUILD_TYPE="development"
+fi
+
 cp resources/favicon.ico build/
 cp resources/font.ttf build/tmp/
 
@@ -17,7 +25,11 @@ cc src/hex_dump.c -o build/tmp/hex_dump.c -ggdb
 echo "!define APP_NAME \"$APP_NAME\"" > build/app_name.nsh
 echo "#define APP_NAME \"$APP_NAME\"" > build/tmp/app_name.h
 
-CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
+if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
+    CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
+elif [[ "$WALLWORKS_BUILD_TYPE" == "production" ]]; then
+    CFLAGS="-Wall -Wextra -O2 -std=gnu11"
+fi
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 
@@ -49,14 +61,18 @@ if [[ "$OS" == "windows"* ]]; then
 
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "linux"* ]]; then
-    SAN="-fsanitize=address,undefined"
+    if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
+        SAN="-fsanitize=address,undefined"
+    fi
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
-    SAN="-fsanitize=address,undefined"
+    if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
+        SAN="-fsanitize=address,undefined"
+    fi
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE="-lfreetype -I third_party/freetype/include/"
@@ -88,5 +104,9 @@ $FREETYPE \
 "
 
 cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
+
+if [[ "$WALLWORKS_BUILD_TYPE" == "production" ]] && [[ "$OS" == "darwin" ]]; then
+        scripts/bundle_dylibs.sh -l "../Libraries" build/WallpaperWorks.app
+fi
 
 rm -rf build/tmp
