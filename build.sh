@@ -21,6 +21,14 @@ CFLAGS="-Wall -Wextra -ggdb -O0 -std=gnu11"
 
 OS=$(uname | tr '[:upper:]' '[:lower:]')
 
+if [[ "$1" == "production" ]]; then
+    WALLWORKS_BUILD_TYPE="production"
+elif [[ "$1" == "development" ]]; then
+    WALLWORKS_BUILD_TYPE="development"
+else
+    WALLWORKS_BUILD_TYPE="development"
+fi
+
 LIBWEBP=""
 CURL=""
 WINDOWING=""
