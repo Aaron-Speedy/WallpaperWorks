@@ -27,5 +27,13 @@ else
     exit
 fi
 
+if [[ "$1" == "production" ]]; then
+    WALLWORKS_BUILD_TYPE="production"
+elif [[ "$1" == "development" ]]; then
+    WALLWORKS_BUILD_TYPE="development"
+else
+    WALLWORKS_BUILD_TYPE="development"
+fi
+
 cp -r ../libwebp .
 (cd libwebp && make -f makefile.unix)
