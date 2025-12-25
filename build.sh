@@ -61,7 +61,9 @@ if [[ "$OS" == "windows"* ]]; then
 
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "linux"* ]]; then
-    SAN="-fsanitize=address,undefined"
+    if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
+        SAN="-fsanitize=address,undefined"
+    fi
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
