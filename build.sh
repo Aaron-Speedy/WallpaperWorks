@@ -56,7 +56,8 @@ elif [[ "$OS" == "linux"* ]]; then
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
-    SAN="-fsanitize=address,undefined"
+    # Uncomment for debug, comment for release
+    #SAN="-fsanitize=address,undefined"
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
     FREETYPE="-lfreetype -I third_party/freetype/include/"
