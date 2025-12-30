@@ -45,18 +45,18 @@ DownloadResponse download(Arena *perm, CURL *curl, s8 url) {
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_get_data);
 
-    S8ArenaPair data = { .perm = perm, };
+    S8ArenaPair s8_arena_pair = { .perm = perm, };
 
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
     curl_easy_setopt(curl, CURLOPT_URL, url.buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &data);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &s8_arena_pair);
 
     CURLcode result = curl_easy_perform(curl);
     if (result != CURLE_OK) warning("Failed to download resource: %s.", curl_easy_strerror(result));
 
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &ret.code);
 
-    ret.data = data.s;
+    ret.data = s8_arena_pair.s;
 
     return ret;
 }

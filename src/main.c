@@ -29,7 +29,7 @@ Background background;
 int screen_w, screen_h;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
+s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool no_cache_support) {
     s8 base = s8("https://infotoast.org/images");
     bool network_mode = true;
 
@@ -37,13 +37,11 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
     {
         s8 f = s8("/num.txt");
         s8 url = s8_newcat(perm, base, f);
-        s8 path = s8_newcat(perm, cache_dir, f);
 
         DownloadResponse response = download(perm, curl, url);
         network_mode = response.data.len != 0 && response.code == 200;
 
         if (network_mode) {
-            s8_write_to_file(path, response.data);
             n = s8_to_u64(response.data);
         }
     }
@@ -66,7 +64,7 @@ try_downloading_another_one:
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
 
-        if (cache_dir.len > 0) {
+        if (!no_cache_support) {
             img_data = s8_read_file(perm, path);
         }
 
@@ -81,9 +79,11 @@ try_downloading_another_one:
 
             if (!network_mode) goto pick_random_downloaded_image;
 
-            s8_write_to_file(path, img_data);
+            if (!no_cache_support) s8_write_to_file(path, img_data);
         }
-    } else { pick_random_downloaded_image: {}
+    } else pick_random_downloaded_image: {
+        if (no_cache_support) return (s8) {0};
+
         printf("You are in offline mode for now.\n");
 
         struct {
@@ -147,6 +147,7 @@ try_downloading_another_one:
         }
     }
 
+end:
     return img_data;
 }
 
@@ -163,14 +164,17 @@ void *background_thread() {
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 #endif
 
-    s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
-    bool no_cache_support = 0;
-    if (cache_dir.len <= 0) {
-        no_cache_support = true;
-        warning(
-            "Could not get system cache directory. Disabling cache support."
-        );
-    }
+    s8 cache_dir = s8("");
+    bool no_cache_support = true;
+    // s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
+    // bool no_cache_support = 0;
+    // if (cache_dir.len <= 0) {
+    //     no_cache_support = true;
+    //     warning(
+    //         "Could not get system cache directory. Disabling cache support."
+    //     );
+    // }
+
     int timeout_s = 1;
     bool initial = true;
 
@@ -180,7 +184,7 @@ void *background_thread() {
         time_t a_time = time(0);
         Image b = {0};
 
-        s8 img_data = get_random_image(&scratch, curl, cache_dir);
+        s8 img_data = get_random_image(&scratch, curl, cache_dir, no_cache_support);
         if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
 
         // TODO: check this
