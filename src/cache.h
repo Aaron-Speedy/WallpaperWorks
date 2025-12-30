@@ -60,13 +60,17 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
 
     s8_modcat(perm, &cache, s8("/"));
     s8_modcat(perm, &cache, name);
-    s8_modcat(perm, &cache, s8("\0"));
 
+    {
+        Arena scratch = *perm;
+        s8 tmp_cache = cache;
+        s8_modcat(&scratch, &tmp_cache, s8("\0"));
 #ifdef _WIN32
-    int r = mkdir((char *) cache.buf);
+        mkdir((char *) tmp_cache.buf);
 #else
-    int r = mkdir((char *) cache.buf, 0700);
+        mkdir((char *) tmp_cache.buf, 0700);
 #endif
+    }
 
     if (!r) {
         printf("No cache directory. Making one at %s.\n", cache.buf);
@@ -77,9 +81,6 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
         );
         return (s8) {0};
     }
-
-    cache.len -= 1; // remove null terminator
-    perm->len -= 1;
 
     return cache;
 }
