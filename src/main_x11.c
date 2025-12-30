@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
         app_loop(&context);
 
-        struct timeval time_val;
+        struct timeval time_val = {0};
         gettimeofday(&time_val, NULL);
 
         get_events_timeout(

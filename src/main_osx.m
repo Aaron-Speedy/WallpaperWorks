@@ -261,7 +261,7 @@ s8 arena_printf(Arena *perm, const char *fmt, ...) {
 }
 
 // void request_auth() {
-//     AuthorizationRef auth_ref;
+//     AuthorizationRef auth_ref = 0;
 //     AuthorizationStatus status = AuthorizationCreate(
 //         0,
 //         kAuthorizationEmptyEnvironment,

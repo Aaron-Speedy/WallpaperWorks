@@ -22,11 +22,11 @@ typedef struct {
 
 #include "config.h"
 
-FFontLib font_lib;
-FFont time_font;
-FFont date_font;
-Background background;
-int screen_w, screen_h;
+FFontLib font_lib = {0};
+FFont time_font = {0};
+FFont date_font = {0};
+Background background = {0};
+int screen_w, screen_h = 0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool no_cache_support) {
@@ -235,7 +235,7 @@ void start(Context *ctx) {
     screen_w = ctx->screen->w;
     screen_h = ctx->screen->h;
 
-    pthread_t thread;
+    pthread_t thread = 0;
     if (pthread_create(&thread, 0, background_thread, 0)) {
         err("Failed to create background thread.");
     }

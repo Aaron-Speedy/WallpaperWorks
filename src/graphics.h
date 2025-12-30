@@ -182,12 +182,12 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     _resize_win(win);
 #elif _WIN32
     assert(win->buf);
-    RECT old;
+    RECT old = {0};
     GetClientRect(win->p.win, &old);
 
     MONITORINFO info = { .cbSize = sizeof(MONITORINFO), };
 
-    RECT old_abs;
+    RECT old_abs = {0};
     GetWindowRect(win->p.win, &old_abs);
     POINT point = { old_abs.left, old_abs.top, };
     HMONITOR monitor = MonitorFromPoint(point, 0);
@@ -267,7 +267,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         return DefWindowProc(pwin, msg, hv, vv);
     }
 
-    RECT client_rect;
+    RECT client_rect = {0};
     GetClientRect(pwin, &client_rect);
 
     win->p.win = pwin;
@@ -288,7 +288,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         // PostQuitMessage(0);
     } break;
     case WM_PAINT: {
-        PAINTSTRUCT paint;
+        PAINTSTRUCT paint = {0};
         BeginPaint(pwin, &paint);
         draw_to_win(win); // TODO: DO THIS!!!
         EndPaint(pwin, &paint);
@@ -484,7 +484,7 @@ void collect_monitors(Monitors *m) {
     Display *display = XOpenDisplay(NULL);
     if (!display) err("Can't open display.");
 
-    int major, minor;
+    int major = 0, minor = 0;
     if (!XineramaQueryVersion(display, &major, &minor)) {
         err("Xinerama extension is not available.");
     }
@@ -550,8 +550,8 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
         usleep(1000 * timeout_ms);
     }
 
-    fd_set fds;
-    struct timeval tv;
+    fd_set fds = {0};
+    struct timeval tv = {0};
     int x11_fd = ConnectionNumber(win->p.display);
 
     FD_ZERO(&fds);
@@ -563,7 +563,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
 
     while (select_ret > 0 && XPending(win->p.display)) {
         WinEvent win_event = {0};
-        XEvent e;
+        XEvent e = {0};
         XNextEvent(win->p.display, &e);
 
         switch (e.type) {
@@ -593,7 +593,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
 
     WaitMessage();
 
-    MSG msg;
+    MSG msg = 0;
     while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);

@@ -25,7 +25,7 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name);
 #endif
 
 s8 get_or_make_cache_dir(Arena *perm, s8 name) {
-    s8 cache;
+    s8 cache = {0};
 
     do {
 #ifdef __linux__
