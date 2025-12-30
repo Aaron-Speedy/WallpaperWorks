@@ -53,7 +53,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir) {
         int times_tried = 0;
 try_downloading_another_one:
         times_tried += 1;
-        if (times_tried >= 10) goto pick_random_downloaded_image;
+        if (times_tried >= 4) goto pick_random_downloaded_image;
 
         s8 a0 = s8_copy(perm, s8("/"));
                 u64_to_s8(perm, rand() % (n + 1), 0);
@@ -171,7 +171,7 @@ void *background_thread() {
             "Could not get system cache directory. Disabling cache support."
         );
     }
-    int timeout_s = 60;
+    int timeout_s = 1;
     bool initial = true;
 
     while (true) {
