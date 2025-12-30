@@ -66,20 +66,20 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
         s8 tmp_cache = cache;
         s8_modcat(&scratch, &tmp_cache, s8("\0"));
 #ifdef _WIN32
-        mkdir((char *) tmp_cache.buf);
+        int r = mkdir((char *) tmp_cache.buf);
 #else
-        mkdir((char *) tmp_cache.buf, 0700);
+        int r = mkdir((char *) tmp_cache.buf, 0700);
 #endif
-    }
 
-    if (!r) {
-        printf("No cache directory. Making one at %s.\n", cache.buf);
-    } else if (errno != EEXIST) {
-        warning(
-            "Could not get or make cache directory: %s. Disabling cache support.",
-            strerror(errno)
-        );
-        return (s8) {0};
+        if (!r) {
+            printf("No cache directory. Making one at %s.\n", cache.buf);
+        } else if (errno != EEXIST) {
+            warning(
+                "Could not get or make cache directory: %s. Disabling cache support.",
+                strerror(errno)
+            );
+            return (s8) {0};
+        }
     }
 
     return cache;
