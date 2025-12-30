@@ -593,7 +593,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
 
     WaitMessage();
 
-    MSG msg = 0;
+    MSG msg = {0};
     while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
