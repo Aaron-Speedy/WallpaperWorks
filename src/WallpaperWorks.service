@@ -1,9 +1,0 @@
-[Unit]
-Description=Display works of art on your desktop wallpaper.
-
-[Service]
-Type=simple
-ExecStart=/home/aaron/Programming/WallpaperWorks/build/WallpaperWorks
-
-[Install]
-WantedBy=multi-user.target
