@@ -166,14 +166,14 @@ void *background_thread() {
 
     s8 cache_dir = s8("");
     bool no_cache_support = true;
-    // s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
-    // bool no_cache_support = 0;
-    // if (cache_dir.len <= 0) {
-    //     no_cache_support = true;
-    //     warning(
-    //         "Could not get system cache directory. Disabling cache support."
-    //     );
-    // }
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
+    bool no_cache_support = 0;
+    if (cache_dir.len <= 0) {
+        no_cache_support = true;
+        warning(
+            "Could not get system cache directory. Disabling cache support."
+        );
+    }
 
     int timeout_s = 1;
     bool initial = true;
