@@ -96,9 +96,10 @@ try_downloading_another_one:
                 if (!strcmp(d->d_name, ".") ||
                     !strcmp(d->d_name, "..") ||
                     !strcmp(d->d_name, "num.txt")) continue;
-                files.buf = files.buf ? files.buf : new(perm, d, 1);
-                new(perm, files.buf[0], 1);
-                files.buf[files.len++] = d;
+                struct dirent **entry = new(perm, d, 1);
+                files.buf = files.buf ? files.buf : entry;
+                *entry = d;
+                files.len += 1;
             }
 
             if (!files.len) return (s8) {0};
