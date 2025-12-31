@@ -92,7 +92,7 @@ u64 s8_hash(s8 s);
 s8 s8_errno();
 s8 s8_err(s8 s);
 s8 s8_read_file(Arena *perm, s8 p);
-bool s8_write_to_file(s8 p, s8 data);
+int s8_write_to_file(s8 p, s8 data);
 s8 s8_append_to_file(s8 p, s8 data);
 s8 s8_system(Arena *perm, s8 cmd, ssize max_read_len);
 
@@ -245,7 +245,7 @@ end:
 }
 
 
-s8 s8_write_to_file(s8 p, s8 data) {
+int s8_write_to_file(s8 p, s8 data) {
     new_static_arena(scratch, 1 * KiB);
 
     FILE *fp = NULL;
