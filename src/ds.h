@@ -153,7 +153,7 @@ s8 s8_newcat(Arena *perm, s8 a, s8 b) {
 s8 s8_masscat(Arena check, s8 head, s8 tail) {
         s8 ret = {
                 .buf = head.buf,
-                .len = (tail.buf + tail.len) - head.buf,
+                .len = tail.buf + tail.len - head.buf,
         };
         assert(ret.len <= check.len);
         return ret;

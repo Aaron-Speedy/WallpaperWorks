@@ -29,21 +29,18 @@ Background background = {0};
 int screen_w, screen_h = 0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool no_cache_support) {
+s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
     s8 base = s8("https://infotoast.org/images");
     bool network_mode = true;
 
     u64 n = 0;
     {
-        s8 f = s8("/num.txt");
-        s8 url = s8_newcat(perm, base, f);
+        s8 url = s8_newcat(perm, base, s8("/num.txt"));
 
         DownloadResponse response = download(perm, curl, url);
         network_mode = response.data.len != 0 && response.code == 200;
 
-        if (network_mode) {
-            n = s8_to_u64(response.data);
-        }
+        if (network_mode) n = s8_to_u64(response.data);
     }
 
     s8 img_data = {0};
@@ -51,7 +48,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool no_cache_support
         int times_tried = 0;
 try_downloading_another_one:
         times_tried += 1;
-        if (times_tried >= 4) goto pick_random_downloaded_image;
+        if (times_tried >= 10) goto pick_random_downloaded_image;
 
         s8 a0 = s8_copy(perm, s8("/"));
                 u64_to_s8(perm, rand() % (n + 1), 0);
@@ -64,9 +61,7 @@ try_downloading_another_one:
         s8 url = s8_newcat(perm, base, name);
         s8 path = s8_newcat(perm, cache_dir, name);
 
-        if (!no_cache_support) {
-            img_data = s8_read_file(perm, path);
-        }
+        if (cache_support) img_data = s8_read_file(perm, path);
 
         // File was not found
         if (img_data.len <= 0) {
@@ -74,22 +69,22 @@ try_downloading_another_one:
 
             DownloadResponse response = download(perm, curl, url);
             if (response.code != 200) goto try_downloading_another_one;
+
             img_data = response.data;
-            network_mode = img_data.len != 0 && response.code == 200;
+            network_mode = img_data.len > 0 && response.code == 200;
 
             if (!network_mode) goto pick_random_downloaded_image;
-
-            if (!no_cache_support) s8_write_to_file(path, img_data);
+            if (cache_support) s8_write_to_file(path, img_data);
         }
     } else pick_random_downloaded_image: {
-        if (no_cache_support) return (s8) {0};
+        if (!cache_support) return (s8) {0};
 
         printf("You are in offline mode for now.\n");
 
         struct {
             struct dirent **buf;
             ssize len;
-        } names = {0};
+        } files = {0};
 
         {
             DIR *dirp = opendir(s8_newcat(perm, cache_dir, s8("\0")).buf);
@@ -101,15 +96,16 @@ try_downloading_another_one:
                 if (!strcmp(d->d_name, ".") ||
                     !strcmp(d->d_name, "..") ||
                     !strcmp(d->d_name, "num.txt")) continue;
-                names.buf = names.buf ? names.buf : new(perm, d, 1);
-                names.buf[names.len++] = d;
+                struct dirent **mem = new(perm, d, 1);
+                files.buf = files.buf ? files.buf : mem;
+                files.buf[files.len++] = d;
             }
 
-            if (!names.len) return (s8) {0};
+            if (!files.len) return (s8) {0};
         }
 
         while (true) {
-            char *name = names.buf[rand() % names.len]->d_name;
+            char *name = files.buf[rand() % files.len]->d_name;
             char *pattern = "*.webp";
             bool ok = true;
 
@@ -165,9 +161,9 @@ void *background_thread() {
 #endif
 
     s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
-    bool no_cache_support = 0;
+    bool cache_support = true;
     if (cache_dir.len <= 0) {
-        no_cache_support = true;
+        cache_support = false;
         warning(
             "Could not get system cache directory. Disabling cache support."
         );
@@ -182,7 +178,7 @@ void *background_thread() {
         time_t a_time = time(0);
         Image b = {0};
 
-        s8 img_data = get_random_image(&scratch, curl, cache_dir, no_cache_support);
+        s8 img_data = get_random_image(&scratch, curl, cache_dir, cache_support);
         if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
 
         // TODO: check this
