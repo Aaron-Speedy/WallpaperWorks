@@ -164,7 +164,7 @@ void *background_thread() {
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 #endif
 
-    s8 cache_dir = s8("C:/Users/Quickemu/.cache/WallpaperWorks");
+    s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
     bool no_cache_support = 0;
     if (cache_dir.len <= 0) {
         no_cache_support = true;
