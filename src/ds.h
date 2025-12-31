@@ -92,7 +92,7 @@ u64 s8_hash(s8 s);
 s8 s8_errno();
 s8 s8_err(s8 s);
 s8 s8_read_file(Arena *perm, s8 p);
-s8 s8_write_to_file(s8 p, s8 data);
+bool s8_write_to_file(s8 p, s8 data);
 s8 s8_append_to_file(s8 p, s8 data);
 s8 s8_system(Arena *perm, s8 cmd, ssize max_read_len);
 
@@ -223,7 +223,7 @@ s8 s8_read_file(Arena *perm, s8 p) {
     FILE *fp = NULL;
     {
         s8 n = s8_newcat(&scratch, p, s8("\0"));
-        fp = fopen((char *) n.buf, "r");
+        fp = fopen((char *) n.buf, "rb");
     }
     if (fp == NULL) return s8_errno();
 
@@ -246,32 +246,21 @@ end:
 
 
 s8 s8_write_to_file(s8 p, s8 data) {
-    s8 ret = {0};
-
     new_static_arena(scratch, 1 * KiB);
 
     FILE *fp = NULL;
     {
         s8 n = s8_newcat(&scratch, p, s8("\0"));
-        fp = fopen((char *) n.buf, "w");
+        fp = fopen((char *) n.buf, "wb");
     }
-    if (fp == NULL) return s8_errno();
+    if (fp == NULL) return -1;
 
     ssize n = fwrite(data.buf, 1, data.len, fp);
-    if (n < data.len) {
-        ret = s8_err(s8("fwrite"));
-        goto end;
-    }
+    if (n < data.len) return -1;
 
-end:
-    if (fclose(fp) != 0) {
+    if (fclose(fp) != 0) return -1;
 
-        if (ret.len == 0) {
-                ret = s8_errno();
-        }
-    }
-
-    return ret;
+    return 0;
 }
 
 s8 s8_append_to_file(s8 p, s8 data) {
