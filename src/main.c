@@ -169,7 +169,7 @@ void *background_thread() {
         );
     }
 
-    int timeout_s = 1;
+    int timeout_s = 60;
     bool initial = true;
 
     while (true) {

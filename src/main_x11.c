@@ -90,6 +90,8 @@ int main(int argc, char *argv[]) {
     make_win_bg(&win, monitors.buf[0], true);
     show_win(&win);
 
+    show_sys_tray_icon(&win, ICON_ID, APP_NAME);
+
     Context context = {0};
 
     {
