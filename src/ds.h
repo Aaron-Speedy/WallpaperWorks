@@ -38,7 +38,7 @@ typedef struct {
 } Arena;
 
 typedef struct {
-    char *buf;
+    u8 *buf;
     ssize len;
 } s8;
 
@@ -48,36 +48,12 @@ typedef struct {
 #define fn(_T, _name, ...) _T _name(__VA_ARGS__)
 #endif
 
-#define List(T) struct { Arena *a; T *buf; ssize cap, len; }
-#define new_list(arena, T) { .a = (arena), .buf = new((arena), T, 0), }
-// #define list_push(l, x)
-//     do {
-//         assert(&(l)->a->buf[(l)->a->len] == (u8 *) &(l)->buf[(l)->len]);
-//         (l)->len += 1;
-//         (void) new((l)->a, typeof(*(l)->buf), 1);
-//         (l)->buf[(l)->len - 1] = (x);
-//     } while (0)
-// // this is needed because of the assert in list_push
-// #define list_set_len(l, nlen)
-// do {
-//     typeof(nlen) llen = (nlen); /* to avoid recomputing the value */
-//     assert((l)->len >= llen);
-//     (l)->a->len -= (l)->len - llen;
-//     (l)->len = llen;
-// } while (0);
-#define swap(x1, x2)                 \
-    do {                                             \
-        typeof((x1)) tmp = (x1); \
-        (x1) = (x2);                         \
-        (x2) = tmp;                            \
-    } while (0);
-
 Arena new_arena(ssize cap);
 #define new(a, T, c) arena_alloc(a, sizeof(T), _Alignof(T), c)
 #define new_static_arena(name, c) u8 _stack_buf_##name[c] = {0}; Arena name = { .buf = _stack_buf_##name, .cap = c, }
 void *arena_alloc(Arena *a, ssize size, ssize align, ssize count);
 
-#define s8(lit) (s8){ .buf = (char *) lit, .len = arrlen(lit) - 1, }
+#define s8(lit) (s8){ .buf = (u8 *) lit, .len = arrlen(lit) - 1, }
 
 s8 new_s8(Arena *perm, ssize len);
 s8 s8_copy(Arena *perm, s8 s);

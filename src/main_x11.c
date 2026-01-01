@@ -43,6 +43,9 @@ typedef struct {
 #include "main.c"
 
 int main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
 #ifdef _WIN32
     if (argc == 3 && !strcmp(argv[1], "--path")) {
         chdir(argv[2]);

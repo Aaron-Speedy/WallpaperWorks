@@ -675,8 +675,8 @@ bool is_program_already_open(char *id) {
 }
 
 s8 get_desktop_name() {
-    s8 ret = { .buf = getenv("XDG_CURRENT_DESKTOP"), };
-    if (ret.buf) ret.len = strlen(ret.buf);
+    s8 ret = { .buf = (u8 *) getenv("XDG_CURRENT_DESKTOP"), };
+    if (ret.buf) ret.len = strlen((char *) ret.buf);
     return ret;
 }
 

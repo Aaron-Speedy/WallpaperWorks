@@ -87,7 +87,7 @@ try_downloading_another_one:
         } files = {0};
 
         {
-            DIR *dirp = opendir(s8_newcat(perm, cache_dir, s8("\0")).buf);
+            DIR *dirp = opendir((char *) s8_newcat(perm, cache_dir, s8("\0")).buf);
             if (!dirp) return (s8) {0};
 
             while (true) {
@@ -119,11 +119,11 @@ try_downloading_another_one:
 
                 switch (*p) {
                 case '*': {
-                    if (!p[1] || *c != p[1]) *c++;
-                    else *p++;
+                    if (!p[1] || *c != p[1]) *c += 1;
+                    else *p += 1;
                 } break;
                 default: {
-                    if (*c == *p) { *c++; *p++; }
+                    if (*c == *p) { *c += 1; *p += 1; }
                     else ok = false;
                 }
                 }
@@ -132,7 +132,7 @@ try_downloading_another_one:
             if (ok) {
                 s8 a0 = s8_copy(perm, cache_dir);
                     s8_copy(perm, s8("/"));
-                s8 al = s8_copy(perm, (s8) { .buf = name, .len = strlen(name)});
+                s8 al = s8_copy(perm, (s8) { .buf = (u8 *) name, .len = strlen(name)});
                 s8 path = s8_masscat(*perm, a0, al);
 
                 img_data = s8_read_file(perm, path);
@@ -144,7 +144,6 @@ try_downloading_another_one:
         }
     }
 
-end:
     return img_data;
 }
 
@@ -244,7 +243,7 @@ void start(Context *ctx) {
     font_lib = init_ffont();
     load_font(
         &time_font, font_lib,
-        raw_font_buf, raw_font_buf_len,
+        (u8 *) raw_font_buf, raw_font_buf_len,
         1,
         ctx->dpi, ctx->dpi
     );
@@ -256,7 +255,7 @@ void start(Context *ctx) {
 
     load_font(
         &date_font, font_lib,
-        raw_font_buf, raw_font_buf_len,
+        (u8 *) raw_font_buf, raw_font_buf_len,
         1,
         ctx->dpi, ctx->dpi
     );

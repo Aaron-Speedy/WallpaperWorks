@@ -21,7 +21,7 @@ Image combine_bound(Image a, Image b);
 Color mix_colors(Color a, Color b);
 void place_img(Image onto, Image img, int px, int py, bool mix);
 
-s8 write_img_to_file(s8 p, Image img);
+int write_img_to_file(s8 p, Image img);
 
 #endif // IMAGE_H
 
@@ -157,12 +157,10 @@ Image combine_bound(Image a, Image b) {
 }
 
 int _img_write_s8(s8 s, FILE *fp) {
-    return s.len != fwrite(s.buf, 1, s.len, fp);
+    return (size_t) s.len != fwrite(s.buf, 1, s.len, fp);
 }
 
-s8 write_img_to_file(s8 p, Image img) {
-    s8 ret = {0};
-
+int write_img_to_file(s8 p, Image img) {
     new_static_arena(scratch, 1 * KiB);
 
     FILE *fp = NULL;
@@ -170,7 +168,7 @@ s8 write_img_to_file(s8 p, Image img) {
         s8 n = s8_newcat(&scratch, p, s8("\0"));
         fp = fopen((char *) n.buf, "w");
     }
-    if (fp == NULL) return s8_errno();
+    if (fp == NULL) return -1;
 
     do {
         if (_img_write_s8(s8("P6\n"), fp)) goto err;
@@ -187,13 +185,12 @@ s8 write_img_to_file(s8 p, Image img) {
         }
         break;
 err:
-        ret = s8_err(s8("fwrite"));
+        return -1;
     } while (0);
 
-end:
-    if (fclose(fp) && !ret.len) ret = s8_errno();
+    if (fclose(fp)) return -1;
 
-    return ret;
+    return 0;
 }
 
 #endif // IMAGE_IMPL_GUARD
