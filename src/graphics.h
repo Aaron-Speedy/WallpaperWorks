@@ -667,7 +667,7 @@ s8 get_desktop_name() {
     return ret;
 }
 
-void show_system_tray_menu(Win *win) {
+void show_sys_tray_menu(Win *win) {
 #ifdef __linux__
     // assert(!"Unimplemented");
 #elif _WIN32
