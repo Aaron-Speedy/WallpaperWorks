@@ -89,6 +89,10 @@ int main(int argc, char *argv[]) {
 
     show_sys_tray_icon(&win, ICON_ID, APP_NAME);
 
+    char *menu_items[] = { "Skip image", "Quit", };
+    win.menu_items.buf = menu_items;
+    win.menu_items.len = arrlen(menu_items);
+
     Context context = {0};
 
     {
