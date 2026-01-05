@@ -293,7 +293,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     } break;
     case SYS_TRAY_MSG: {
         win_event.type = EVENT_CONTEXT_MENU;
-        if (vv == WM_RBUTTONUP && win->menu_items.buf) show_system_tray_menu(win);
+        if (vv == WM_RBUTTONUP && win->menu_items.buf) show_sys_tray_menu(win);
     } break;
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);
