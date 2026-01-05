@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
                 int c = event.click;
                 if (c == CLICK_L_UP ||
                     c == CLICK_M_UP ||
-                    c == CLICK_R_UP) show_sys_tray_menu;
+                    c == CLICK_R_UP) show_sys_tray_menu(&win);
             } break;
             case EVENT_SYS_TRAY_MENU: {
                 unsigned int id = event.menu_item_id;
