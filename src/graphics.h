@@ -76,7 +76,7 @@ typedef struct {
         EVENT_QUIT,
         EVENT_ERR,
         EVENT_SYS_TRAY,
-        EVENT_CONTEXT_MENU,
+        EVENT_SYS_TRAY_MENU,
         NUM_WIN_EVENTS,
     } type;
     enum {
@@ -89,7 +89,7 @@ typedef struct {
         CLICK_R_DOWN,
         NUM_CLICKS,
     } click;
-    int menu_id;
+    unsigned int menu_item_id;
 } WinEvent;
 
 #define MAX_EVENT_QUEUE_LEN 30
@@ -293,8 +293,23 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         EndPaint(pwin, &paint);
     } break;
     case SYS_TRAY_MSG: {
-        win_event.type = EVENT_CONTEXT_MENU;
-        if (vv == WM_RBUTTONUP && win->menu_items.buf) show_sys_tray_menu(win);
+        win_event.type = EVENT_SYS_TRAY;
+
+        int c = 0;
+        switch (LOWORD(vv)) {
+        case WM_LBUTTONUP:   c = CLICK_L_UP; break;
+        case WM_LBUTTONDOWN: c = CLICK_L_DOWN; break;
+        case WM_MBUTTONUP:   c = CLICK_M_UP; break;
+        case WM_MBUTTONDOWN: c = CLICK_M_DOWN; break;
+        case WM_RBUTTONUP:   c = CLICK_R_UP; break;
+        case WM_RBUTTONDOWN: c = CLICK_R_DOWN; break;
+        }
+
+        win_event.click = c;
+    } break;
+    case WM_COMMAND: {
+        win_event.type = EVENT_SYS_TRAY_MENU;
+        win_event.menu_item_id = hv;
     } break;
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);

@@ -126,7 +126,14 @@ int main(int argc, char *argv[]) {
                 int c = event.click;
                 if (c == CLICK_L_UP ||
                     c == CLICK_M_UP ||
-                    c == CLICK_R_UP) goto end;
+                    c == CLICK_R_UP) show_sys_tray_menu;
+            } break;
+            case EVENT_SYS_TRAY_MENU: {
+                unsigned int id = event.menu_item_id;
+                if (id <= win.menu_items.len) {
+                    char *item = win.menu_items.buf[id];
+                    if (!strcmp(item, "Quit")) goto end;
+                }
             } break;
             default: break;
             }
