@@ -36,21 +36,6 @@ typedef enum {
 #define IMAGE_IMPL
 #include "image.h"
 
-Color color(u8 r, u8 g, u8 b, u8 a) {
-    return (Color) {
-        .c[COLOR_R] = r,
-        .c[COLOR_G] = g,
-        .c[COLOR_B] = b,
-        .c[COLOR_A] = a,
-    };
-}
-
-typedef struct {
-    Image *screen;
-    int dpi;
-    void *data;
-} Context;
-
 #include "main.c"
 
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
