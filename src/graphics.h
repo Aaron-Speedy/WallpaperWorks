@@ -634,6 +634,7 @@ void show_sys_tray_menu(Win *win) {
     }
 
     POINT point = {0};
+    GetCursorPos(&point);
     TrackPopupMenu(
         menu,
         TPM_RIGHTBUTTON,
