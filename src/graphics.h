@@ -89,7 +89,7 @@ typedef struct {
         CLICK_R_DOWN,
         NUM_CLICKS,
     } click;
-    int context_menu_id;
+    int menu_id;
 } WinEvent;
 
 #define MAX_EVENT_QUEUE_LEN 30
@@ -102,9 +102,9 @@ typedef struct Win {
     PlatformWin p;
     u64 hash;
     struct {
-        char *buf;
+        char **buf;
         ssize len;
-    } context_menu_items;
+    } menu_items;
 } Win;
 
 void new_win(Win *win, char *name, int w, int h);
@@ -293,18 +293,8 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     } break;
     case SYS_TRAY_MSG: {
         win_event.type = EVENT_CONTEXT_MENU;
-        if (vv == WM_RBUTTONUP && win->context_menu_items) ShowContextMenu(win);
+        if (vv == WM_RBUTTONUP && win->menu_items.buf) ShowContextMenu(win);
     } break;
-    case WM_CONTEXTMENU: {
-        if ((HWND) hv == pwin) {
-            POINT point = {0};
-            GetCursorPos(&point);
-            TrackPopupMenu(win->p.context_menu, TMP_RIGHTBUTTON, point.x, point.y, 0, pwin, NULL);
-        }
-    } break;
-    case WM_COMMAND: {
-        ret
-    } break
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);
     } break;
@@ -677,14 +667,14 @@ s8 get_desktop_name() {
     return ret;
 }
 
-void create_system_tray_context_menu(Win *win) {
+void show_system_tray_menu(Win *win) {
 #ifdef __linux__
     // assert(!"Unimplemented");
 #elif _WIN32
     HMENU menu = CreatePopupMenu();
 
-    for (ssize i = 0; i < win->context_menu_items.len; i++) {
-        AppendMenu(menu, MF_STRING, i + 1, win->context_menu_items.buf[i]);
+    for (ssize i = 0; i < win->menu_items.len; i++) {
+        AppendMenu(menu, MF_STRING, i + 1, win->menu_items.buf[i]);
     }
 
     POINT point = {0};
@@ -694,7 +684,7 @@ void create_system_tray_context_menu(Win *win) {
         point.x,
         point.y,
         0,
-        win.p.win,
+        win->p.win,
         NULL
     );
 
