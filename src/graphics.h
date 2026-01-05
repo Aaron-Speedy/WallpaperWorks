@@ -115,6 +115,7 @@ void collect_monitors(Monitors *m);
 void get_events_timeout(Win *win, int timeout_ms);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
 void kill_sys_tray_icon(Win *win, int icon_id);
+void show_sys_tray_menu(Win *win);
 void close_win(Win *win);
 
 bool is_program_already_open(char *id);
@@ -622,6 +623,31 @@ void kill_sys_tray_icon(Win *win, int icon_id) {
 #endif
 }
 
+void show_sys_tray_menu(Win *win) {
+#ifdef __linux__
+    // assert(!"Unimplemented");
+#elif _WIN32
+    HMENU menu = CreatePopupMenu();
+
+    for (ssize i = 0; i < win->menu_items.len; i++) {
+        AppendMenu(menu, MF_STRING, i + 1, win->menu_items.buf[i]);
+    }
+
+    POINT point = {0};
+    TrackPopupMenu(
+        menu,
+        TPM_RIGHTBUTTON,
+        point.x,
+        point.y,
+        0,
+        win->p.win,
+        NULL
+    );
+
+    DestroyMenu(menu);
+#endif
+}
+
 void close_win(Win *win) {
     free(win->buf);
     win->buf = 0;
@@ -665,31 +691,6 @@ s8 get_desktop_name() {
     s8 ret = { .buf = (u8 *) getenv("XDG_CURRENT_DESKTOP"), };
     if (ret.buf) ret.len = strlen((char *) ret.buf);
     return ret;
-}
-
-void show_sys_tray_menu(Win *win) {
-#ifdef __linux__
-    // assert(!"Unimplemented");
-#elif _WIN32
-    HMENU menu = CreatePopupMenu();
-
-    for (ssize i = 0; i < win->menu_items.len; i++) {
-        AppendMenu(menu, MF_STRING, i + 1, win->menu_items.buf[i]);
-    }
-
-    POINT point = {0};
-    TrackPopupMenu(
-        menu,
-        TPM_RIGHTBUTTON,
-        point.x,
-        point.y,
-        0,
-        win->p.win,
-        NULL
-    );
-
-    DestroyMenu(menu);
-#endif
 }
 
 #endif // GRAPHICS_IMPL_GUARD
