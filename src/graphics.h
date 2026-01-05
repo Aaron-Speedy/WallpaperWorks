@@ -55,14 +55,6 @@ typedef struct {
 } PlatformWin;
 HWND _worker_w = 0;
 
-#elif __APPLE__
-#include <TargetConditionals.h>
-#ifdef TARGET_OS_MAC
-
-#else
-#error "Unknown Apple Platform"
-#endif
-
 #else
 #error "Unsupported platform!"
 #endif
@@ -84,6 +76,7 @@ typedef struct {
         EVENT_QUIT,
         EVENT_ERR,
         EVENT_SYS_TRAY,
+        EVENT_CONTEXT_MENU,
         NUM_WIN_EVENTS,
     } type;
     enum {
@@ -96,6 +89,7 @@ typedef struct {
         CLICK_R_DOWN,
         NUM_CLICKS,
     } click;
+    int context_menu_id;
 } WinEvent;
 
 #define MAX_EVENT_QUEUE_LEN 30
@@ -107,6 +101,10 @@ typedef struct Win {
     int event_queue_len;
     PlatformWin p;
     u64 hash;
+    struct {
+        char *buf;
+        ssize len;
+    } context_menu_items;
 } Win;
 
 void new_win(Win *win, char *name, int w, int h);
@@ -294,20 +292,19 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
         EndPaint(pwin, &paint);
     } break;
     case SYS_TRAY_MSG: {
-        win_event.type = EVENT_SYS_TRAY;
-
-        int c = 0;
-        switch (LOWORD(vv)) {
-        case WM_LBUTTONUP:   c = CLICK_L_UP; break;
-        case WM_LBUTTONDOWN: c = CLICK_L_DOWN; break;
-        case WM_MBUTTONUP:   c = CLICK_M_UP; break;
-        case WM_MBUTTONDOWN: c = CLICK_M_DOWN; break;
-        case WM_RBUTTONUP:   c = CLICK_R_UP; break;
-        case WM_RBUTTONDOWN: c = CLICK_R_DOWN; break;
-        }
-
-        win_event.click = c;
+        win_event.type = EVENT_CONTEXT_MENU;
+        if (vv == WM_RBUTTONUP && win->context_menu_items) ShowContextMenu(win);
     } break;
+    case WM_CONTEXTMENU: {
+        if ((HWND) hv == pwin) {
+            POINT point = {0};
+            GetCursorPos(&point);
+            TrackPopupMenu(win->p.context_menu, TMP_RIGHTBUTTON, point.x, point.y, 0, pwin, NULL);
+        }
+    } break;
+    case WM_COMMAND: {
+        ret
+    } break
     default: {
         ret = DefWindowProc(pwin, msg, hv, vv);
     } break;
@@ -678,6 +675,31 @@ s8 get_desktop_name() {
     s8 ret = { .buf = (u8 *) getenv("XDG_CURRENT_DESKTOP"), };
     if (ret.buf) ret.len = strlen((char *) ret.buf);
     return ret;
+}
+
+void create_system_tray_context_menu(Win *win) {
+#ifdef __linux__
+    // assert(!"Unimplemented");
+#elif _WIN32
+    HMENU menu = CreatePopupMenu();
+
+    for (ssize i = 0; i < win->context_menu_items.len; i++) {
+        AppendMenu(menu, MF_STRING, i + 1, win->context_menu_items.buf[i]);
+    }
+
+    POINT point = {0};
+    TrackPopupMenu(
+        menu,
+        TPM_RIGHTBUTTON,
+        point.x,
+        point.y,
+        0,
+        win.p.win,
+        NULL
+    );
+
+    DestroyMenu(menu);
+#endif
 }
 
 #endif // GRAPHICS_IMPL_GUARD

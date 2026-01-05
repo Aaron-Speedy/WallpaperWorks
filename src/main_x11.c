@@ -54,10 +54,8 @@ int main(int argc, char *argv[]) {
         ssize cmd_len = 0;
 
         cmd[cmd_len++] = '"';
-
         GetModuleFileNameA(NULL, &cmd[cmd_len], arrlen(cmd) - cmd_len);
         cmd_len = strlen(cmd);
-
         cmd[cmd_len++] = '"';
 
         cmd[cmd_len++] = ' ';
@@ -68,11 +66,10 @@ int main(int argc, char *argv[]) {
         cmd[cmd_len++] = 't';
         cmd[cmd_len++] = 'h';
         cmd[cmd_len++] = ' ';
-        cmd[cmd_len++] = '"';
 
+        cmd[cmd_len++] = '"';
         getcwd(&cmd[cmd_len], arrlen(cmd) - cmd_len);
         cmd_len = strlen(cmd);
-
         cmd[cmd_len++] = '"';
 
         HKEY key = NULL;
