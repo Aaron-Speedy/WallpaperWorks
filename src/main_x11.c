@@ -129,8 +129,8 @@ int main(int argc, char *argv[]) {
                     c == CLICK_R_UP) show_sys_tray_menu(&win);
             } break;
             case EVENT_SYS_TRAY_MENU: {
-                unsigned int id = event.menu_item_id;
-                if (id <= win.menu_items.len) {
+                unsigned int id = event.menu_item_id - 1;
+                if (id < win.menu_items.len) {
                     char *item = win.menu_items.buf[id];
                     if (!strcmp(item, "Quit")) goto end;
                 }
