@@ -78,22 +78,20 @@ int main(int argc, char *argv[]) {
     win.menu_items.buf = menu_items;
     win.menu_items.len = arrlen(menu_items);
 
-    Context context = {0};
-
     {
         Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
-        context.screen = &screen;
-        context.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
+        ctx.screen = &screen;
+        ctx.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
 
-        start(&context);
+        start();
     }
 
     while (true) {
         Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
-        context.screen = &screen;
-        context.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
+        ctx.screen = &screen;
+        ctx.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
 
-        app_loop(&context);
+        app_loop();
 
         struct timeval time_val = {0};
         gettimeofday(&time_val, NULL);
@@ -117,7 +115,8 @@ int main(int argc, char *argv[]) {
                 unsigned int id = event.menu_item_id - 1;
                 if (id < win.menu_items.len) {
                     char *item = win.menu_items.buf[id];
-                    if (!strcmp(item, "Quit")) goto end;
+                    if (!strcmp(item, "Skip image")) ctx.skip_image = true;
+                    else if (!strcmp(item, "Quit")) goto end;
                 }
             } break;
             default: break;

@@ -29,6 +29,7 @@ typedef struct {
     Image *screen;
     int dpi;
     void *data;
+    bool skip_image;
 } Context;
 
 typedef struct {
@@ -36,6 +37,8 @@ typedef struct {
 } Background;
 
 #include "config.h"
+
+Context ctx = {0};
 
 FFontLib font_lib = {0};
 FFont time_font = {0};
@@ -211,7 +214,7 @@ void *background_thread() {
         decoded.buf = (Color *) WebPDecodeRGBA(
             img_data.buf, img_data.len,
             &b.w, &b.h
-        ),
+        );
 
         b = new_img(0, b);
 
@@ -225,13 +228,14 @@ void *background_thread() {
         WebPFree(decoded.buf);
 
         int wait = timeout_s - (time(0) - a_time);
-        if (wait > 0 && !initial) sleep(wait);
+        if (wait > 0 && !ctx.skip_image && !initial) sleep(wait);
 
         Image scaled_background = rescale_img(0, b, screen_w, screen_h);
         free(b.buf);
         b = scaled_background;
 
         pthread_mutex_lock(&lock);
+            if (ctx.skip_image) ctx.skip_image = false;
             free(background.img.buf);
             background = (Background) { .img = b, };
         pthread_mutex_unlock(&lock);
@@ -242,9 +246,9 @@ void *background_thread() {
     curl_easy_cleanup(curl);
 }
 
-void start(Context *ctx) {
-    screen_w = ctx->screen->w;
-    screen_h = ctx->screen->h;
+void start() {
+    screen_w = ctx.screen->w;
+    screen_h = ctx.screen->h;
 
     pthread_t thread = 0;
     if (pthread_create(&thread, 0, background_thread, 0)) {
@@ -253,14 +257,14 @@ void start(Context *ctx) {
 
     // TODO: update the font sizes whenever the screen resizes
 
-    int min_dim = ctx->screen->w < ctx->screen->h ? ctx->screen->w : ctx->screen->h;
+    int min_dim = ctx.screen->w < ctx.screen->h ? ctx.screen->w : ctx.screen->h;
 
     font_lib = init_ffont();
     load_font(
         &time_font, font_lib,
         (u8 *) raw_font_buf, raw_font_buf_len,
         1,
-        ctx->dpi, ctx->dpi
+        ctx.dpi, ctx.dpi
     );
     FT_Set_Pixel_Sizes(
         time_font.face,
@@ -272,7 +276,7 @@ void start(Context *ctx) {
         &date_font, font_lib,
         (u8 *) raw_font_buf, raw_font_buf_len,
         1,
-        ctx->dpi, ctx->dpi
+        ctx.dpi, ctx.dpi
     );
     FT_Set_Pixel_Sizes(
         date_font.face,
@@ -289,8 +293,8 @@ void start(Context *ctx) {
     }
 }
 
-void app_loop(Context *ctx) {
-    Image *screen = ctx->screen;
+void app_loop() {
+    Image *screen = ctx.screen;
 
     new_static_arena(scratch, 500);
 
