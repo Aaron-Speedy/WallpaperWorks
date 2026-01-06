@@ -16,6 +16,8 @@
 #include <pthread.h>
 #include <dirent.h>
 
+int usleep(useconds_t usec);
+
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
         .c[COLOR_R] = r,
@@ -228,8 +230,8 @@ void *background_thread() {
         WebPFree(decoded.buf);
 
         int wait = timeout_s - (time(0) - a_time);
-        for (int i = 0; i < wait && !initial && !ctx.skip_image; i++) {
-            sleep(1);
+        for (int i = 0; i < 10 * wait && !initial && !ctx.skip_image; i++) {
+            sleep(1000000 * 1/10);
         }
 
         Image scaled_background = rescale_img(0, b, screen_w, screen_h);
