@@ -235,7 +235,7 @@ void *background_thread() {
         b = scaled_background;
 
         pthread_mutex_lock(&lock);
-            // if (ctx.skip_image) ctx.skip_image = false;
+            if (ctx.skip_image) ctx.skip_image = false;
             free(background.img.buf);
             background = (Background) { .img = b, };
         pthread_mutex_unlock(&lock);
