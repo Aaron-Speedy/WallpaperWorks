@@ -231,7 +231,7 @@ void *background_thread() {
 
         int wait = timeout_s - (time(0) - a_time);
         for (int i = 0; i < 10 * wait && !initial && !ctx.skip_image; i++) {
-            sleep(1000000 * 1/10);
+            usleep(1000000 * 1/10);
         }
 
         Image scaled_background = rescale_img(0, b, screen_w, screen_h);
