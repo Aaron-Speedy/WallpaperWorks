@@ -228,7 +228,9 @@ void *background_thread() {
         WebPFree(decoded.buf);
 
         int wait = timeout_s - (time(0) - a_time);
-        if (wait > 0 && !ctx.skip_image && !initial) sleep(wait);
+        for (int i = 0; i < wait && !initial && !ctx.skip_image; i++) {
+            sleep(1);
+        }
 
         Image scaled_background = rescale_img(0, b, screen_w, screen_h);
         free(b.buf);
