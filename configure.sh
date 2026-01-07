@@ -12,7 +12,7 @@ rm -rf third_party/real
 mkdir third_party/real
 cd third_party/real
 
-if [[ "$OS" == "windows"* || "$OS" == "windows" ]]; then
+if [[ "$OS" == "windows"* ]]; then
     curl $CURL_URL --output $CURL_DIR.zip
     unzip $CURL_DIR.zip
     rm $CURL_DIR.zip
@@ -20,7 +20,7 @@ if [[ "$OS" == "windows"* || "$OS" == "windows" ]]; then
 
     cp -r ../freetype .
     (cd freetype/ && ./configure && make)
-elif [[ "$OS" == "linux"*  || "$OS" == "linux" || "$OS" == "darwin" ]]; then
+elif [[ "$OS" == "linux"*  || "$OS" == "darwin" ]]; then
 true
 else
     echo "Unknown platform. Exiting..."
