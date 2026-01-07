@@ -14,7 +14,6 @@
 #ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <X11/extensions/Xinerama.h>
 #include <X11/Xatom.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -484,30 +483,30 @@ void draw_to_win(Win *win) {
 void collect_monitors(Monitors *m) {
     *m = (Monitors) {0};
 #ifdef __linux__
-    Display *display = XOpenDisplay(NULL);
-    if (!display) err("Can't open display.");
+    // Display *display = XOpenDisplay(NULL);
+    // if (!display) err("Can't open display.");
 
-    int major = 0, minor = 0;
-    if (!XineramaQueryVersion(display, &major, &minor)) {
-        err("Xinerama extension is not available.");
-    }
+    // int major = 0, minor = 0;
+    // if (!XineramaQueryVersion(display, &major, &minor)) {
+    //     err("Xinerama extension is not available.");
+    // }
 
-    if (!XineramaIsActive(display)) err("Xinerama is not active.");
+    // if (!XineramaIsActive(display)) err("Xinerama is not active.");
 
-    XineramaScreenInfo *screens = XineramaQueryScreens(display, &m->len);
-    if (!screens) err("No screens are connected.");
+    // XineramaScreenInfo *screens = XineramaQueryScreens(display, &m->len);
+    // if (!screens) err("No screens are connected.");
 
-    for (int i = 0; i < m->len; i++) {
-        m->buf[i] = (PlatformMonitor) {
-            .x = screens[i].x_org,
-            .y = screens[i].y_org,
-            .w = screens[i].width,
-            .h = screens[i].height,
-        };
-    }
-    XFree(screens);
+    // for (int i = 0; i < m->len; i++) {
+    //     m->buf[i] = (PlatformMonitor) {
+    //         .x = screens[i].x_org,
+    //         .y = screens[i].y_org,
+    //         .w = screens[i].width,
+    //         .h = screens[i].height,
+    //     };
+    // }
+    // XFree(screens);
 
-    XCloseDisplay(display);
+    // XCloseDisplay(display);
 #elif _WIN32
     EnumDisplayMonitors(NULL, NULL, _collect_monitors_cb, (LPARAM) m);
 #endif
