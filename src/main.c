@@ -45,9 +45,14 @@ Context ctx = {0};
 FFontLib font_lib = {0};
 FFont time_font = {0};
 FFont date_font = {0};
-Background background = {0};
+
+Background scaled_background = {0};
+pthread_mutex_t scaled_lock = PTHREAD_MUTEX_INITIALIZER;
+Background unscaled_background = {0};
+pthread_mutex_t unscaled_lock = PTHREAD_MUTEX_INITIALIZER;
+
+bool needs_scaling = 0;
 int screen_w, screen_h = 0;
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
     s8 base = s8("https://infotoast.org/images");
@@ -189,7 +194,7 @@ void *background_thread() {
         );
     }
 
-    int timeout_s = 60;
+    int timeout_s = 10;
     bool initial = true;
 
     while (true) {
@@ -234,15 +239,12 @@ void *background_thread() {
             usleep(1000000 * 1/10);
         }
 
-        Image scaled_background = rescale_img(0, b, screen_w, screen_h);
-        free(b.buf);
-        b = scaled_background;
-
-        pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&unscaled_lock);
             if (ctx.skip_image) ctx.skip_image = false;
-            free(background.img.buf);
-            background = (Background) { .img = b, };
-        pthread_mutex_unlock(&lock);
+            free(unscaled_background.img.buf);
+            unscaled_background = (Background) { .img = b, };
+            needs_scaling = true;
+        pthread_mutex_unlock(&unscaled_lock);
 
         initial = false;
     }
@@ -250,13 +252,44 @@ void *background_thread() {
     curl_easy_cleanup(curl);
 }
 
+void *resize_thread() {
+    while (true) {
+        if (needs_scaling) {
+            pthread_mutex_lock(&unscaled_lock);
+                Image img = rescale_img(
+                    0,
+                    unscaled_background.img,
+                    ctx.screen->w,
+                    ctx.screen->h
+                );
+                needs_scaling = false;
+            pthread_mutex_unlock(&unscaled_lock);
+
+            pthread_mutex_lock(&scaled_lock);
+                free(scaled_background.img.buf);
+                scaled_background = (Background) {0};
+                scaled_background.img = img;
+            pthread_mutex_unlock(&scaled_lock);
+        }
+    }
+}
+
 void start() {
     screen_w = ctx.screen->w;
     screen_h = ctx.screen->h;
 
-    pthread_t thread = 0;
-    if (pthread_create(&thread, 0, background_thread, 0)) {
-        err("Failed to create background thread.");
+    {
+        pthread_t thread = 0;
+        if (pthread_create(&thread, 0, background_thread, 0)) {
+            err("Failed to create background thread.");
+        }
+    }
+
+    {
+        pthread_t thread = 0;
+        if (pthread_create(&thread, 0, resize_thread, 0)) {
+            err("Failed to create resize thread.");
+        }
     }
 
     // TODO: update the font sizes whenever the screen resizes
@@ -264,24 +297,14 @@ void start() {
     int min_dim = ctx.screen->w < ctx.screen->h ? ctx.screen->w : ctx.screen->h;
 
     font_lib = init_ffont();
-    load_font(
-        &time_font, font_lib,
-        (u8 *) raw_font_buf, raw_font_buf_len,
-        1,
-        ctx.dpi, ctx.dpi
-    );
+    load_font(&time_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
     FT_Set_Pixel_Sizes(
         time_font.face,
         min_dim * time_size,
         min_dim * time_size
     );
 
-    load_font(
-        &date_font, font_lib,
-        (u8 *) raw_font_buf, raw_font_buf_len,
-        1,
-        ctx.dpi, ctx.dpi
-    );
+    load_font(&date_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
     FT_Set_Pixel_Sizes(
         date_font.face,
         min_dim * date_size,
@@ -290,9 +313,9 @@ void start() {
 
     while (true) {
         bool stop = 0;
-        pthread_mutex_lock(&lock);
-            stop = background.img.buf != 0;
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_lock(&scaled_lock);
+            stop = scaled_background.img.buf != 0;
+        pthread_mutex_unlock(&scaled_lock);
         if (stop) break;
     }
 }
@@ -334,9 +357,16 @@ void app_loop() {
         }
     }
 
-    pthread_mutex_lock(&lock);
-        place_img(*screen, background.img, 0, 0, 0);
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_lock(&scaled_lock);
+        printf("In the thing.\n");
+        // for (int x = 0; x < screen->w; x++) {
+        //     for (int y = 0; y < screen->h; y++) {
+        //         *img_at(screen, x, y) = color(0, 0, 0, 255);
+        //     }
+        // }
+        place_img(*screen, scaled_background.img, 0, 0, 0);
+        printf("Out of the thing.\n");
+    pthread_mutex_unlock(&scaled_lock);
 
     Image time_bound = get_bound_of_text(&time_font, time_str);
     time_bound = draw_text_shadow(

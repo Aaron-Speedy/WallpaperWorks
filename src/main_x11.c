@@ -86,8 +86,10 @@ int main(int argc, char *argv[]) {
         start();
     }
 
+    Image screen = {0};
+
     while (true) {
-        Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
+        screen = (Image) { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
         ctx.screen = &screen;
         ctx.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
 
