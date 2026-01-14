@@ -1,5 +1,4 @@
 // TODO: Fix the flickering on Linux (maybe by using pixmap?)
-// TODO: See if dpi_x == dpi_y on Linux
 // TODO: make err(...) do something different depending on the function 
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
@@ -94,7 +93,7 @@ typedef struct {
 
 #define MAX_EVENT_QUEUE_LEN 30
 typedef struct Win {
-    int screen, dpi_x, dpi_y, w, h;
+    int screen, w, h;
     Color *buf;
     bool resized, is_bg;
     WinEvent event_queue[MAX_EVENT_QUEUE_LEN];
@@ -139,10 +138,6 @@ void _resize_win(Win *win) {
     win->resized = true;
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
 
-    win->dpi_x = win->w /
-                ((float) DisplayWidthMM(win->p.display, win->p.screen) / 25.4);
-    win->dpi_y = win->h /
-                ((float) DisplayHeightMM(win->p.display, win->p.screen) / 25.4);
     if (!win->p.draw_to_img) {
         win->p.img = XCreateImage(
             win->p.display,
@@ -158,8 +153,6 @@ void _resize_win(Win *win) {
 
     win->resized = true;
     win->buf = calloc(win->w * win->h, sizeof(*win->buf));
-
-    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
 
     win->p.bitmap_info = (BITMAPINFO) {
         .bmiHeader = {
@@ -206,7 +199,6 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
                    work.top != old.top;
 
     if (resized) {
-        win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
         SetWindowPos(
             win->p.win,
             0,
@@ -272,7 +264,6 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     win->p.win = pwin;
     win->w = client_rect.right - client_rect.left;
     win->h = client_rect.bottom - client_rect.top;
-    win->dpi_x = win->dpi_y = GetDpiForWindow(pwin);
 
     WinEvent win_event = {0};
 
@@ -380,7 +371,6 @@ void new_win(Win *win, char *name, int w, int h) {
 
     SetWindowLongPtr(win->p.win, GWLP_USERDATA, (LONG_PTR) win);
 
-    win->dpi_x = win->dpi_y = GetDpiForWindow(win->p.win);
     win->buf = calloc(w * h, sizeof(*win->buf));
 #endif
 }
