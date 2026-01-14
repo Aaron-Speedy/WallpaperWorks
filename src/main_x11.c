@@ -64,59 +64,69 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    Monitors monitors = {0};
+    PlatformMonitors monitors = {0};
     collect_monitors(&monitors);
 
-    Win win = {0};
-    new_win(&win, "...", 500, 500);
-    make_win_bg(&win, monitors.buf[0], true);
-    show_win(&win);
+    Win wins[arrlen(monitors.buf)] = {0};
 
-    show_sys_tray_icon(&win, ICON_ID, APP_NAME);
-
-    char *menu_items[] = { "Skip image", "Quit", };
-    win.menu_items.buf = menu_items;
-    win.menu_items.len = arrlen(menu_items);
-
-    {
-        Image screen = { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
-        ctx.screen = &screen;
-        ctx.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
-
-        start();
+    for (int i = 0; i < monitors.len; i++) {
+        new_win(&wins[i], APP_NAME, 500, 500);
+        make_win_bg(&wins[i], monitors.buf[i], true);
+        show_win(&wins[i]);
+        ctx.monitors[i].screen = (Image) {
+            .buf = wins[i].buf,
+            .alloc_w = wins[i].w,
+            .w = wins[i].w,
+            .h = wins[i].h,
+        };
     }
+    ctx.monitors_len = monitors.len;
 
-    Image screen = {0};
+    // TODO: keep these
+    show_sys_tray_icon(&wins[0], ICON_ID, APP_NAME);
+    char *menu_items[] = { "Skip image", "Quit", };
+    wins[0].menu_items.buf = menu_items;
+    wins[0].menu_items.len = arrlen(menu_items);
 
-    while (true) {
-        screen = (Image) { .buf = win.buf, .alloc_w = win.w, .w = win.w, .h = win.h, };
-        ctx.screen = &screen;
-        ctx.dpi = win.dpi_x; // assert(win.dpi_x == win.dpi_y);
+    start();
 
-        app_loop();
+    while (true) for (int monitor_i = 0; monitor_i < ctx.monitors_len; monitor_i++) {
+        Monitor *monitor = &ctx.monitors[monitor_i];
+        Win *win = &wins[monitor_i];
+
+        monitor->screen = (Image) {
+            .buf = win->buf,
+            .alloc_w = win->w,
+            .w = win->w,
+            .h = win->h,
+        };
+
+        app_loop(monitor_i);
+
+        usleep(100000 * 0.025);
 
         struct timeval time_val = {0};
         gettimeofday(&time_val, NULL);
 
         get_events_timeout(
-            &win,
+            win,
             1000 - (time_val.tv_usec / 1000)
         );
 
-        for (int i = 0; i < win.event_queue_len; i++) {
-            WinEvent event = win.event_queue[i];
+        for (int i = 0; i < win->event_queue_len; i++) {
+            WinEvent event = win->event_queue[i];
             switch (event.type) {
             case EVENT_QUIT: goto end;
             case EVENT_SYS_TRAY: {
                 int c = event.click;
                 if (c == CLICK_L_UP ||
                     c == CLICK_M_UP ||
-                    c == CLICK_R_UP) show_sys_tray_menu(&win);
+                    c == CLICK_R_UP) show_sys_tray_menu(win);
             } break;
             case EVENT_SYS_TRAY_MENU: {
                 unsigned int id = event.menu_item_id - 1;
-                if (id < win.menu_items.len) {
-                    char *item = win.menu_items.buf[id];
+                if (id < win->menu_items.len) {
+                    char *item = win->menu_items.buf[id];
                     if (!strcmp(item, "Skip image")) ctx.skip_image = true;
                     else if (!strcmp(item, "Quit")) goto end;
                 }
@@ -125,12 +135,14 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        win.event_queue_len = 0;
+        win->event_queue_len = 0;
 
-        draw_to_win(&win);
+        draw_to_win(win);
     }
 
 end:
     // kill_sys_tray_icon(&win, ICON_ID);
-    close_win(&win);
+    for (int win_i = 0; win_i < ctx.monitors_len; win_i++) {
+        close_win(&wins[win_i]);
+    }
 }

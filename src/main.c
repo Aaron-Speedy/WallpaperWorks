@@ -18,6 +18,35 @@
 
 int usleep(useconds_t usec);
 
+typedef struct {
+    Image img;
+} Background;
+
+typedef struct {
+    Image screen;
+    Background scaled_background;
+    FFont time_font;
+    FFont date_font;
+} Monitor;
+
+typedef struct {
+    Monitor monitors[MAX_PLATFORM_MONITORS];
+    ssize monitors_len;
+    bool skip_image;
+} Context;
+
+#include "config.h"
+
+Context ctx = {0};
+
+FFontLib font_lib = {0};
+
+pthread_mutex_t scaled_lock = PTHREAD_MUTEX_INITIALIZER;
+Background unscaled_background = {0};
+pthread_mutex_t unscaled_lock = PTHREAD_MUTEX_INITIALIZER;
+
+bool needs_scaling = 0;
+
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
         .c[COLOR_R] = r,
@@ -26,33 +55,6 @@ Color color(u8 r, u8 g, u8 b, u8 a) {
         .c[COLOR_A] = a,
     };
 }
-
-typedef struct {
-    Image *screen;
-    int dpi;
-    void *data;
-    bool skip_image;
-} Context;
-
-typedef struct {
-    Image img;
-} Background;
-
-#include "config.h"
-
-Context ctx = {0};
-
-FFontLib font_lib = {0};
-FFont time_font = {0};
-FFont date_font = {0};
-
-Background scaled_background = {0};
-pthread_mutex_t scaled_lock = PTHREAD_MUTEX_INITIALIZER;
-Background unscaled_background = {0};
-pthread_mutex_t unscaled_lock = PTHREAD_MUTEX_INITIALIZER;
-
-bool needs_scaling = 0;
-int screen_w, screen_h = 0;
 
 s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
     s8 base = s8("https://infotoast.org/images");
@@ -194,7 +196,7 @@ void *background_thread() {
         );
     }
 
-    int timeout_s = 10;
+    int timeout_s = 5;
     bool initial = true;
 
     while (true) {
@@ -255,29 +257,29 @@ void *background_thread() {
 void *resize_thread() {
     while (true) {
         if (needs_scaling) {
-            pthread_mutex_lock(&unscaled_lock);
-                Image img = rescale_img(
-                    0,
-                    unscaled_background.img,
-                    ctx.screen->w,
-                    ctx.screen->h
-                );
-                needs_scaling = false;
-            pthread_mutex_unlock(&unscaled_lock);
+            for (int i = 0; i < ctx.monitors_len; i++) {
+                pthread_mutex_lock(&unscaled_lock);
+                    Image img = rescale_img(
+                        0,
+                        unscaled_background.img,
+                        ctx.monitors[i].screen.w,
+                        ctx.monitors[i].screen.h
+                    );
+                    needs_scaling = false;
+                pthread_mutex_unlock(&unscaled_lock);
 
-            pthread_mutex_lock(&scaled_lock);
-                free(scaled_background.img.buf);
-                scaled_background = (Background) {0};
-                scaled_background.img = img;
-            pthread_mutex_unlock(&scaled_lock);
+                pthread_mutex_lock(&scaled_lock);
+                    free(ctx.monitors[i].scaled_background.img.buf);
+                    ctx.monitors[i].scaled_background = (Background) {0};
+                    ctx.monitors[i].scaled_background.img = img;
+                pthread_mutex_unlock(&scaled_lock);
+            }
+            usleep(1000000 * 0.05);
         }
     }
 }
 
 void start() {
-    screen_w = ctx.screen->w;
-    screen_h = ctx.screen->h;
-
     {
         pthread_t thread = 0;
         if (pthread_create(&thread, 0, background_thread, 0)) {
@@ -294,34 +296,43 @@ void start() {
 
     // TODO: update the font sizes whenever the screen resizes
 
-    int min_dim = ctx.screen->w < ctx.screen->h ? ctx.screen->w : ctx.screen->h;
-
     font_lib = init_ffont();
-    load_font(&time_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
-    FT_Set_Pixel_Sizes(
-        time_font.face,
-        min_dim * time_size,
-        min_dim * time_size
-    );
 
-    load_font(&date_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
-    FT_Set_Pixel_Sizes(
-        date_font.face,
-        min_dim * date_size,
-        min_dim * date_size
-    );
+    for (int i = 0; i < ctx.monitors_len; i++) {
+        Monitor *monitor = &ctx.monitors[i];
+        int min_dim = monitor->screen.w < monitor->screen.h ?
+                      monitor->screen.w :
+                      monitor->screen.h;
+
+        load_font(&monitor->time_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
+        FT_Set_Pixel_Sizes(
+            monitor->time_font.face,
+            min_dim * time_size,
+            min_dim * time_size
+        );
+
+        load_font(&monitor->date_font, font_lib, (u8 *) raw_font_buf, raw_font_buf_len);
+        FT_Set_Pixel_Sizes(
+            monitor->date_font.face,
+            min_dim * date_size,
+            min_dim * date_size
+        );
+    }
 
     while (true) {
-        bool stop = 0;
-        pthread_mutex_lock(&scaled_lock);
-            stop = scaled_background.img.buf != 0;
-        pthread_mutex_unlock(&scaled_lock);
+        bool stop = true;
+        for (int i = 0; i < ctx.monitors_len; i++) {
+            pthread_mutex_lock(&scaled_lock);
+                stop = ctx.monitors[i].scaled_background.img.buf != 0;
+            pthread_mutex_unlock(&scaled_lock);
+            if (!stop) break;
+        }
         if (stop) break;
     }
 }
 
-void app_loop() {
-    Image *screen = ctx.screen;
+void app_loop(int monitor_i) {
+    Monitor *monitor = &ctx.monitors[monitor_i];
 
     new_static_arena(scratch, 500);
 
@@ -358,37 +369,35 @@ void app_loop() {
     }
 
     pthread_mutex_lock(&scaled_lock);
-        printf("In the thing.\n");
-        // for (int x = 0; x < screen->w; x++) {
-        //     for (int y = 0; y < screen->h; y++) {
-        //         *img_at(screen, x, y) = color(0, 0, 0, 255);
-        //     }
-        // }
-        place_img(*screen, scaled_background.img, 0, 0, 0);
-        printf("Out of the thing.\n");
+        for (int x = 0; x < monitor->screen.w; x++) {
+            for (int y = 0; y < monitor->screen.h; y++) {
+                *img_at(&monitor->screen, x, y) = color(0, 0, 0, 255);
+            }
+        }
+        place_img(monitor->screen, monitor->scaled_background.img, 0, 0, 0);
     pthread_mutex_unlock(&scaled_lock);
 
-    Image time_bound = get_bound_of_text(&time_font, time_str);
+    Image time_bound = get_bound_of_text(&monitor->time_font, time_str);
     time_bound = draw_text_shadow(
-        *screen,
-        &time_font,
+        monitor->screen,
+        &monitor->time_font,
         time_str,
-        screen->w - 1 - screen->w * time_x - time_bound.w,
-        screen->h - 1 - screen->h * time_y,
+        monitor->screen.w - 1 - monitor->screen.w * time_x - time_bound.w,
+        monitor->screen.h - 1 - monitor->screen.h * time_y,
         255, 255, 255,
-        time_shadow_x * screen->w, time_shadow_y * screen->h,
+        time_shadow_x * monitor->screen.w, time_shadow_y * monitor->screen.h,
         0, 0, 0,
         true
     );
-    Image date_bound = get_bound_of_text(&date_font, date_str);
+    Image date_bound = get_bound_of_text(&monitor->date_font, date_str);
     date_bound = draw_text_shadow(
-        *screen,
-        &date_font,
+        monitor->screen,
+        &monitor->date_font,
         date_str,
-        screen->w - 1 - screen->w * date_x - date_bound.w,
-        screen->h - 1 - screen->h * date_y,
+        monitor->screen.w - 1 - monitor->screen.w * date_x - date_bound.w,
+        monitor->screen.h - 1 - monitor->screen.h * date_y,
         255, 255, 255,
-        date_shadow_x * screen->w, date_shadow_y * screen->h,
+        date_shadow_x * monitor->screen.w, date_shadow_y * monitor->screen.h,
         0, 0, 0,
         true
     );

@@ -12,12 +12,13 @@
 #include "ds.h"
 
 #ifdef __linux__
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <X11/extensions/Xinerama.h>
+#include <X11/Xatom.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 int usleep(useconds_t usec);
 typedef enum {
     COLOR_B,
@@ -66,7 +67,7 @@ typedef struct {
 typedef struct {
     PlatformMonitor buf[MAX_PLATFORM_MONITORS];
     int len;
-} Monitors;
+} PlatformMonitors;
 
 typedef struct {
     enum {
@@ -110,7 +111,7 @@ void new_win(Win *win, char *name, int w, int h);
 void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root);
 void show_win(Win *win);
 void draw_to_win(Win *win);
-void collect_monitors(Monitors *m);
+void collect_monitors(PlatformMonitors *m);
 void get_events_timeout(Win *win, int timeout_ms);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
 void kill_sys_tray_icon(Win *win, int icon_id);
@@ -222,7 +223,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
 #define SYS_TRAY_MSG (WM_USER + 1)
 
 BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
-    Monitors *m = (Monitors *) vv;
+    PlatformMonitors *m = (PlatformMonitors *) vv;
     m->buf[m->len++] = (PlatformMonitor) {
         .rect = *rect,
     };
@@ -480,33 +481,33 @@ void draw_to_win(Win *win) {
 #endif
 }
 
-void collect_monitors(Monitors *m) {
-    *m = (Monitors) {0};
+void collect_monitors(PlatformMonitors *m) {
+    *m = (PlatformMonitors) {0};
 #ifdef __linux__
-    // Display *display = XOpenDisplay(NULL);
-    // if (!display) err("Can't open display.");
+    Display *display = XOpenDisplay(NULL);
+    if (!display) err("Can't open display.");
 
-    // int major = 0, minor = 0;
-    // if (!XineramaQueryVersion(display, &major, &minor)) {
-    //     err("Xinerama extension is not available.");
-    // }
+    int major = 0, minor = 0;
+    if (!XineramaQueryVersion(display, &major, &minor)) {
+        err("Xinerama extension is not available.");
+    }
 
-    // if (!XineramaIsActive(display)) err("Xinerama is not active.");
+    if (!XineramaIsActive(display)) err("Xinerama is not active.");
 
-    // XineramaScreenInfo *screens = XineramaQueryScreens(display, &m->len);
-    // if (!screens) err("No screens are connected.");
+    XineramaScreenInfo *screens = XineramaQueryScreens(display, &m->len);
+    if (!screens) err("No screens are connected.");
 
-    // for (int i = 0; i < m->len; i++) {
-    //     m->buf[i] = (PlatformMonitor) {
-    //         .x = screens[i].x_org,
-    //         .y = screens[i].y_org,
-    //         .w = screens[i].width,
-    //         .h = screens[i].height,
-    //     };
-    // }
-    // XFree(screens);
+    for (int i = 0; i < m->len; i++) {
+        m->buf[i] = (PlatformMonitor) {
+            .x = screens[i].x_org,
+            .y = screens[i].y_org,
+            .w = screens[i].width,
+            .h = screens[i].height,
+        };
+    }
+    XFree(screens);
 
-    // XCloseDisplay(display);
+    XCloseDisplay(display);
 #elif _WIN32
     EnumDisplayMonitors(NULL, NULL, _collect_monitors_cb, (LPARAM) m);
 #endif
@@ -538,7 +539,7 @@ bool are_monitors_equal(PlatformMonitor a, PlatformMonitor b) {
 #endif
 }
 
-bool did_monitors_change(Monitors *a, Monitors *b) {
+bool did_monitors_change(PlatformMonitors *a, PlatformMonitors *b) {
     if (a->len != b->len) return true;
     for (int i = 0; i < a->len; i++) {
         if (!are_monitors_equal(a->buf[i], b->buf[i])) return true;

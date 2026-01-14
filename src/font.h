@@ -66,7 +66,7 @@ FFontLib init_ffont() {
 
 void load_font(FFont *f, FFontLib lib, u8 *raw, int raw_len) {
     FT_Error err = 0;
-    if (err = FT_New_Memory_Face(lib.lib, raw, raw_len, 0, &f->face)) {
+    if ((err = FT_New_Memory_Face(lib.lib, raw, raw_len, 0, &f->face))) {
         err("Failed to create FreeType font face. Failed with error \"%s\"",
             FT_Error_String(err));
     }
