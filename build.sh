@@ -66,7 +66,7 @@ elif [[ "$OS" == "linux"* ]]; then
     fi
     LIBWEBP="$WEBP_DIR/src/libwebp.a"
     CURL="-lcurl"
-    WINDOWING="-L/usr/X11R6/lib -lX11 -lXinerama"
+    WINDOWING="-L/usr/X11R6/lib -lX11 $(pkg-config --libs --cflags xinerama)"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
     SOURCE="src/main_x11.c"
 elif [[ "$OS" == "darwin" ]]; then
