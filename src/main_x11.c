@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
 
         get_events_timeout(
             win,
+            &monitors.buf[monitor_i],
             1000 - (time_val.tv_usec / 1000)
         );
 
@@ -137,7 +138,7 @@ int main(int argc, char *argv[]) {
 
         win->event_queue_len = 0;
 
-        draw_to_win(win);
+        draw_to_win(win, &monitors.buf[monitor_i]);
     }
 
 end:

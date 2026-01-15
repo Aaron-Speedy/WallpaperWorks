@@ -71,7 +71,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
     }
 
     s8 img_data = {0};
-    if (network_mode) {
+    if (0) {
         int times_tried = 0;
 try_downloading_another_one:
         times_tried += 1;
@@ -106,10 +106,10 @@ try_downloading_another_one:
     } else pick_random_downloaded_image: {
         if (!cache_support) return (s8) {0};
 
-        printf("You are in offline mode for now.\n");
+        // printf("You are in offline mode for now.\n");
 
         struct {
-            struct dirent **buf;
+            char (*buf)[255];
             ssize len;
         } files = {0};
 
@@ -123,19 +123,25 @@ try_downloading_another_one:
                 if (!strcmp(d->d_name, ".") ||
                     !strcmp(d->d_name, "..") ||
                     !strcmp(d->d_name, "num.txt")) continue;
-                struct dirent **entry = new(perm, d, 1);
+                char (*entry)[255] = new(perm, *files.buf, 1);
                 files.buf = files.buf ? files.buf : entry;
-                *entry = d;
+                memmove(*entry, d->d_name, arrlen(*entry));
+                // printf("%s\n", files.buf[files.len]);
                 files.len += 1;
             }
 
             if (!files.len) return (s8) {0};
+            closedir(dirp);
         }
 
+        // printf("You are about to select the file. You've already found all the files.\n");
+
         while (true) {
-            char *name = files.buf[rand() % files.len]->d_name;
+            ssize number = rand() % files.len;
+            char *name = files.buf[number];
             char *pattern = "*.webp";
             bool ok = true;
+            printf("'%s'\n", name);
 
             for (char *c = name, *p = pattern;;) {
                 if (!ok) break;
@@ -146,11 +152,11 @@ try_downloading_another_one:
 
                 switch (*p) {
                 case '*': {
-                    if (!p[1] || *c != p[1]) *c += 1;
-                    else *p += 1;
+                    if (!p[1] || *c != p[1]) c += 1;
+                    else p += 1;
                 } break;
                 default: {
-                    if (*c == *p) { *c += 1; *p += 1; }
+                    if (*c == *p) { c += 1; p += 1; }
                     else ok = false;
                 }
                 }

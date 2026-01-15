@@ -35,6 +35,7 @@ typedef struct {
     GC gc;
     XImage *img;
     bool draw_to_img;
+    bool is_root;
 } PlatformWin;
 
 #elif _WIN32
@@ -109,9 +110,9 @@ typedef struct Win {
 void new_win(Win *win, char *name, int w, int h);
 void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root);
 void show_win(Win *win);
-void draw_to_win(Win *win);
+void draw_to_win(Win *win, PlatformMonitor *monitor);
 void collect_monitors(PlatformMonitors *m);
-void get_events_timeout(Win *win, int timeout_ms);
+void get_events_timeout(Win *win, PlatformMonitor *monitor, int timeout_ms);
 void show_sys_tray_icon(Win *win, int icon_id, char *tooltip);
 void kill_sys_tray_icon(Win *win, int icon_id);
 void show_sys_tray_menu(Win *win);
@@ -280,7 +281,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     case WM_PAINT: {
         PAINTSTRUCT paint = {0};
         BeginPaint(pwin, &paint);
-        draw_to_win(win); // TODO: DO THIS!!!
+        draw_to_win(win, NULL); // TODO: DO THIS!!!
         EndPaint(pwin, &paint);
     } break;
     case SYS_TRAY_MSG: {
@@ -388,8 +389,10 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     win->p.screen = DefaultScreen(win->p.display);
 
-    if (draw_to_root) win->p.win = DefaultRootWindow(win->p.display);
-    else {
+    if (draw_to_root) {
+        win->p.win = DefaultRootWindow(win->p.display);
+        win->p.is_root = true;
+    } else {
         win->p.win = XCreateSimpleWindow(
             win->p.display,
             DefaultRootWindow(win->p.display),
@@ -444,14 +447,18 @@ void show_win(Win *win) {
 #endif
 }
 
-void draw_to_win(Win *win) {
+void draw_to_win(Win *win, PlatformMonitor *monitor) {
 #ifdef __linux__
     if (win->p.draw_to_img) return;
+
+    int dest_x = monitor && win->p.is_root ? monitor->x : 0,
+        dest_y = monitor && win->p.is_root ? monitor->y : 0;
 
     XPutImage(
         win->p.display, 
         win->p.win, win->p.gc, win->p.img,
-        0, 0, 0, 0,
+        0, 0,
+        dest_x, dest_y,
         win->p.img->width, win->p.img->height
     );
 
@@ -537,7 +544,7 @@ bool did_monitors_change(PlatformMonitors *a, PlatformMonitors *b) {
     return false;
 }
 
-void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get events for all windows
+void get_events_timeout(Win *win, PlatformMonitor *monitor, int timeout_ms) {
 #ifdef __linux__
     if (win->p.draw_to_img) {
         usleep(1000 * timeout_ms);
@@ -561,7 +568,7 @@ void get_events_timeout(Win *win, int timeout_ms) { // TODO: find a way to get e
 
         switch (e.type) {
         // TODO: Handle window closing
-        case Expose: draw_to_win(win); break;
+        case Expose: draw_to_win(win, monitor); break;
         case ConfigureNotify: {
             XConfigureEvent c = e.xconfigure;
             // if (c.width != win->w || c.height != win->h) { // TODO: see about this
