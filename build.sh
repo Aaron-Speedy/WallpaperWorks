@@ -59,7 +59,7 @@ if [[ "$OS" == "windows"* ]]; then
     windres src/recs.rc -O coff -o build/recs.res
     OTHER="build/recs.res"
 
-    SOURCE="src/main_x11.c"
+    SOURCE="src/main_other.c"
 elif [[ "$OS" == "linux"* ]]; then
     if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
         SAN="-fsanitize=address,undefined"
@@ -68,7 +68,7 @@ elif [[ "$OS" == "linux"* ]]; then
     CURL="-lcurl"
     WINDOWING="-L/usr/X11R6/lib -lX11 $(pkg-config --libs --cflags xinerama)"
     FREETYPE="$(pkg-config --cflags freetype2) -lfreetype"
-    SOURCE="src/main_x11.c"
+    SOURCE="src/main_other.c"
 elif [[ "$OS" == "darwin" ]]; then
     if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
         SAN="-fsanitize=address,undefined"
