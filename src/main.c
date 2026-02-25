@@ -71,7 +71,7 @@ s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
     }
 
     s8 img_data = {0};
-    if (0) {
+    if (network_mode) {
         int times_tried = 0;
 try_downloading_another_one:
         times_tried += 1;
