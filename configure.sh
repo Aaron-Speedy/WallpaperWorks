@@ -12,7 +12,7 @@ rm -rf third_party/real
 mkdir third_party/real
 cd third_party/real
 
-if [[ "$OS" == "windows"* ]]; then
+if [[ "$OS" == "msys_nt"* ]]; then
     curl $CURL_URL --output $CURL_DIR.zip
     unzip $CURL_DIR.zip
     rm $CURL_DIR.zip
