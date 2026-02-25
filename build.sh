@@ -46,7 +46,7 @@ FT_DIR="third_party/real/freetype"
 WEBP_DIR="third_party/real/libwebp"
 OUT_DIR="build"
 
-if [[ "$OS" == "msys_nt"* ]]; then
+if [[ "$OS" == "windows"* ]]; then
     SAN=""
     LIBWEBP="third_party/real/libwebp/src/libwebp.a"
     cp $CURL_DIR/bin/libcurl-x64.dll build/
