@@ -36,6 +36,7 @@ typedef enum {
 #define IMAGE_IMPL
 #include "image.h"
 
+#define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
@@ -143,7 +144,6 @@ void make_win_bg(NSWindow * win) {
     CGContextRef bitmap_ctx;
     unsigned char *buf;
     size_t w, h;
-    Context context;
 }
 
 - (void) setup_bitmap_ctx;
@@ -199,9 +199,8 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
-    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
-    app_loop(&context);
+    ctx.monitors[0].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    app_loop(0);
 }
 
 - (void) drawRect : (NSRect) dirty_rect {
@@ -222,10 +221,8 @@ void make_win_bg(NSWindow * win) {
                                        selector:@selector(update_display:) 
                                        userInfo:0 
                                         repeats:YES];
-    Image screen = { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    context = (Context) { .dpi = get_dpi([NSScreen mainScreen]).width, .screen = &screen, };
-
-    start(&context);
+    ctx.monitors[0].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    start();
 }
 
 - (void) update_display : (NSTimer *) timer {
