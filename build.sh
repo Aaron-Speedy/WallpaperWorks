@@ -106,7 +106,11 @@ $FREETYPE \
 cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
 
 if [[ "$WALLWORKS_BUILD_TYPE" == "production" ]] && [[ "$OS" == "darwin" ]]; then
-        scripts/bundle_dylibs.sh -l "../Libraries" build/WallpaperWorks.app
+    scripts/bundle_dylibs.sh -l "../Libraries" build/WallpaperWorks.app
+fi
+
+if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]] && [[ "$OS" == "darwin" ]]; then
+    codesign --force --sign build/WallpaperWorks.app
 fi
 
 rm -rf build/tmp
