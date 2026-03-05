@@ -300,7 +300,6 @@ void *resize_thread(void *) {
                         ctx.monitors[i].screen.w,
                         ctx.monitors[i].screen.h
                     );
-                    needs_scaling = false;
                 pthread_mutex_unlock(&unscaled_lock);
 
                 pthread_mutex_lock(&scaled_lock);
@@ -309,8 +308,9 @@ void *resize_thread(void *) {
                     ctx.monitors[i].scaled_background.img = img;
                 pthread_mutex_unlock(&scaled_lock);
             }
-            usleep(1000000 * 0.05);
+            needs_scaling = false;
         }
+        usleep(1000000 * 0.05);
     }
 }
 
