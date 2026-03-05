@@ -199,7 +199,12 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
-    ctx.monitors[0].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+    ctx.monitors[ctx.monitors_len++].screen = (Image) {
+        .buf = buf,
+        .alloc_w = w,
+        .w = w,
+        .h = h,
+    };
     app_loop(0);
 }
 
