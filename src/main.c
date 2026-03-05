@@ -363,6 +363,7 @@ void start() {
             if (!stop) break;
         }
         if (stop) break;
+        usleep(1000000 * 0.05);
     }
 }
 
