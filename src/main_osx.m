@@ -227,7 +227,9 @@ void make_win_bg(NSWindow * win) {
                                        selector:@selector(update_display:) 
                                        userInfo:0 
                                         repeats:YES];
-    ctx.monitors[0].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
+
+    ctx.monitors_len = 0;
+    ctx.monitors[ctx.monitors_len++].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
     start();
 }
 
