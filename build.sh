@@ -110,7 +110,7 @@ if [[ "$WALLWORKS_BUILD_TYPE" == "production" ]] && [[ "$OS" == "darwin" ]]; the
 fi
 
 if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]] && [[ "$OS" == "darwin" ]]; then
-    codesign --force --deep --sign - build/WallpaperWorks.app
+    codesign --force --sign - build/WallpaperWorks.app
 fi
 
 rm -rf build/tmp
