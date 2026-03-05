@@ -15,6 +15,7 @@
 
 #include <pthread.h>
 #include <dirent.h>
+#include <stdatomic.h>
 
 int usleep(useconds_t usec);
 
@@ -45,7 +46,7 @@ pthread_mutex_t scaled_lock = PTHREAD_MUTEX_INITIALIZER;
 Background unscaled_background = {0};
 pthread_mutex_t unscaled_lock = PTHREAD_MUTEX_INITIALIZER;
 
-bool needs_scaling = 0;
+_Atomic bool needs_scaling = 0;
 
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
