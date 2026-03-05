@@ -211,7 +211,7 @@ try_downloading_another_one:
     return img_data;
 }
 
-void *background_thread() {
+void *background_thread(void *) {
     // TODO: make the memory management around this cleaner
     srand(time(0));
 
@@ -288,7 +288,7 @@ void *background_thread() {
     curl_easy_cleanup(curl);
 }
 
-void *resize_thread() {
+void *resize_thread(void *) {
     while (true) {
         if (needs_scaling) {
             for (int i = 0; i < ctx.monitors_len; i++) {
