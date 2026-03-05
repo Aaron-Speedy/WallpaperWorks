@@ -231,17 +231,6 @@ void make_win_bg(NSWindow * win) {
 
 @end
 
-s8 arena_printf(Arena *perm, const char *fmt, ...) {
-    s8 ret = {0};
-    va_list args;
-    va_start(args, fmt);
-        int len = vsnprintf(0, 0, fmt, args);
-        char *block = new(perm, char, len);
-        vsnprintf(block, len, fmt, args);
-    va_end(args);
-    return (s8) { .buf = block, .len = len, };
-}
-
 // void request_auth() {
 //     AuthorizationRef auth_ref = 0;
 //     AuthorizationStatus status = AuthorizationCreate(
