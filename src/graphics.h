@@ -50,7 +50,7 @@ typedef struct {
     RECT rect;
 } PlatformMonitor;
 typedef struct {
-    HWND win;
+    HWND win, def_view;
     BITMAPINFO bitmap_info;
 } PlatformWin;
 HWND _worker_w = 0;
@@ -225,24 +225,30 @@ BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
 
 // https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
 
-BOOL _make_worker_w_cb(HWND top, LPARAM vv) {
-    HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
-    if (p) {
-        *((HWND *) vv) = FindWindowExA(0, top, "WorkerW", 0);
+typedef struct {
+    HWND worker_w, def_view;
+} WorkerWAndDefView;
+
+BOOL _get_worker_w_and_def_view_cb(HWND top, LPARAM vv) {
+    HWND def_view = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
+    if (def_view) {
+        *((WorkerWAndDefView *) vv) = (WorkerWAndDefView) {
+            .worker_w = FindWindowExA(0, top, "WorkerW", 0),
+            .def_view = def_view,
+        };
         return false;
     }
     return true;
 }
 
-HWND _make_worker_w() {
+WorkerWAndDefView _get_worker_w_and_def_view() {
     HWND progman = FindWindowA("Progman", 0);
     if (!progman) return 0;
 
     SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
 
-    HWND ret = 0;
-    
-    EnumWindows(_make_worker_w_cb, (LPARAM) &ret);
+    WorkerWAndDefView ret = {0};
+    EnumWindows(_get_worker_w_and_def_view_cb, (LPARAM) &ret);
 
     // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
 
@@ -424,7 +430,9 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
 #elif _WIN32
 
-    if (!_worker_w) _worker_w = _make_worker_w();
+    if (!_worker_w) {
+        _worker_w = _get_worker_w_and_def_view();
+    }
     SetParent(win->p.win, _worker_w);
 
     SetWindowLongPtrA(

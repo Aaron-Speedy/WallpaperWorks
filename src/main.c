@@ -56,9 +56,44 @@ Color color(u8 r, u8 g, u8 b, u8 a) {
     };
 }
 
-s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir, bool cache_support) {
+// TODO: this code sucks
+s8 get_random_image(Arena *perm, CURL *curl, s8 cache_dir_name) {
     s8 base = s8("https://infotoast.org/images");
     bool network_mode = true;
+
+    s8 cache_dir = get_or_make_cache_dir(perm, cache_dir_name);
+    bool cache_support = true;
+    if (cache_dir.len <= 0) {
+        cache_support = false;
+        warning("Could not get system cache directory. Disabling cache support.");
+    }
+
+    if (cache_support) {
+        s8 md5_file_name = s8("/library.md5");
+        s8 url = s8_newcat(perm, base, md5_file_name);
+        s8 path = s8_newcat(perm, cache_dir, md5_file_name);
+
+        DownloadResponse response = download(perm, curl, url);
+        network_mode = response.data.len != 0 && response.code == 200;
+
+        if (network_mode) {
+            s8 new_md5sum = response.data;
+            s8 old_md5sum = s8_read_file(perm, path);
+
+            if (!s8_equals(new_md5sum, old_md5sum)) {
+                cache_dir = remake_cache_dir(perm, cache_dir_name);
+                if (cache_dir.len <= 0) {
+                    cache_support = false;
+                    warning(
+                        "Could not get system cache directory. "
+                        "Disabling cache support."
+                    );
+                }
+            }
+
+            if (cache_support) s8_write_to_file(path, new_md5sum);
+        }
+    }
 
     u64 n = 0;
     {
@@ -106,8 +141,6 @@ try_downloading_another_one:
     } else pick_random_downloaded_image: {
         if (!cache_support) return (s8) {0};
 
-        // printf("You are in offline mode for now.\n");
-
         struct {
             char (*buf)[255];
             ssize len;
@@ -133,8 +166,6 @@ try_downloading_another_one:
             if (!files.len) return (s8) {0};
             closedir(dirp);
         }
-
-        // printf("You are about to select the file. You've already found all the files.\n");
 
         while (true) {
             ssize number = rand() % files.len;
@@ -193,15 +224,6 @@ void *background_thread() {
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 #endif
 
-    s8 cache_dir = get_or_make_cache_dir(&perm, s8(APP_NAME));
-    bool cache_support = true;
-    if (cache_dir.len <= 0) {
-        cache_support = false;
-        warning(
-            "Could not get system cache directory. Disabling cache support."
-        );
-    }
-
     int timeout_s = 60;
     bool initial = true;
 
@@ -211,8 +233,14 @@ void *background_thread() {
         time_t a_time = time(0);
         Image b = {0};
 
-        s8 img_data = get_random_image(&scratch, curl, cache_dir, cache_support);
-        if (!img_data.buf) err("No images are saved in cache. You have to connect to the internet to run this application.");
+
+        s8 img_data = get_random_image(&scratch, curl, s8(APP_NAME));
+        if (!img_data.buf) {
+            err(
+                "No images are saved in cache. "
+                "You have to connect to the internet to run this application."
+            );
+        }
 
         // TODO: check this
         WebPGetInfo(

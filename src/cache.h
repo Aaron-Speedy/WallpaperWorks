@@ -3,9 +3,19 @@
 
 #include <sys/stat.h>
 
+#define _XOPEN_SOURCE 500
+#define __USE_XOPEN_EXTENDED 1
+#include <stdio.h>
+#include <ftw.h>
+#include <unistd.h>
+
 #include "ds.h"
 
 s8 get_or_make_cache_dir(Arena *perm, s8 name);
+s8 remake_cache_dir(Arena *perm, s8 name);
+
+int unlink_cb(const char *fpath, const struct stat *sb, int type_flag, struct FTW *ftw_buf);
+int rmrf(char *path);
 
 #endif // CACHE_H
 
@@ -85,6 +95,22 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
     }
 
     return cache;
+}
+
+s8 remake_cache_dir(Arena *perm, s8 name) {
+    s8 cache_dir = get_or_make_cache_dir(perm, name);
+    rmrf(s8_newcat(perm, cache_dir, s8("\0")).buf);
+    return get_or_make_cache_dir(perm, name);
+}
+
+int unlink_cb(const char *fpath, const struct stat *sb, int type_flag, struct FTW *ftw_buf) {
+    int rv = remove(fpath);
+    if (rv) perror(fpath);
+    return rv;
+}
+
+int rmrf(char *path) {
+    return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
 #endif // CACHE_IMPL_GUARD
