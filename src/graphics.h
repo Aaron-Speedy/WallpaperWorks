@@ -202,7 +202,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     if (resized) {
         SetWindowPos(
             win->p.win,
-            def_view,
+            _def_view,
             work.left, work.top,
             w, h,
             SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
@@ -229,7 +229,7 @@ BOOL _get_worker_w_and_def_view_cb(HWND top, LPARAM vv) {
     HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
     if (p) {
         _def_view = p;
-        worker_w =  FindWindowExA(0, top, "WorkerW", 0),
+        _worker_w =  FindWindowExA(0, top, "WorkerW", 0);
         return false;
     }
     return true;
@@ -237,15 +237,13 @@ BOOL _get_worker_w_and_def_view_cb(HWND top, LPARAM vv) {
 
 void _get_worker_w_and_def_view() {
     HWND progman = FindWindowA("Progman", 0);
-    if (!progman) return 0;
+    if (!progman) return;
 
     SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
 
-    EnumWindows(_get_worker_w_and_def_view_cb);
+    EnumWindows(_get_worker_w_and_def_view_cb, 0);
 
     // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
-
-    return ret;
 }
 
 LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
