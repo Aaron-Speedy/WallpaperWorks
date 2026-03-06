@@ -205,7 +205,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
             _def_view,
             work.left, work.top,
             w, h,
-            SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER
         );
     }
 #endif
@@ -423,7 +423,7 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
 
-    SetParent(win->p.win, _def_view);
+    SetParent(win->p.win, _worker_w);
 
     SetWindowLongPtrA(
         win->p.win,
