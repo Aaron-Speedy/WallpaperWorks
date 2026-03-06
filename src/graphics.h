@@ -50,10 +50,10 @@ typedef struct {
     RECT rect;
 } PlatformMonitor;
 typedef struct {
-    HWND win, def_view;
+    HWND win;
     BITMAPINFO bitmap_info;
 } PlatformWin;
-HWND _worker_w = 0;
+HWND _worker_w = 0, _def_view;
 
 #else
 #error "Unsupported platform!"
@@ -202,7 +202,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     if (resized) {
         SetWindowPos(
             win->p.win,
-            0,
+            def_view,
             work.left, work.top,
             w, h,
             SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
@@ -225,30 +225,23 @@ BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
 
 // https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
 
-typedef struct {
-    HWND worker_w, def_view;
-} WorkerWAndDefView;
-
 BOOL _get_worker_w_and_def_view_cb(HWND top, LPARAM vv) {
-    HWND def_view = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
-    if (def_view) {
-        *((WorkerWAndDefView *) vv) = (WorkerWAndDefView) {
-            .worker_w = FindWindowExA(0, top, "WorkerW", 0),
-            .def_view = def_view,
-        };
+    HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
+    if (p) {
+        _def_view = p;
+        worker_w =  FindWindowExA(0, top, "WorkerW", 0),
         return false;
     }
     return true;
 }
 
-WorkerWAndDefView _get_worker_w_and_def_view() {
+void _get_worker_w_and_def_view() {
     HWND progman = FindWindowA("Progman", 0);
     if (!progman) return 0;
 
     SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
 
-    WorkerWAndDefView ret = {0};
-    EnumWindows(_get_worker_w_and_def_view_cb, (LPARAM) &ret);
+    EnumWindows(_get_worker_w_and_def_view_cb);
 
     // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
 
@@ -430,10 +423,9 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
 #elif _WIN32
 
-    if (!_worker_w) {
-        _worker_w = _get_worker_w_and_def_view();
-    }
-    SetParent(win->p.win, _worker_w);
+    if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
+
+    SetParent(win->p.win, _def_view);
 
     SetWindowLongPtrA(
         win->p.win,
