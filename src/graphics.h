@@ -423,6 +423,7 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
 
+    SetParent(win->p.win, _worker_w);
     SetWindowLongPtr(win->p.win, GWL_STYLE, WS_CHILD | WS_VISIBLE);
 
     LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
