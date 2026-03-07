@@ -249,8 +249,8 @@ void alert(NSString *msg) {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:msg];
     [alert setInformativeText:@"Information"];
-    [alert addButtonWithTitle:@"Cancel"];
     [alert addButtonWithTitle:@"Ok"];
+    [alert addButtonWithTitle:@"Cancel"];
     [alert runModal];
 }
 
