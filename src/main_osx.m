@@ -263,10 +263,8 @@ int main(int argc, char *argv[]) {
     NSApplication *app = [NSApplication sharedApplication];
 
     AppDelegate *app_delegate = [[AppDelegate alloc] init];
-    [app_delegate autorelease];
+    // [app_delegate autorelease];
     [app setDelegate:app_delegate];
-
-    [NSApplication sharedApplication];
 
     NSArray<NSScreen *> *screens = [NSScreen screens];
 
