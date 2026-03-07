@@ -226,11 +226,11 @@ void *background_thread(void *) {
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 #endif
 
-    int timeout_s = 60;
+    int timeout_s = 1;
     bool initial = true;
 
     while (true) {
-        while (ctx.paused) usleep(1000000 / 10);
+        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
         Arena scratch = perm;
 
@@ -277,14 +277,14 @@ void *background_thread(void *) {
         int wait = timeout_s - (time(0) - a_time);
         for (int i = 0; i < 10 * wait && !initial && !ctx.skip_image; i++) {
             usleep(1000000 / 10);
-            while (ctx.paused) usleep(1000000 / 10);
+            while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
         }
 
         pthread_mutex_lock(&unscaled_lock);
             if (ctx.skip_image) ctx.skip_image = false;
             free(unscaled_background.img.buf);
             unscaled_background = (Background) { .img = b, };
-            needs_scaling = true;
+            atomic_store(&needs_scaling, true);
         pthread_mutex_unlock(&unscaled_lock);
 
         initial = false;
@@ -295,10 +295,10 @@ void *background_thread(void *) {
 
 void *resize_thread(void *) {
     while (true) {
-        while (ctx.paused) usleep(1000000 / 10);
+        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
-        if (needs_scaling) {
-            for (int i = 0; i < ctx.monitors_len; i++) {
+        if (atomic_load(&needs_scaling)) {
+            for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
                 pthread_mutex_lock(&unscaled_lock);
                     Image img = rescale_img(
                         0,
@@ -314,7 +314,7 @@ void *resize_thread(void *) {
                     ctx.monitors[i].scaled_background.img = img;
                 pthread_mutex_unlock(&scaled_lock);
             }
-            needs_scaling = false;
+            atomic_store(&needs_scaling, false);
         }
         usleep(1000000 / 20);
     }
@@ -323,7 +323,7 @@ void *resize_thread(void *) {
 void make_fonts() {
     font_lib = init_ffont();
 
-    for (int i = 0; i < ctx.monitors_len; i++) {
+    for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
         Monitor *monitor = &ctx.monitors[i];
         int min_dim = monitor->screen.w < monitor->screen.h ?
                       monitor->screen.w :
@@ -366,7 +366,7 @@ void start() {
 
     while (true) {
         bool stop = true;
-        for (int i = 0; i < ctx.monitors_len; i++) {
+        for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
             pthread_mutex_lock(&scaled_lock);
                 stop = ctx.monitors[i].scaled_background.img.buf != 0;
             pthread_mutex_unlock(&scaled_lock);
@@ -378,7 +378,7 @@ void start() {
 }
 
 void app_loop(int monitor_i) {
-    if (ctx.paused) return;
+    if (atomic_load(&ctx.paused)) return;
 
     Monitor *monitor = &ctx.monitors[monitor_i];
 

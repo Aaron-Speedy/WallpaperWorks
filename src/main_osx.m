@@ -58,7 +58,7 @@ void make_win_bg(NSWindow * win) {
 }
 
 void reconfigure_screens(bool first_time) {
-    ctx.monitors_len = 0;
+    atomic_store(&ctx.monitors_len, 0);
 
     for (int i = 0; i < wins_len; i++) {
         if (wins[i]) {
@@ -94,7 +94,7 @@ void reconfigure_screens(bool first_time) {
     if (first_time) start();
     else make_fonts();
 
-    for (int i = 0; i < ctx.monitors_len; i++) {
+    for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
         [views[i] start_animation];
     }
 }
@@ -191,11 +191,11 @@ void reconfigure_screens(bool first_time) {
 }
 
 - (void) system_will_sleep : (NSNotification *) notification {
-    ctx.paused = true;
+    atomic_store(&ctx.paused, true);
 }
 
 - (void) system_did_wake : (NSNotification *) notification {
-    ctx.paused = false;
+    atomic_store(&ctx.paused, false);
     [self reconfigure_monitors];
 }
 
