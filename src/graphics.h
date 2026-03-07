@@ -205,7 +205,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
             _def_view,
             work.left, work.top,
             w, h,
-            SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER
         );
     }
 #endif
@@ -426,23 +426,21 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     SetParent(win->p.win, _worker_w);
 
     LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
-    style &= ~(WS_OVERLAPPEDWINDOW);
+    style &= ~WS_OVERLAPPEDWINDOW;
     style |= WS_CHILD | WS_VISIBLE;
-
     SetWindowLongPtr(win->p.win, GWL_STYLE, style);
 
-    SetLayeredWindowAttributes(
-        win->p.win,
-        0,
-        0xFF,
-        LWA_ALPHA
-    );
+    LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
+    ex |= WS_EX_LAYERED;
+    SetWindowLongPtr(win->p.win, GWL_EXSTYLE, ex);
+
+    SetLayeredWindowAttributes(win->p.win, 0, 255, LWA_ALPHA);
 
     SetWindowPos(
         win->p.win,
         _def_view,
         0,0,0,0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+        SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOSIZE;
     );
 
     _fill_working_area(win, monitor);
