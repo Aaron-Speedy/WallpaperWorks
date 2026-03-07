@@ -438,9 +438,6 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     SetWindowLongPtr(win->p.win, GWL_STYLE, style);
 
-    LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
-    SetWindowLongPtr(win->p.win, GWL_EXSTYLE, ex | WS_EX_LAYERED);
-
     LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
     SetWindowLongPtr(win->p.win, GWL_STYLE, style | WS_CHILD | WS_VISIBLE | WS_EX_LAYERED);
 
