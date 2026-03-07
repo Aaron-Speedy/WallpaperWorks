@@ -199,10 +199,12 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
                    work.bottom != old.bottom ||
                    work.top != old.top;
 
+    SetParent(win->p.win, _worker_w);
+
     if (resized) {
         SetWindowPos(
             win->p.win,
-            HWND_BOTTOM,
+            _def_view,
             work.left, work.top,
             w, h,
             SWP_NOACTIVATE | SWP_SHOWWINDOW
@@ -515,7 +517,7 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 #elif _WIN32
     SetWindowPos(
         win->p.win,
-        HWND_BOTTOM,
+        _def_view,
         m.rect.left, m.rect.top,
         win->w, win->h,
         SWP_NOACTIVATE | SWP_SHOWWINDOW
