@@ -307,33 +307,6 @@ void reconfigure_screens(bool first_time) {
 
 @end
 
-// void request_auth() {
-//     AuthorizationRef auth_ref = 0;
-//     AuthorizationStatus status = AuthorizationCreate(
-//         0,
-//         kAuthorizationEmptyEnvironment,
-//         kAuthorizationFlagDefaults,
-//         &auth_ref
-//     );
-
-//     if (status == errAuthorizationSuccess) {
-//         // Create an authorization item and execute a privileged operation
-//         AuthorizationItem auth_item = { kAuthorizationRightExecute, 0, 0, 0 };
-//         AuthorizationRights auth_rights = { 1, &authItem };
-//         AuthorizationFlags flags = kAuthorizationFlagDefaults;
-
-//         status = AuthorizationCopyRights(authRef, &authRights, kAuthorizationEmptyEnvironment, flags, NULL);
-
-//         if (status == errAuthorizationSuccess) {
-//             NSLog(@"Permission granted.");
-//         } else {
-//             NSLog(@"Permission denied.");
-//         }
-
-//         AuthorizationFree(authRef, kAuthorizationFlagDefaults);
-//     }
-// }
-
 void alert(NSString *msg) {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:msg];

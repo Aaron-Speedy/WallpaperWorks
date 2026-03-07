@@ -44,12 +44,6 @@ typedef struct {
     ssize len;
 } s8;
 
-#ifdef __clang__
-#define fn(_T, _name, ...) _T (^_name)(__VA_ARGS__) = ^(__VA_ARGS__)
-#elif __GNUC__
-#define fn(_T, _name, ...) _T _name(__VA_ARGS__)
-#endif
-
 Arena new_arena(ssize cap);
 #define new(a, T, c) arena_alloc(a, sizeof(T), _Alignof(T), c)
 #define new_static_arena(name, c) u8 _stack_buf_##name[c] = {0}; Arena name = { .buf = _stack_buf_##name, .cap = c, }
