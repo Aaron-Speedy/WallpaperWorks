@@ -424,6 +424,12 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
 
     SetParent(win->p.win, _worker_w);
+    SetWindowLongPtr(win->p.win, GWL_STYLE, WS_CHILD);
+
+    LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
+    ex &= ~WS_EX_LAYERED;
+    SetWindowLongPtr(win->p.win, GWL_EXSTYLE, ex);
+
     _fill_working_area(win, monitor);
 #endif
 }
