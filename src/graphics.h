@@ -440,7 +440,7 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
         win->p.win,
         _def_view,
         0,0,0,0,
-        SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOSIZE;
+        SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOSIZE
     );
 
     _fill_working_area(win, monitor);
