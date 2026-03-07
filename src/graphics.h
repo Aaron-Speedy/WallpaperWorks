@@ -306,7 +306,7 @@ LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
     }
 
     if (win_event.type) win->event_queue[win->event_queue_len++] = win_event;
-    assert(win->event_queue_len <= MAX_EVENT_QUEUE_LEN);
+    assert(win->event_queue_len < MAX_EVENT_QUEUE_LEN);
 
     return ret;
 }
@@ -425,27 +425,24 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     SetParent(win->p.win, _worker_w);
 
-    SetWindowPos(
-        win->p.win,
-        _def_view,
-        0,0,0,0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
-    );
-
     LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
     style &= ~(WS_OVERLAPPEDWINDOW);
     style |= WS_CHILD | WS_VISIBLE;
 
     SetWindowLongPtr(win->p.win, GWL_STYLE, style);
 
-    LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
-    SetWindowLongPtr(win->p.win, GWL_STYLE, style | WS_CHILD | WS_VISIBLE | WS_EX_LAYERED);
-
     SetLayeredWindowAttributes(
         win->p.win,
         0,
         0xFF,
         LWA_ALPHA
+    );
+
+    SetWindowPos(
+        win->p.win,
+        _def_view,
+        0,0,0,0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
     );
 
     _fill_working_area(win, monitor);
