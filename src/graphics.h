@@ -199,8 +199,6 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
                    work.bottom != old.bottom ||
                    work.top != old.top;
 
-    SetParent(win->p.win, _worker_w);
-
     if (resized) {
         SetWindowPos(
             win->p.win,
