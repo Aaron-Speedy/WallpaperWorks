@@ -259,6 +259,7 @@ void reconfigure_screens(bool first_time) {
     }
     free(buf);
     buf = 0;
+    ctx.monitors[monitor_index].screen.buf = 0;
 }
 
 - (void) dealloc {
