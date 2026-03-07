@@ -202,10 +202,10 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     if (resized) {
         SetWindowPos(
             win->p.win,
-            _def_view,
+            HWND_BOTTOM,
             work.left, work.top,
             w, h,
-            SWP_NOACTIVATE | SWP_NOOWNERZORDER
+            SWP_NOACTIVATE | SWP_SHOWWINDOW
         );
     }
 #endif
@@ -424,24 +424,11 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
 
     SetParent(win->p.win, _worker_w);
-
-    LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
-    style &= ~WS_OVERLAPPEDWINDOW;
-    style |= WS_CHILD | WS_VISIBLE;
     SetWindowLongPtr(win->p.win, GWL_STYLE, style);
 
     LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
-    ex |= WS_EX_LAYERED;
+    ex &= ~WS_EX_LAYERED;
     SetWindowLongPtr(win->p.win, GWL_EXSTYLE, ex);
-
-    SetLayeredWindowAttributes(win->p.win, 0, 255, LWA_ALPHA);
-
-    SetWindowPos(
-        win->p.win,
-        _def_view,
-        0,0,0,0,
-        SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOSIZE
-    );
 
     _fill_working_area(win, monitor);
 #endif
@@ -528,10 +515,10 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 #elif _WIN32
     SetWindowPos(
         win->p.win,
-        _def_view,
+        HWND_BOTTOM,
         m.rect.left, m.rect.top,
         win->w, win->h,
-        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
+        SWP_NOACTIVATE | SWP_SHOWWINDOW
     );
 #endif
 }
