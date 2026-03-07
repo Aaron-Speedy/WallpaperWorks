@@ -39,35 +39,8 @@ typedef enum {
 #define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
+// TODO: check if we need this function
 Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
-
-CGSize get_dpi(NSScreen *screen) {
-    CGSize physical_size_mm = CGDisplayScreenSize(
-        [[[screen
-          deviceDescription]
-          objectForKey:@"NSScreenNumber"]
-          unsignedIntValue]
-    );
-    
-    if (physical_size_mm.width == 0 || physical_size_mm.height == 0) {
-        return CGSizeMake(72.0, 72.0);
-    }
-    
-    CGFloat backing_scale = [screen backingScaleFactor];
-    NSRect screen_frame = [screen frame];
-    
-    CGFloat width = screen_frame.size.width * backing_scale;
-    CGFloat height = screen_frame.size.height * backing_scale;
-
-    CGFloat mm_per_inch = 25.4;
-    
-    CGSize dpi = {
-        .width  = (width / physical_size_mm.width) * mm_per_inch,
-        .height = (height / physical_size_mm.height) * mm_per_inch,
-    };
-
-    return dpi;
-}
 
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
@@ -76,7 +49,7 @@ void make_win_bg(NSWindow * win) {
     [win setHasShadow:NO];
     [win setLevel:kCGDesktopWindowLevel - 1];
     [win setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary];
-    [win setFrame:[[NSScreen mainScreen] frame] display:YES];
+    [win setFrame:[[win screen] frame] display:YES];
     [win setMovable:NO];
 }
 
@@ -90,12 +63,13 @@ void make_win_bg(NSWindow * win) {
 
 @implementation AppDelegate
 - (void) applicationDidFinishLaunching : (NSNotification *) notification {
-    self.status_item = [[NSStatusBar
-                      systemStatusBar]
-                      statusItemWithLength:NSVariableStatusItemLength];
+    self.status_item = [[NSStatusBar systemStatusBar]
+        statusItemWithLength: NSVariableStatusItemLength
+    ];
 
     self.status_on_img = [NSImage imageNamed:@"status_bar_icon_on"];
     [self.status_on_img setSize:NSMakeSize(22, 22)];
+
     self.status_off_img = [NSImage imageNamed:@"status_bar_icon_off"];
     [self.status_off_img setSize:NSMakeSize(22, 22)];
 
@@ -104,9 +78,11 @@ void make_win_bg(NSWindow * win) {
     [self.status_item setHighlightMode:YES];
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
-    NSMenuItem *quit_item = [[NSMenuItem alloc] initWithTitle:@"Quit" 
-                                                       action:@selector(terminate:) 
-                                                keyEquivalent:@"q"];
+    NSMenuItem *quit_item = [[NSMenuItem alloc]
+        initWithTitle:@"Quit"
+        action:@selector(terminate:)
+        keyEquivalent:@"q"
+    ];
     [quit_item setTarget:NSApp];
     [self.status_item.menu addItem:quit_item];
 
@@ -143,12 +119,12 @@ void make_win_bg(NSWindow * win) {
 @interface MyDrawingView : NSView {
     CGContextRef bitmap_ctx;
     unsigned char *buf;
-    size_t w, h;
+    size_t w, h, monitor_index;
 }
 
-- (void) setup_bitmap_ctx;
-- (void) draw_buf;
+- (void) setup;
 - (void) cleanup_bitmap_ctx;
+- (void) draw_buf;
 - (void) start_animation;
 
 @end
@@ -158,18 +134,27 @@ void make_win_bg(NSWindow * win) {
 - (id) initWithFrame : (NSRect) frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
-        [self setup_bitmap_ctx];
+        [self setup];
     }
     return self;
 }
 
-- (void) setup_bitmap_ctx {
+- (void) setup {
     [self cleanup_bitmap_ctx];
 
     w = (size_t) [self bounds].size.width;
     h = (size_t) [self bounds].size.height;
 
     buf = calloc(h * w * 4, sizeof(unsigned char));
+
+    monitor_index = ctx.monitors_len++;
+
+    ctx.monitors[monitor_index].screen = (Image) {
+        .buf = buf,
+        .alloc_w = w,
+        .w = w,
+        .h = h,
+    };
 
     CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
     bitmap_ctx = CGBitmapContextCreate(
@@ -199,8 +184,7 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
-    ctx.monitors_len = 0;
-    ctx.monitors[ctx.monitors_len++].screen = (Image) {
+    ctx.monitors[monitor_index].screen = (Image) {
         .buf = buf,
         .alloc_w = w,
         .w = w,
@@ -222,15 +206,13 @@ void make_win_bg(NSWindow * win) {
 
 - (void) start_animation {
     NSTimeInterval interval = 1;
-    [NSTimer scheduledTimerWithTimeInterval:interval
-                                         target:self
-                                       selector:@selector(update_display:) 
-                                       userInfo:0 
-                                        repeats:YES];
-
-    ctx.monitors_len = 0;
-    ctx.monitors[ctx.monitors_len++].screen = (Image) { .buf = buf, .alloc_w = w, .w = w, .h = h, };
-    start();
+    [NSTimer scheduledTimerWithTimeInterval:
+        interval
+        target: self
+        selector: @selector(update_display)
+        userInfo: 0
+        repeats: YES
+    ];
 }
 
 - (void) update_display : (NSTimer *) timer {
@@ -276,8 +258,6 @@ void alert(NSString *msg) {
 }
 
 int main(int argc, char *argv[]) {
-    Arena scratch = new_arena(10 * KiB);
-
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSApplication *app = [NSApplication sharedApplication];
@@ -288,27 +268,35 @@ int main(int argc, char *argv[]) {
 
     [NSApplication sharedApplication];
 
-    NSUInteger win_style = NSTitledWindowMask | NSClosableWindowMask | NSResizableWindowMask;
-    NSRect win_rect = NSMakeRect(100, 100, 400, 400);
-    NSWindow *win = [[NSWindow alloc] initWithContentRect:win_rect
-                                          styleMask:win_style
-                                          backing:NSBackingStoreBuffered
-                                          defer:NO];
-    [win autorelease];
+    NSArray<NSScreen *> *screens = [NSScreen screens];
 
-    MyDrawingView *drawing_view = [[MyDrawingView alloc] initWithFrame:win_rect];
-    [drawing_view autorelease];
-    [win setContentView:drawing_view];
+    NSWindow *wins[arrlen(ctx.monitors)] = {0};
+    MyDrawingView *views[arrlen(ctx.monitors)] = {0};
 
-    make_win_bg(win);
+    for (int i = 0; i < [screens count]; i++) {
+        NSRect frame = [screens[i] frame];
+        NSWindow *win = wins[i];
+        win = [[NSWindow alloc]
+            initWithContentRect: frame
+            defer: NO
+            screen: screens[i]
+        ];
+        make_win_bg(win);
 
-    [drawing_view setup_bitmap_ctx];
-    [drawing_view start_animation];
+        views[i] = [[MyDrawingView alloc] initWithFrame:frame];
+        [win setContentView:views[i]];
+        [views[i] setup];
+        [win orderFrontRegardless];
+    }
+
+    start();
+
+    for (int i = 0; i < ctx.monitors.len; i++) {
+        [views[i] start_animation];
+    }
 
     // TODO: Create app delegate to handle system events.
-    // TODO: Create menus (especially Quit!)
 
-    [win orderFrontRegardless];
     [NSApp run];
     [pool drain];
     return 0;
