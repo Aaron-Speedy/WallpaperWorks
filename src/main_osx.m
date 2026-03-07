@@ -184,8 +184,6 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
-    printf("%ld\n", monitor_index);
-
     ctx.monitors[monitor_index].screen = (Image) {
         .buf = buf,
         .alloc_w = w,
@@ -273,14 +271,13 @@ int main(int argc, char *argv[]) {
     NSWindow *wins[arrlen(ctx.monitors)] = {0};
     MyDrawingView *views[arrlen(ctx.monitors)] = {0};
 
-    printf("Hi.\n");
-
     for (int i = 0; i < [screens count]; i++) {
         NSRect frame = [screens[i] frame];
         wins[i] = [[NSWindow alloc]
             initWithContentRect: frame
+            styleMask:NSWindowStyleMaskBorderless
+            backing:NSBackingStoreBuffered
             defer: NO
-            screen: screens[i]
         ];
         make_win_bg(wins[i]);
 
