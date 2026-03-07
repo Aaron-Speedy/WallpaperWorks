@@ -273,18 +273,17 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < [screens count]; i++) {
         NSRect frame = [screens[i] frame];
-        NSWindow *win = wins[i];
-        win = [[NSWindow alloc]
+        wins[i] = [[NSWindow alloc]
             initWithContentRect: frame
             defer: NO
             screen: screens[i]
         ];
-        make_win_bg(win);
+        make_win_bg(wins[i]);
 
         views[i] = [[MyDrawingView alloc] initWithFrame:frame];
-        [win setContentView:views[i]];
+        [wins[i] setContentView:views[i]];
         [views[i] setup];
-        [win orderFrontRegardless];
+        [wins[i] orderFrontRegardless];
     }
 
     start();
