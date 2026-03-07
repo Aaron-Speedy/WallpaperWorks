@@ -205,7 +205,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
             _def_view,
             work.left, work.top,
             w, h,
-            SWP_NOACTIVATE | SWP_NOOWNERZORDER
+            SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE
         );
     }
 #endif
@@ -354,7 +354,7 @@ void new_win(Win *win, char *name, int w, int h) {
     SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
 
     win->p.win = CreateWindowExA( // TODO: Check for errors.
-        WS_EX_LAYERED, // TODO: make this only for make_win_bg
+        0,
         win_class.lpszClassName,
         "Untited Window", // TODO: Add ability to change name
         WS_OVERLAPPEDWINDOW,
@@ -526,10 +526,10 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 #elif _WIN32
     SetWindowPos(
         win->p.win,
-        0,
-        m.rect.left, m.rect.top,
-        win->w, win->h,
-        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
+        _def_view,
+        work.left, work.top,
+        w, h,
+        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE
     );
 #endif
 }
