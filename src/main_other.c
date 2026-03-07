@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
 
         app_loop(monitor_i);
 
-        usleep(100000 * 0.025);
+        usleep(100000 * 0.25);
 
         struct timeval time_val = {0};
         gettimeofday(&time_val, NULL);
