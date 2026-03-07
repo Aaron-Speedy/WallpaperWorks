@@ -39,9 +39,6 @@ typedef enum {
 #define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
-// TODO: check if we need this function
-Boolean SMLoginItemSetEnabled(CFStringRef identifier, Boolean enabled);
-
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
     [win setOpaque:NO];
