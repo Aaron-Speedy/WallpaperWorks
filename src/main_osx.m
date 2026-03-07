@@ -53,6 +53,7 @@ void make_win_bg(NSWindow * win) {
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (void) disable_login_item;
+- (void) restart_app;
 @property (nonatomic, strong) NSStatusItem *status_item;
 @property (nonatomic, strong) NSImage *status_on_img;
 @property (nonatomic, strong) NSImage *status_off_img;
@@ -83,6 +84,13 @@ void make_win_bg(NSWindow * win) {
     [quit_item setTarget:NSApp];
     [self.status_item.menu addItem:quit_item];
 
+    [[NSNotificationCenter defaultCenter]
+        addObserver: self
+        selector: @selector(restart_app)
+        name: NSApplicationDidChangeScreenParametersNotification
+        object: nil
+    ];
+
     {
         SMAppService *service = [SMAppService mainAppService];
         NSError *error = 0;
@@ -109,6 +117,18 @@ void make_win_bg(NSWindow * win) {
     BOOL success = [service unregisterAndReturnError:&error];
     
     if (!success) NSLog(@"Login item unregistration failed with error: %@", error);
+}
+
+- (void) restart_app {
+    exit(0);
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        NSString *path = [[NSBundle mainBundle] bundlePath];
+        NSTask *task = [[NSTask alloc] init];
+        [task setLaunchPath:@"/usr/bin/open"];
+        [task setArguments:@[path]];
+        [task launch];
+    });
 }
 
 @end
