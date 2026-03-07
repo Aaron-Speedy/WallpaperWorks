@@ -232,7 +232,7 @@ void reconfigure_screens(bool first_time) {
 
     buf = calloc(h * w * 4, sizeof(unsigned char));
 
-    monitor_index = ctx.monitors_len++;
+    monitor_index = atomic_fetch_add(ctx.monitors_len, 1);
 
     ctx.monitors[monitor_index].screen = (Image) {
         .buf = buf,

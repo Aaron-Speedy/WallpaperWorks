@@ -32,7 +32,7 @@ typedef struct {
 
 typedef struct {
     Monitor monitors[MAX_PLATFORM_MONITORS];
-    ssize monitors_len;
+    _Atomic ssize monitors_len;
     bool skip_image;
     _Atomic bool paused;
 } Context;
