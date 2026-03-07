@@ -354,7 +354,7 @@ void new_win(Win *win, char *name, int w, int h) {
     SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
 
     win->p.win = CreateWindowExA( // TODO: Check for errors.
-        0,
+        WS_EX_LAYERED, // TODO: make this only for make_win_bg
         win_class.lpszClassName,
         "Untited Window", // TODO: Add ability to change name
         WS_OVERLAPPEDWINDOW,
@@ -425,10 +425,20 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
     SetParent(win->p.win, _worker_w);
 
-    SetWindowLongPtrA(
+    LONG_PTR style = GetWindowLongPtr(win->p.win, GWL_STYLE);
+    SetWindowLongPtr(win->p.win, GWL_STYLE, style | WS_CHILD | WS_VISIBLE | WS_EX_LAYERED);
+
+    SetWindowLongPtr(
         win->p.win,
-        GWL_STYLE,
-        WS_POPUP | WS_SYSMENU
+        GWL_EXSTYLE,
+        WS_EX_LAYERED
+    );
+
+    SetLayeredWindowAttributes(
+        win->p.win,
+        0,
+        0xFF,
+        LWA_ALPHA
     );
 
     _fill_working_area(win, monitor);
