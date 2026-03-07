@@ -190,7 +190,7 @@ void make_win_bg(NSWindow * win) {
         .w = w,
         .h = h,
     };
-    app_loop(0);
+    app_loop(monitor_index);
 }
 
 - (void) drawRect : (NSRect) dirty_rect {
