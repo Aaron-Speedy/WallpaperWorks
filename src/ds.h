@@ -27,7 +27,9 @@ typedef ptrdiff_t ssize;
 
 #define arrlen(arr) (ssize) (sizeof(arr)/sizeof(arr[0]))
 #define slice(l, i, _len) { .buf = &(l).buf[i], .len = (_len), }
-#define strify(c) #c
+#define strify(x) #x
+#define strify_macros(x) strify_macros(x)
+
 #define KiB (ssize) (1 << 10)
 #define MiB (ssize) (1 << 20)
 #define GiB (ssize) (1 << 30)
