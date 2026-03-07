@@ -78,6 +78,7 @@ elif [[ "$OS" == "darwin" ]]; then
     FREETYPE="$(pkg-config --libs freetype2) -I third_party/freetype/include/"
     WINDOWING="-framework Cocoa -framework ServiceManagement"
     SOURCE="-x objective-c src/main_osx.m -x none"
+    OTHER="-arch x86_64 -arch arm64"
 
     mkdir build/$APP_NAME.app/
     mkdir build/$APP_NAME.app/Contents/
