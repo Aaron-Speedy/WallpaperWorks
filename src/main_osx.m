@@ -291,7 +291,7 @@ int main(int argc, char *argv[]) {
 
     start();
 
-    for (int i = 0; i < ctx.monitors.len; i++) {
+    for (int i = 0; i < ctx.monitors_len; i++) {
         [views[i] start_animation];
     }
 
