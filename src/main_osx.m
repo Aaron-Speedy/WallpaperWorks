@@ -184,7 +184,7 @@ void make_win_bg(NSWindow * win) {
 - (void) draw_buf {
     if (!buf) return;
 
-    fprintf("%ld\n", monitor_index);
+    printf("%ld\n", monitor_index);
 
     ctx.monitors[monitor_index].screen = (Image) {
         .buf = buf,
