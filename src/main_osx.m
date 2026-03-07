@@ -273,6 +273,8 @@ int main(int argc, char *argv[]) {
     NSWindow *wins[arrlen(ctx.monitors)] = {0};
     MyDrawingView *views[arrlen(ctx.monitors)] = {0};
 
+    printf("Hi.\n");
+
     for (int i = 0; i < [screens count]; i++) {
         NSRect frame = [screens[i] frame];
         wins[i] = [[NSWindow alloc]
