@@ -103,6 +103,8 @@ void reconfigure_screens(bool first_time) {
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (void) disable_login_item;
 - (void) reconfigure_monitors;
+- (void) system_will_sleep : (NSNotification *) notification;
+- (void) system_did_wake : (NSNotification *) notification;
 @property (nonatomic, strong) NSStatusItem *status_item;
 @property (nonatomic, strong) NSImage *status_on_img;
 @property (nonatomic, strong) NSImage *status_off_img;
@@ -140,6 +142,20 @@ void reconfigure_screens(bool first_time) {
         object: nil
     ];
 
+    [[NSWorkspace sharedWorkspace].notificationCenter addObserver:
+        self
+        selector: @selector(system_will_sleep:)
+        name: NSWorkspaceWillSleepNotification
+        object: nil
+    ];
+
+    [[NSWorkspace sharedWorkspace].notificationCenter addObserver:
+        self
+        selector: @selector(system_did_wake:)
+        name: NSWorkspaceDidWakeNotification
+        object: nil
+    ];
+
     {
         SMAppService *service = [SMAppService mainAppService];
         NSError *error = 0;
@@ -172,6 +188,15 @@ void reconfigure_screens(bool first_time) {
 
 - (void) reconfigure_monitors {
     reconfigure_screens(false);
+}
+
+- (void) system_will_sleep : (NSNotification *) notification {
+    ctx.paused = true;
+}
+
+- (void) system_did_wake : (NSNotification *) notification {
+    ctx.paused = false;
+    [self reconfigure_monitors];
 }
 
 @end
