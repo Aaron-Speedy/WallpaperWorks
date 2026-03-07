@@ -39,6 +39,8 @@ typedef enum {
 #define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
+@class MyDrawingView;
+
 // TODO: this sucks
 size_t wins_len = 0;
 NSWindow *wins[arrlen(ctx.monitors)] = {0};
