@@ -527,9 +527,9 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
     SetWindowPos(
         win->p.win,
         _def_view,
-        work.left, work.top,
-        w, h,
-        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE
+        m.rect.left, m.rect.top,
+        win->w, win->h,
+        SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER
     );
 #endif
 }
