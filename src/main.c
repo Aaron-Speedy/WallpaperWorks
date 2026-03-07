@@ -314,23 +314,7 @@ void *resize_thread(void *) {
     }
 }
 
-void start() {
-    {
-        pthread_t thread = 0;
-        if (pthread_create(&thread, 0, background_thread, 0)) {
-            err("Failed to create background thread.");
-        }
-    }
-
-    {
-        pthread_t thread = 0;
-        if (pthread_create(&thread, 0, resize_thread, 0)) {
-            err("Failed to create resize thread.");
-        }
-    }
-
-    // TODO: update the font sizes whenever the screen resizes
-
+void make_fonts() {
     font_lib = init_ffont();
 
     for (int i = 0; i < ctx.monitors_len; i++) {
@@ -353,6 +337,26 @@ void start() {
             min_dim * date_size
         );
     }
+}
+
+void start() {
+    {
+        pthread_t thread = 0;
+        if (pthread_create(&thread, 0, background_thread, 0)) {
+            err("Failed to create background thread.");
+        }
+    }
+
+    {
+        pthread_t thread = 0;
+        if (pthread_create(&thread, 0, resize_thread, 0)) {
+            err("Failed to create resize thread.");
+        }
+    }
+
+    // TODO: update the font sizes whenever the screen resizes
+
+    make_fonts();
 
     while (true) {
         bool stop = true;

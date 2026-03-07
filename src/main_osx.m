@@ -39,6 +39,11 @@ typedef enum {
 #define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
+// TODO: this sucks
+size_t wins_len = 0;
+NSWindow *wins[arrlen(ctx.monitors)] = {0};
+MyDrawingView *views[arrlen(ctx.monitors)] = {0};
+
 void make_win_bg(NSWindow * win) {
     [win setStyleMask:NSWindowStyleMaskBorderless];
     [win setOpaque:NO];
@@ -50,10 +55,52 @@ void make_win_bg(NSWindow * win) {
     [win setMovable:NO];
 }
 
+void reconfigure_screens(bool first_time) {
+    ctx.monitors_len = 0;
+
+    for (int i = 0; i < wins_len; i++) {
+        if (wins[i]) {
+            [wins[i] close];
+            wins[i] = nil;
+        }
+        if (views[i]) {
+            [views[i] cleanup_bitmap_ctx];
+            [views[i] removeFromSuperview];
+            views[i] = nil;
+        }
+    }
+
+    NSArray<NSScreen *> *screens = [NSScreen screens];
+    wins_len = [screens count];
+
+    for (int i = 0; i < wins_len; i++) {
+        NSRect frame = [screens[i] frame];
+        wins[i] = [[NSWindow alloc]
+            initWithContentRect: frame
+            styleMask:NSWindowStyleMaskBorderless
+            backing:NSBackingStoreBuffered
+            defer: NO
+        ];
+        make_win_bg(wins[i]);
+
+        views[i] = [[MyDrawingView alloc] initWithFrame:frame];
+        [wins[i] setContentView:views[i]];
+        [views[i] setup];
+        [wins[i] orderFrontRegardless];
+    }
+
+    if (first_time) start();
+    else make_fonts();
+
+    for (int i = 0; i < ctx.monitors_len; i++) {
+        [views[i] start_animation];
+    }
+}
+
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 - (void) applicationDidFinishLaunching : (NSNotification *) notification;
 - (void) disable_login_item;
-- (void) restart_app;
+- (void) reconfigure_monitors;
 @property (nonatomic, strong) NSStatusItem *status_item;
 @property (nonatomic, strong) NSImage *status_on_img;
 @property (nonatomic, strong) NSImage *status_off_img;
@@ -86,7 +133,7 @@ void make_win_bg(NSWindow * win) {
 
     [[NSNotificationCenter defaultCenter]
         addObserver: self
-        selector: @selector(restart_app)
+        selector: @selector(reconfigure_monitors)
         name: NSApplicationDidChangeScreenParametersNotification
         object: nil
     ];
@@ -107,6 +154,8 @@ void make_win_bg(NSWindow * win) {
         //     [SMAppService openSystemSettingsLoginItems];
         // }
     }
+
+    reconfigure_screens(true);
 }
 
 - (void) disable_login_item {
@@ -119,16 +168,8 @@ void make_win_bg(NSWindow * win) {
     if (!success) NSLog(@"Login item unregistration failed with error: %@", error);
 }
 
-- (void) restart_app {
-    exit(0);
-
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        NSString *path = [[NSBundle mainBundle] bundlePath];
-        NSTask *task = [[NSTask alloc] init];
-        [task setLaunchPath:@"/usr/bin/open"];
-        [task setArguments:@[path]];
-        [task launch];
-    });
+- (void) reconfigure_monitors {
+    reconfigure_screens(false);
 }
 
 @end
@@ -282,33 +323,6 @@ int main(int argc, char *argv[]) {
     AppDelegate *app_delegate = [[AppDelegate alloc] init];
     [app_delegate autorelease];
     [app setDelegate:app_delegate];
-
-    NSArray<NSScreen *> *screens = [NSScreen screens];
-
-    NSWindow *wins[arrlen(ctx.monitors)] = {0};
-    MyDrawingView *views[arrlen(ctx.monitors)] = {0};
-
-    for (int i = 0; i < [screens count]; i++) {
-        NSRect frame = [screens[i] frame];
-        wins[i] = [[NSWindow alloc]
-            initWithContentRect: frame
-            styleMask:NSWindowStyleMaskBorderless
-            backing:NSBackingStoreBuffered
-            defer: NO
-        ];
-        make_win_bg(wins[i]);
-
-        views[i] = [[MyDrawingView alloc] initWithFrame:frame];
-        [wins[i] setContentView:views[i]];
-        [views[i] setup];
-        [wins[i] orderFrontRegardless];
-    }
-
-    start();
-
-    for (int i = 0; i < ctx.monitors_len; i++) {
-        [views[i] start_animation];
-    }
 
     // TODO: Create app delegate to handle system events.
 
