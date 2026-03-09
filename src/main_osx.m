@@ -11,10 +11,10 @@
 
 void alert(NSString *msg) {
     NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:msg];
-    [alert setInformativeText:@"Information"];
-    [alert addButtonWithTitle:@"Ok"];
-    [alert addButtonWithTitle:@"Cancel"];
+    [alert setMessageText: msg];
+    [alert setInformativeText: @"Information"];
+    [alert addButtonWithTitle: @"Ok"];
+    [alert addButtonWithTitle: @"Cancel"];
     [alert runModal];
 }
 
@@ -22,7 +22,7 @@ void alertf(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    NSString *fmt_ns_str = [NSString stringWithUTF8String:fmt];
+    NSString *fmt_ns_str = [NSString stringWithUTF8String: fmt];
     NSString *msg = [[NSString alloc]
         initWithFormat: fmt_ns_str
         arguments: args
@@ -71,14 +71,14 @@ NSWindow *wins[arrlen(ctx.monitors)] = {0};
 MyDrawingView *views[arrlen(ctx.monitors)] = {0};
 
 void make_win_bg(NSWindow * win) {
-    [win setStyleMask:NSWindowStyleMaskBorderless];
-    [win setOpaque:NO];
-    [win setBackgroundColor:[NSColor clearColor]];
-    [win setHasShadow:NO];
-    [win setLevel:kCGDesktopWindowLevel - 1];
-    [win setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary];
-    [win setFrame:[[win screen] frame] display:YES];
-    [win setMovable:NO];
+    [win setStyleMask: NSWindowStyleMaskBorderless];
+    [win setOpaque: NO];
+    [win setBackgroundColor: [NSColor clearColor]];
+    [win setHasShadow: NO];
+    [win setLevel: kCGDesktopWindowLevel - 1];
+    [win setCollectionBehavior: NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary];
+    [win setFrame: [[win screen] frame] display: YES];
+    [win setMovable: NO];
 }
 
 void reconfigure_screens(bool first_time) {
@@ -103,14 +103,14 @@ void reconfigure_screens(bool first_time) {
         NSRect frame = [screens[i] frame];
         wins[i] = [[NSWindow alloc]
             initWithContentRect: frame
-            styleMask:NSWindowStyleMaskBorderless
-            backing:NSBackingStoreBuffered
+            styleMask: NSWindowStyleMaskBorderless
+            backing: NSBackingStoreBuffered
             defer: NO
         ];
         make_win_bg(wins[i]);
 
-        views[i] = [[MyDrawingView alloc] initWithFrame:frame];
-        [wins[i] setContentView:views[i]];
+        views[i] = [[MyDrawingView alloc] initWithFrame: frame];
+        [wins[i] setContentView: views[i]];
         [views[i] setup];
         [wins[i] orderFrontRegardless];
     }
@@ -140,24 +140,24 @@ void reconfigure_screens(bool first_time) {
         statusItemWithLength: NSVariableStatusItemLength
     ];
 
-    self.status_on_img = [NSImage imageNamed:@"status_bar_icon_on"];
-    [self.status_on_img setSize:NSMakeSize(22, 22)];
+    self.status_on_img = [NSImage imageNamed: @"status_bar_icon_on"];
+    [self.status_on_img setSize: NSMakeSize(22, 22)];
 
-    self.status_off_img = [NSImage imageNamed:@"status_bar_icon_off"];
-    [self.status_off_img setSize:NSMakeSize(22, 22)];
+    self.status_off_img = [NSImage imageNamed: @"status_bar_icon_off"];
+    [self.status_off_img setSize: NSMakeSize(22, 22)];
 
-    [self.status_item setImage:self.status_off_img];
-    [self.status_item setAlternateImage:self.status_on_img];
-    [self.status_item setHighlightMode:YES];
+    [self.status_item setImage: self.status_off_img];
+    [self.status_item setAlternateImage: self.status_on_img];
+    [self.status_item setHighlightMode: YES];
 
-    self.status_item.menu = [[NSMenu alloc] initWithTitle:@""];
+    self.status_item.menu = [[NSMenu alloc] initWithTitle: @""];
     NSMenuItem *quit_item = [[NSMenuItem alloc]
-        initWithTitle:@"Quit"
-        action:@selector(terminate:)
-        keyEquivalent:@"q"
+        initWithTitle: @"Quit"
+        action: @selector(terminate:)
+        keyEquivalent: @"q"
     ];
-    [quit_item setTarget:NSApp];
-    [self.status_item.menu addItem:quit_item];
+    [quit_item setTarget: NSApp];
+    [self.status_item.menu addItem: quit_item];
 
     [[NSNotificationCenter defaultCenter]
         addObserver: self
@@ -205,7 +205,7 @@ void reconfigure_screens(bool first_time) {
     
     // Unregister the service
     NSError *error = 0;
-    BOOL success = [service unregisterAndReturnError:&error];
+    BOOL success = [service unregisterAndReturnError: &error];
     
     if (!success) NSLog(@"Login item unregistration failed with error: %@", error);
 }
@@ -241,7 +241,7 @@ void reconfigure_screens(bool first_time) {
 @implementation MyDrawingView
 
 - (id) initWithFrame : (NSRect) frameRect {
-    self = [super initWithFrame:frameRect];
+    self = [super initWithFrame: frameRect];
     if (self) {
         [self setup];
     }
@@ -338,7 +338,7 @@ int main(int argc, char *argv[]) {
 
     AppDelegate *app_delegate = [[AppDelegate alloc] init];
     [app_delegate autorelease];
-    [app setDelegate:app_delegate];
+    [app setDelegate: app_delegate];
 
     // TODO: Create app delegate to handle system events.
 
