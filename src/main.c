@@ -34,7 +34,7 @@ typedef struct {
     Monitor monitors[MAX_PLATFORM_MONITORS];
     _Atomic ssize monitors_len;
     _Atomic bool skip_image;
-    // _Atomic bool paused;
+    _Atomic bool paused;
 } Context;
 
 #include "config.h"
@@ -230,7 +230,7 @@ void *background_thread(void *) {
     bool initial = true;
 
     while (true) {
-        // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
         Arena scratch = perm;
 
@@ -276,7 +276,7 @@ void *background_thread(void *) {
         int wait = timeout_s - (time(0) - initial_time);
         for (int i = 0; i < 10 * wait && !initial && !atomic_load(&ctx.skip_image); i++) {
             usleep(1000000 / 10);
-            // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+            while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
         }
 
         pthread_mutex_lock(&unscaled_lock);
@@ -294,7 +294,7 @@ void *background_thread(void *) {
 
 void *resize_thread(void *) {
     while (true) {
-        // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
         if (atomic_load(&needs_scaling)) {
             for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
@@ -377,7 +377,7 @@ void start() {
 }
 
 void app_loop(int monitor_i) {
-    // if (atomic_load(&ctx.paused)) return;
+    if (atomic_load(&ctx.paused)) return;
 
     Monitor *monitor = &ctx.monitors[monitor_i];
 

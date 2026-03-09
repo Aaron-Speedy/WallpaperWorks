@@ -191,11 +191,11 @@ void reconfigure_screens(bool first_time) {
 }
 
 - (void) system_will_sleep : (NSNotification *) notification {
-    // atomic_store(&ctx.paused, true);
+    atomic_store(&ctx.paused, true);
 }
 
 - (void) system_did_wake : (NSNotification *) notification {
-    // atomic_store(&ctx.paused, false);
+    atomic_store(&ctx.paused, false);
     [self reconfigure_monitors];
 }
 
@@ -283,7 +283,7 @@ void reconfigure_screens(bool first_time) {
     [self draw_buf];
 
     CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
-    CGContextRef screen_ctx = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
+    CGContextRef screen_ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
     if (image) { // TODO: handle errors
         CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
         CGImageRelease(image);
