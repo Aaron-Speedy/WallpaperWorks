@@ -9,10 +9,34 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+void alert(NSString *msg) {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:msg];
+    [alert setInformativeText:@"Information"];
+    [alert addButtonWithTitle:@"Ok"];
+    [alert addButtonWithTitle:@"Cancel"];
+    [alert runModal];
+}
+
+void alertf(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    NSString *fmt_ns_str = [NSString stringWithUTF8String:fmt];
+    NSString *msg = [[NSString alloc]
+        initWithFormat: format_ns_str
+        arguments: args
+    ];
+
+    va_end(args);
+
+    alert(msg);
+}
+
 #define err(...) do { \
-  fprintf(stderr, "Error: "); \
-  fprintf(stderr, __VA_ARGS__); \
-  fprintf(stderr, "\n"); \
+  alertf(stderr, "Error: "); \
+  alertf(stderr, __VA_ARGS__); \
+  alertf(stderr, "\n"); \
   exit(1); \
 } while (0);
 
@@ -306,15 +330,6 @@ void reconfigure_screens(bool first_time) {
 }
 
 @end
-
-void alert(NSString *msg) {
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:msg];
-    [alert setInformativeText:@"Information"];
-    [alert addButtonWithTitle:@"Ok"];
-    [alert addButtonWithTitle:@"Cancel"];
-    [alert runModal];
-}
 
 int main(int argc, char *argv[]) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
