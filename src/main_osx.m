@@ -111,7 +111,6 @@ void reconfigure_screens(bool first_time) {
 
         views[i] = [[MyDrawingView alloc] initWithFrame: frame];
         [wins[i] setContentView: views[i]];
-        [views[i] setup];
         [wins[i] orderFrontRegardless];
     }
 
@@ -151,6 +150,7 @@ void reconfigure_screens(bool first_time) {
     [self.status_item setHighlightMode: YES];
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle: @""];
+
     NSMenuItem *quit_item = [[NSMenuItem alloc]
         initWithTitle: @"Quit"
         action: @selector(terminate:)
