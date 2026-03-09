@@ -34,7 +34,7 @@ typedef struct {
     Monitor monitors[MAX_PLATFORM_MONITORS];
     _Atomic ssize monitors_len;
     bool skip_image;
-    _Atomic bool paused;
+    // _Atomic bool paused;
 } Context;
 
 #include "config.h"
@@ -226,17 +226,16 @@ void *background_thread(void *) {
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
 #endif
 
-    int timeout_s = 1;
+    int timeout_s = 60;
     bool initial = true;
 
     while (true) {
-        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
         Arena scratch = perm;
 
-        time_t a_time = time(0);
-        Image b = {0};
-
+        time_t initial_time = time(0);
+        Image decoded = {0};
 
         s8 img_data = get_random_image(&scratch, curl, s8(APP_NAME));
         if (!img_data.buf) {
@@ -249,41 +248,41 @@ void *background_thread(void *) {
         // TODO: check this
         WebPGetInfo(
             img_data.buf, img_data.len,
-            &b.w, &b.h
+            &decoded.w, &decoded.h
         );
-        printf("Decoding image of size %dx%d: \n", b.w, b.h);
+        printf("Decoding image of size %dx%d: \n", decoded.w, decoded.h);
 
-        Image decoded = {
-            .alloc_w = b.w,
-            .w = b.w,
-            .h = b.h,
+        Image decoded_tmp = {
+            .alloc_w = decoded.w,
+            .w = decoded.w,
+            .h = decoded.h,
         };
-        decoded.buf = (Color *) WebPDecodeRGBA(
+        decoded_tmp.buf = (Color *) WebPDecodeRGBA(
             img_data.buf, img_data.len,
-            &b.w, &b.h
+            &decoded.w, &decoded.h
         );
 
-        b = new_img(0, b);
+        decoded = new_img(0, decoded);
 
-        for (int x = 0; x < b.w; x++) {
-            for (int y = 0; y < b.h; y++) {
-                Color d = *img_at(&decoded, x, y);
-                *img_at(&b, x, y) = color(d.c[0], d.c[1], d.c[2], 255);
+        for (int x = 0; x < decoded.w; x++) {
+            for (int y = 0; y < decoded.h; y++) {
+                Color d = *img_at(&decoded_tmp, x, y);
+                *img_at(&decoded, x, y) = color(d.c[0], d.c[1], d.c[2], 255);
             }
         }
 
-        WebPFree(decoded.buf);
+        WebPFree(decoded_tmp.buf);
 
-        int wait = timeout_s - (time(0) - a_time);
-        for (int i = 0; i < 10 * wait && !initial && !ctx.skip_image; i++) {
+        int wait = timeout_s - (time(0) - initial_time);
+        for (int i = 0; i < 10 * wait && !initial && !atomic_load(&ctx.skip_image); i++) {
             usleep(1000000 / 10);
-            while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+            // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
         }
 
         pthread_mutex_lock(&unscaled_lock);
-            if (ctx.skip_image) ctx.skip_image = false;
+            if (atomic_load(&ctx.skip_image)) atomic_store(&ctx.skip_image, false);
             free(unscaled_background.img.buf);
-            unscaled_background = (Background) { .img = b, };
+            unscaled_background = (Background) { .img = decoded, };
             atomic_store(&needs_scaling, true);
         pthread_mutex_unlock(&unscaled_lock);
 
@@ -295,7 +294,7 @@ void *background_thread(void *) {
 
 void *resize_thread(void *) {
     while (true) {
-        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        // while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
 
         if (atomic_load(&needs_scaling)) {
             for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
@@ -378,7 +377,7 @@ void start() {
 }
 
 void app_loop(int monitor_i) {
-    if (atomic_load(&ctx.paused)) return;
+    // if (atomic_load(&ctx.paused)) return;
 
     Monitor *monitor = &ctx.monitors[monitor_i];
 
