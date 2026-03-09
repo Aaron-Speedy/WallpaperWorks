@@ -24,7 +24,7 @@ void alertf(const char *fmt, ...) {
 
     NSString *fmt_ns_str = [NSString stringWithUTF8String:fmt];
     NSString *msg = [[NSString alloc]
-        initWithFormat: format_ns_str
+        initWithFormat: fmt_ns_str
         arguments: args
     ];
 
