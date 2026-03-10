@@ -166,7 +166,7 @@ void reconfigure_screens(bool first_time) {
         keyEquivalent: @"s"
     ];
     [skip_item setTarget: NSApp];
-    [self.status_item.menu addItem: quit_item];
+    [self.status_item.menu addItem: skip_item];
 
     [[NSNotificationCenter defaultCenter]
         addObserver: self
