@@ -303,7 +303,7 @@ void reconfigure_screens(bool first_time) {
     app_loop(monitor_index);
 }
 
-- (void) drawRect : (NSRect) dirty_rect {
+- (void) drawRect : (NSRect) dirtyRect {
     [self draw_buf];
 
     CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
