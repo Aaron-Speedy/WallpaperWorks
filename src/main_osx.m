@@ -117,8 +117,6 @@ void reconfigure_screens(bool first_time) {
     if (first_time) start();
     else make_fonts();
 
-    atomic_store(&needs_scaling, true);
-
     for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
         [views[i] start_animation];
     }
