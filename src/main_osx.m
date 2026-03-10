@@ -165,7 +165,7 @@ void reconfigure_screens(bool first_time) {
         action: @selector(skip_image:)
         keyEquivalent: @"s"
     ];
-    [skip_item setTarget: NSApp];
+    [skip_item setTarget: self];
     [self.status_item.menu addItem: skip_item];
 
     [[NSNotificationCenter defaultCenter]
