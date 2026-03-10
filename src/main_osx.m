@@ -34,9 +34,9 @@ void alertf(const char *fmt, ...) {
 }
 
 #define err(...) do { \
-  alertf(stderr, "Error: "); \
-  alertf(stderr, __VA_ARGS__); \
-  alertf(stderr, "\n"); \
+  alertf("Error: "); \
+  alertf(__VA_ARGS__); \
+  alertf("\n"); \
   exit(1); \
 } while (0);
 
