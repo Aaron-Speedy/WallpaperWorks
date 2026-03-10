@@ -22,15 +22,15 @@ void alertf(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    NSString *fmt_ns_str = [NSString stringWithUTF8String: fmt];
     NSString *msg = [[NSString alloc]
-        initWithFormat: fmt_ns_str
-        arguments: args
-    ];
+        initWithFormat:[NSString stringWithUTF8String:fmt]
+        arguments:args];
 
     va_end(args);
 
-    alert(msg);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        alert(msg);
+    });
 }
 
 #define err(...) do { \
