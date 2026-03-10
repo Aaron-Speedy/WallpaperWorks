@@ -128,7 +128,7 @@ void reconfigure_screens(bool first_time) {
 - (void) reconfigure_monitors;
 - (void) system_will_sleep : (NSNotification *) notification;
 - (void) system_did_wake : (NSNotification *) notification;
-- (void) skip_image;
+- (void) skip_image : (id) sender;
 @property (nonatomic, strong) NSStatusItem *status_item;
 @property (nonatomic, strong) NSImage *status_on_img;
 @property (nonatomic, strong) NSImage *status_off_img;
@@ -162,7 +162,7 @@ void reconfigure_screens(bool first_time) {
 
     NSMenuItem *skip_item = [[NSMenuItem alloc]
         initWithTitle: @"Skip image"
-        action: @selector(skip_image)
+        action: @selector(skip_image:)
         keyEquivalent: @"s"
     ];
     [skip_item setTarget: NSApp];
@@ -232,7 +232,7 @@ void reconfigure_screens(bool first_time) {
     [self reconfigure_monitors];
 }
 
-- (void) skip_image {
+- (void) skip_image : (id) sender {
     atomic_store(&ctx.skip_image, true);
 }
 
