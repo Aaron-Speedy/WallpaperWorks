@@ -319,7 +319,7 @@ void reconfigure_screens(bool first_time) {
     [NSTimer scheduledTimerWithTimeInterval:
         interval
         target: self
-        selector: @selector(update_display)
+        selector: @selector(update_display:)
         userInfo: 0
         repeats: YES
     ];
