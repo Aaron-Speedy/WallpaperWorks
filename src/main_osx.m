@@ -250,9 +250,8 @@ void reconfigure_screens(bool first_time) {
     self.status_off_img = [NSImage imageNamed: @"status_bar_icon_off"];
     [self.status_off_img setSize: NSMakeSize(22, 22)];
 
-    [self.status_item setImage: self.status_off_img];
-    [self.status_item setAlternateImage: self.status_on_img];
-    [self.status_item setHighlightMode: YES];
+    self.status_item.button.image = self.status_off_img;
+    self.status_item.button.alternateImage = self.status_on_img;
 
     self.status_item.menu = [[NSMenu alloc] initWithTitle: @""];
 
