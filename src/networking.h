@@ -42,12 +42,14 @@ DownloadResponse download(Arena *perm, CURL *curl, s8 url) {
     DownloadResponse ret = {0};
 
     url = s8_newcat(perm, url, s8("\0"));
+    
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_get_data);
 
     S8ArenaPair s8_arena_pair = { .perm = perm, };
 
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, 
     curl_easy_setopt(curl, CURLOPT_URL, url.buf);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &s8_arena_pair);
 
