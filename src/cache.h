@@ -99,11 +99,14 @@ s8 get_or_make_cache_dir(Arena *perm, s8 name) {
 
 s8 remake_cache_dir(Arena *perm, s8 name) {
     s8 cache_dir = get_or_make_cache_dir(perm, name);
-    rmrf(s8_newcat(perm, cache_dir, s8("\0")).buf);
+    rmrf((char *) s8_newcat(perm, cache_dir, s8("\0")).buf);
     return get_or_make_cache_dir(perm, name);
 }
 
 int unlink_cb(const char *fpath, const struct stat *sb, int type_flag, struct FTW *ftw_buf) {
+    (void) sb;
+    (void) type_flag;
+    (void) ftw_buf;
     int rv = remove(fpath);
     if (rv) perror(fpath);
     return rv;
