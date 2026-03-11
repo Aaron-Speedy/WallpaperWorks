@@ -84,7 +84,7 @@ void make_win_bg(NSWindow * win) {
 void reconfigure_screens(bool first_time) {
     atomic_store(&ctx.monitors_len, 0);
 
-    for (int i = 0; i < wins_len; i++) {
+    for (size_t i = 0; i < wins_len; i++) {
         if (wins[i]) {
             [wins[i] close];
             wins[i] = nil;
@@ -99,7 +99,7 @@ void reconfigure_screens(bool first_time) {
     NSArray<NSScreen *> *screens = [NSScreen screens];
     wins_len = [screens count];
 
-    for (int i = 0; i < wins_len; i++) {
+    for (size_t i = 0; i < wins_len; i++) {
         NSRect frame = [screens[i] frame];
         wins[i] = [[NSWindow alloc]
             initWithContentRect: frame
@@ -344,7 +344,7 @@ void reconfigure_screens(bool first_time) {
 
 @end
 
-int main(int argc, char *argv[]) {
+int main(void) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSApplication *app = [NSApplication sharedApplication];
