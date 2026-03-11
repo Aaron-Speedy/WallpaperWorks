@@ -17,8 +17,8 @@ typedef struct {
     pthread_cond_t cond;
 } Gate;
 
-void semaphore_wait(Semaphore *sem);
-void semaphore_increment(Semaphore *sem);
+void my_semaphore_wait(Semaphore *sem);
+void my_semaphore_increment(Semaphore *sem);
 
 void gate_wait(Gate *gate);
 void gate_open(Gate *gate);
@@ -30,14 +30,14 @@ void gate_close(Gate *gate);
 #ifndef THREADS_IMPL_GUARD
 #define THREADS_IMPL_GUARD
 
-void semaphore_wait(Semaphore *sem) {
+void my_semaphore_wait(Semaphore *sem) {
     pthread_mutex_lock(&sem->mutex);
     while (!sem->pending) pthread_cond_wait(&sem->cond, &sem->mutex);
     sem->pending -= 1;
     pthread_mutex_unlock(&sem->mutex);
 }
 
-void semaphore_increment(Semaphore *sem) {
+void my_semaphore_increment(Semaphore *sem) {
     pthread_mutex_lock(&sem->mutex);
     sem->pending += 1;
     pthread_cond_signal(&sem->cond);

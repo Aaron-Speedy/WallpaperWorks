@@ -270,7 +270,7 @@ void *background_thread(void *) {
             if (atomic_load(&ctx.skip_image)) atomic_store(&ctx.skip_image, false);
             free(unscaled_background.img.buf);
             unscaled_background = (Background) { .img = decoded, };
-            semaphore_increment(&needs_scaling);
+            my_semaphore_increment(&needs_scaling);
         pthread_mutex_unlock(&unscaled_lock);
 
         initial = false;
@@ -282,7 +282,7 @@ void *background_thread(void *) {
 void *resize_thread(void *) {
     while (true) {
         gate_wait(&not_paused);
-        semaphore_wait(&needs_scaling);
+        my_semaphore_wait(&needs_scaling);
 
         for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
             pthread_mutex_lock(&unscaled_lock);
