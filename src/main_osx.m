@@ -133,7 +133,7 @@ typedef enum {
     if (!buf) return;
 
     ctx.monitors[monitor_index].screen = (Image) {
-        .buf = buf,
+        .buf = (Color *) buf,
         .alloc_w = w,
         .w = w,
         .h = h,
