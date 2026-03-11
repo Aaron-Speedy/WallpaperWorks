@@ -97,7 +97,7 @@ typedef enum {
     monitor_index = atomic_fetch_add(&ctx.monitors_len, 1);
 
     ctx.monitors[monitor_index].screen = (Image) {
-        .buf = buf,
+        .buf = (Color *) buf,
         .alloc_w = w,
         .w = w,
         .h = h,
