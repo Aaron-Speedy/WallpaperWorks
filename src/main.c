@@ -199,7 +199,8 @@ try_downloading_another_one:
     return img_data;
 }
 
-void *background_thread(void *) {
+void *background_thread(void *arg) {
+    (void) arg;
     // TODO: make the memory management around this cleaner
     srand(time(0));
 
@@ -278,7 +279,9 @@ void *background_thread(void *) {
     curl_easy_cleanup(curl);
 }
 
-void *resize_thread(void *) {
+void *resize_thread(void *arg) {
+    (void) arg;
+
     while (true) {
         gate_wait(&not_paused);
         my_semaphore_wait(&needs_scaling);
