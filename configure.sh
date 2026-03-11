@@ -29,12 +29,9 @@ elif [[ "$OS" == "linux"*  ]]; then
 elif [[ "$OS" == "darwin" ]]; then
     cp -r ../libwebp .
     (
-        export ARCHFLAGS="-arch arm64 -arch x86_64"
-        export CFLAGS="$ARCHFLAGS"
-        export CXXFLAGS="$ARCHFLAGS"
-        export LDFLAGS="$ARCHFLAGS"
-        export CPPFLAGS="$ARCHFLAGS"
-        cd libwebp && make -f makefile.unix
+        cd libwebp && make -f makefile.unix \
+            CFLAGS="-arch arm64 -arch x86_64" \
+            LDFLAGS="-arch arm64 -arch x86_64" \
     )
 else
     echo "Unknown platform. Exiting..."
