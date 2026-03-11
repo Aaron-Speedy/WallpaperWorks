@@ -181,7 +181,6 @@ try_downloading_another_one:
         while (true) {
             ssize number = rand() % files.len;
             char *name = files.buf[number];
-            bool ok = true;
             printf("'%s'\n", name);
 
             s8 a0 = s8_copy(perm, cache_dir);
