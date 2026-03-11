@@ -63,7 +63,111 @@ typedef enum {
 #define MAX_PLATFORM_MONITORS 100
 #include "main.c"
 
-@class MyDrawingView;
+@interface MyDrawingView : NSView {
+    CGContextRef bitmap_ctx;
+    unsigned char *buf;
+    size_t w, h, monitor_index;
+}
+
+- (void) setup;
+- (void) cleanup_bitmap_ctx;
+- (void) draw_buf;
+- (void) start_animation;
+
+@end
+
+@implementation MyDrawingView
+
+- (id) initWithFrame : (NSRect) frameRect {
+    self = [super initWithFrame: frameRect];
+    if (self) {
+        [self setup];
+    }
+    return self;
+}
+
+- (void) setup {
+    [self cleanup_bitmap_ctx];
+
+    w = (size_t) [self bounds].size.width;
+    h = (size_t) [self bounds].size.height;
+
+    buf = calloc(h * w * 4, sizeof(unsigned char));
+
+    monitor_index = atomic_fetch_add(&ctx.monitors_len, 1);
+
+    ctx.monitors[monitor_index].screen = (Image) {
+        .buf = buf,
+        .alloc_w = w,
+        .w = w,
+        .h = h,
+    };
+
+    CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
+    bitmap_ctx = CGBitmapContextCreate(
+        buf,
+        w, h,
+        8, 4 * w,
+        color_space,
+        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
+    );
+    CGColorSpaceRelease(color_space);
+}
+
+- (void) cleanup_bitmap_ctx {
+    if (bitmap_ctx) {
+        CGContextRelease(bitmap_ctx);
+        bitmap_ctx = 0;
+    }
+    free(buf);
+    buf = 0;
+    ctx.monitors[monitor_index].screen.buf = 0;
+}
+
+- (void) dealloc {
+    [self cleanup_bitmap_ctx];
+    [super dealloc];
+}
+
+- (void) draw_buf {
+    if (!buf) return;
+
+    ctx.monitors[monitor_index].screen = (Image) {
+        .buf = buf,
+        .alloc_w = w,
+        .w = w,
+        .h = h,
+    };
+    app_loop(monitor_index);
+}
+
+- (void) drawRect : (NSRect) dirtyRect {
+    [self draw_buf];
+
+    CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
+    CGContextRef screen_ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
+    if (image) { // TODO: handle errors
+        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
+        CGImageRelease(image);
+    }
+}
+
+- (void) start_animation {
+    NSTimeInterval interval = 1;
+    [NSTimer scheduledTimerWithTimeInterval:
+        interval
+        target: self
+        selector: @selector(update_display:)
+        userInfo: 0
+        repeats: YES
+    ];
+}
+
+- (void) update_display : (NSTimer *) timer {
+    [self setNeedsDisplay:YES];
+}
+
+@end
 
 // TODO: this sucks
 size_t wins_len = 0;
@@ -234,112 +338,6 @@ void reconfigure_screens(bool first_time) {
 
 - (void) skip_image : (id) sender {
     atomic_store(&ctx.skip_image, true);
-}
-
-@end
-
-@interface MyDrawingView : NSView {
-    CGContextRef bitmap_ctx;
-    unsigned char *buf;
-    size_t w, h, monitor_index;
-}
-
-- (void) setup;
-- (void) cleanup_bitmap_ctx;
-- (void) draw_buf;
-- (void) start_animation;
-
-@end
-
-@implementation MyDrawingView
-
-- (id) initWithFrame : (NSRect) frameRect {
-    self = [super initWithFrame: frameRect];
-    if (self) {
-        [self setup];
-    }
-    return self;
-}
-
-- (void) setup {
-    [self cleanup_bitmap_ctx];
-
-    w = (size_t) [self bounds].size.width;
-    h = (size_t) [self bounds].size.height;
-
-    buf = calloc(h * w * 4, sizeof(unsigned char));
-
-    monitor_index = atomic_fetch_add(&ctx.monitors_len, 1);
-
-    ctx.monitors[monitor_index].screen = (Image) {
-        .buf = buf,
-        .alloc_w = w,
-        .w = w,
-        .h = h,
-    };
-
-    CGColorSpaceRef color_space = CGColorSpaceCreateDeviceRGB();
-    bitmap_ctx = CGBitmapContextCreate(
-        buf,
-        w, h,
-        8, 4 * w,
-        color_space,
-        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big
-    );
-    CGColorSpaceRelease(color_space);
-}
-
-- (void) cleanup_bitmap_ctx {
-    if (bitmap_ctx) {
-        CGContextRelease(bitmap_ctx);
-        bitmap_ctx = 0;
-    }
-    free(buf);
-    buf = 0;
-    ctx.monitors[monitor_index].screen.buf = 0;
-}
-
-- (void) dealloc {
-    [self cleanup_bitmap_ctx];
-    [super dealloc];
-}
-
-- (void) draw_buf {
-    if (!buf) return;
-
-    ctx.monitors[monitor_index].screen = (Image) {
-        .buf = buf,
-        .alloc_w = w,
-        .w = w,
-        .h = h,
-    };
-    app_loop(monitor_index);
-}
-
-- (void) drawRect : (NSRect) dirtyRect {
-    [self draw_buf];
-
-    CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
-    CGContextRef screen_ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
-    if (image) { // TODO: handle errors
-        CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
-        CGImageRelease(image);
-    }
-}
-
-- (void) start_animation {
-    NSTimeInterval interval = 1;
-    [NSTimer scheduledTimerWithTimeInterval:
-        interval
-        target: self
-        selector: @selector(update_display:)
-        userInfo: 0
-        repeats: YES
-    ];
-}
-
-- (void) update_display : (NSTimer *) timer {
-    [self setNeedsDisplay:YES];
 }
 
 @end
