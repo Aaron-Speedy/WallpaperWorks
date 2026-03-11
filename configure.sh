@@ -20,12 +20,23 @@ if [[ "$OS" == "windows"* ]]; then
 
     cp -r ../freetype .
     (cd freetype/ && ./configure && make)
-elif [[ "$OS" == "linux"*  || "$OS" == "darwin" ]]; then
-true
+
+    cp -r ../libwebp .
+    ( cd libwebp && make -f makefile.unix )
+elif [[ "$OS" == "linux"*  ]]; then
+    cp -r ../libwebp .
+    ( cd libwebp && make -f makefile.unix )
+elif [[ "$OS" == "darwin" ]]; then
+    cp -r ../libwebp .
+    (
+        export ARCHFLAGS="-arch arm64 -arch x86_64"
+        export CFLAGS="$ARCHFLAGS"
+        export CXXFLAGS="$ARCHFLAGS"
+        export LDFLAGS="$ARCHFLAGS"
+        export CPPFLAGS="$ARCHFLAGS"
+        cd libwebp && make -f makefile.unix
+    )
 else
     echo "Unknown platform. Exiting..."
     exit
 fi
-
-cp -r ../libwebp .
-(cd libwebp && make -f makefile.unix)
