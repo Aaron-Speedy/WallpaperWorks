@@ -145,7 +145,7 @@ typedef enum {
     [self draw_buf];
 
     CGImageRef image = CGBitmapContextCreateImage(bitmap_ctx);
-    CGContextRef screen_ctx = (CGContextRef) [[NSGraphicsContext currentContext] graphicsPort];
+    CGContextRef screen_ctx = (CGContextRef) [[NSGraphicsContext currentContext] CGContext];
     if (image) { // TODO: handle errors
         CGContextDrawImage(screen_ctx, CGRectMake(0, 0, w, h), image);
         CGImageRelease(image);
