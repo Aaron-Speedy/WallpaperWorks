@@ -224,11 +224,11 @@ void reconfigure_screens(bool first_time) {
 }
 
 - (void) system_will_sleep : (NSNotification *) notification {
-    atomic_store(&ctx.paused, true);
+    close_gate(&not_paused);
 }
 
 - (void) system_did_wake : (NSNotification *) notification {
-    atomic_store(&ctx.paused, false);
+    open_gate(&not_paused);
     [self reconfigure_monitors];
 }
 
