@@ -7,15 +7,16 @@
 #define NETWORKING_IMPL
 #include "networking.h"
 
+#define THREADS_IMPL
+#include "threads.h"
+
 #include "../third_party/libwebp/src/webp/decode.h"
 
 #include "recs.h"
 #include "../build/tmp/raw_font_buf.h"
 #include "../build/tmp/app_name.h"
 
-#include <pthread.h>
 #include <dirent.h>
-#include <stdatomic.h>
 
 int usleep(useconds_t usec);
 
@@ -34,20 +35,27 @@ typedef struct {
     Monitor monitors[MAX_PLATFORM_MONITORS];
     _Atomic ssize monitors_len;
     _Atomic bool skip_image;
-    _Atomic bool paused;
 } Context;
 
 #include "config.h"
-
-Context ctx = {0};
-
-FFontLib font_lib = {0};
 
 pthread_mutex_t scaled_lock = PTHREAD_MUTEX_INITIALIZER;
 Background unscaled_background = {0};
 pthread_mutex_t unscaled_lock = PTHREAD_MUTEX_INITIALIZER;
 
-_Atomic bool needs_scaling = 0;
+Semaphore needs_scaling = {
+    .cond = PTHREAD_COND_INITIALIZER,
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+};
+
+Gate not_paused  = {
+    .cond = PTHREAD_COND_INITIALIZER,
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+};
+
+Context ctx = {0};
+
+FFontLib font_lib = {0};
 
 Color color(u8 r, u8 g, u8 b, u8 a) {
     return (Color) {
@@ -115,14 +123,13 @@ try_downloading_another_one:
         if (times_tried >= 10) goto pick_random_downloaded_image;
 
         s8 a0 = s8_copy(perm, s8("/"));
-                u64_to_s8(perm, rand() % (n + 1), 0);
-        s8 al = s8_copy(perm, s8(".webp"));
+        s8 al = u64_to_s8(perm, rand() % (n + 1), 0);
         s8 name = s8_masscat(*perm, a0, al);
 
         s8_print(name);
         printf("\n");
 
-        s8 url = s8_newcat(perm, base, name);
+        s8 url = s8_newcat(perm, base, s8_newcat(perm, name, s8(".webp")));
         s8 path = s8_newcat(perm, cache_dir, name);
 
         if (cache_support) img_data = s8_read_file(perm, path);
@@ -157,7 +164,9 @@ try_downloading_another_one:
                 if (!d) break;
                 if (!strcmp(d->d_name, ".") ||
                     !strcmp(d->d_name, "..") ||
-                    !strcmp(d->d_name, "num.txt")) continue;
+                    !strcmp(d->d_name, "num.txt") ||
+                    !strcmp(d->d_name, "library.md5") ||
+                    0) continue;
                 char (*entry)[255] = new(perm, *files.buf, 1);
                 files.buf = files.buf ? files.buf : entry;
                 memmove(*entry, d->d_name, arrlen(*entry));
@@ -172,41 +181,19 @@ try_downloading_another_one:
         while (true) {
             ssize number = rand() % files.len;
             char *name = files.buf[number];
-            char *pattern = "*.webp";
             bool ok = true;
             printf("'%s'\n", name);
 
-            for (char *c = name, *p = pattern;;) {
-                if (!ok) break;
-                if (!(*c && *p)) {
-                    if (*c != *p) ok = false;
-                    break;
-                }
+            s8 a0 = s8_copy(perm, cache_dir);
+                s8_copy(perm, s8("/"));
+            s8 al = s8_copy(perm, (s8) { .buf = (u8 *) name, .len = strlen(name)});
+            s8 path = s8_masscat(*perm, a0, al);
 
-                switch (*p) {
-                case '*': {
-                    if (!p[1] || *c != p[1]) c += 1;
-                    else p += 1;
-                } break;
-                default: {
-                    if (*c == *p) { c += 1; p += 1; }
-                    else ok = false;
-                }
-                }
-            }
-
-            if (ok) {
-                s8 a0 = s8_copy(perm, cache_dir);
-                    s8_copy(perm, s8("/"));
-                s8 al = s8_copy(perm, (s8) { .buf = (u8 *) name, .len = strlen(name)});
-                s8 path = s8_masscat(*perm, a0, al);
-
-                img_data = s8_read_file(perm, path);
-                printf("Offline image: ");
-                s8_print(path);
-                printf("\n");
-                break;
-            }
+            img_data = s8_read_file(perm, path);
+            printf("Offline image: ");
+            s8_print(path);
+            printf("\n");
+            break;
         }
     }
 
@@ -230,7 +217,7 @@ void *background_thread(void *) {
     bool initial = true;
 
     while (true) {
-        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        gate_wait(&not_paused);
 
         Arena scratch = perm;
 
@@ -276,14 +263,14 @@ void *background_thread(void *) {
         int wait = timeout_s - (time(0) - initial_time);
         for (int i = 0; i < 10 * wait && !initial && !atomic_load(&ctx.skip_image); i++) {
             usleep(1000000 / 10);
-            while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+            gate_wait(&not_paused);
         }
 
         pthread_mutex_lock(&unscaled_lock);
             if (atomic_load(&ctx.skip_image)) atomic_store(&ctx.skip_image, false);
             free(unscaled_background.img.buf);
             unscaled_background = (Background) { .img = decoded, };
-            atomic_store(&needs_scaling, true);
+            semaphore_increment(&needs_scaling);
         pthread_mutex_unlock(&unscaled_lock);
 
         initial = false;
@@ -294,28 +281,25 @@ void *background_thread(void *) {
 
 void *resize_thread(void *) {
     while (true) {
-        while (atomic_load(&ctx.paused)) usleep(1000000 / 10);
+        gate_wait(&not_paused);
+        semaphore_wait(&needs_scaling);
 
-        if (atomic_load(&needs_scaling)) {
-            for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
-                pthread_mutex_lock(&unscaled_lock);
-                    Image img = rescale_img(
-                        0,
-                        unscaled_background.img,
-                        ctx.monitors[i].screen.w,
-                        ctx.monitors[i].screen.h
-                    );
-                pthread_mutex_unlock(&unscaled_lock);
+        for (int i = 0; i < atomic_load(&ctx.monitors_len); i++) {
+            pthread_mutex_lock(&unscaled_lock);
+                Image img = rescale_img(
+                    0,
+                    unscaled_background.img,
+                    ctx.monitors[i].screen.w,
+                    ctx.monitors[i].screen.h
+                );
+            pthread_mutex_unlock(&unscaled_lock);
 
-                pthread_mutex_lock(&scaled_lock);
-                    free(ctx.monitors[i].scaled_background.img.buf);
-                    ctx.monitors[i].scaled_background = (Background) {0};
-                    ctx.monitors[i].scaled_background.img = img;
-                pthread_mutex_unlock(&scaled_lock);
-            }
-            atomic_store(&needs_scaling, false);
+            pthread_mutex_lock(&scaled_lock);
+                free(ctx.monitors[i].scaled_background.img.buf);
+                ctx.monitors[i].scaled_background = (Background) {0};
+                ctx.monitors[i].scaled_background.img = img;
+            pthread_mutex_unlock(&scaled_lock);
         }
-        usleep(1000000 / 20);
     }
 }
 
@@ -377,7 +361,7 @@ void start() {
 }
 
 void app_loop(int monitor_i) {
-    if (atomic_load(&ctx.paused)) return;
+    if (gate_is_closed(&not_paused)) return;
 
     Monitor *monitor = &ctx.monitors[monitor_i];
 
