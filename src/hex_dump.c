@@ -11,7 +11,7 @@ void print_status_err(int argc, char *argv[]) {
 }
 
 s8 cstr_to_s8(char *s) {
-    return (s8){ .buf = s, .len = strlen(s) };
+    return (s8){ .buf = (u8 *) s, .len = strlen(s) };
 }
 
 int main(int argc, char *argv[]) {
