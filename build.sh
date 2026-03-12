@@ -73,12 +73,12 @@ elif [[ "$OS" == "darwin" ]]; then
     if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]]; then
         SAN="-fsanitize=address,undefined"
     fi
-    LIBWEBP="$WEBP_DIR/src/libwebp.a"
+    LIBWEBP="-lwebp"
     CURL="-lcurl"
     FREETYPE="$(pkg-config --libs freetype2) -I third_party/freetype/include/"
     WINDOWING="-framework Cocoa -framework ServiceManagement"
     SOURCE="-x objective-c src/main_osx.m -x none"
-    OTHER=""
+    OTHER="-arch x86_64 -arch arm64"
 
     mkdir build/$APP_NAME.app/
     mkdir build/$APP_NAME.app/Contents/
@@ -90,6 +90,7 @@ elif [[ "$OS" == "darwin" ]]; then
     cp resources/favicon.icns build/$APP_NAME.app/Contents/Resources
     cp resources/status_bar_icon_off.png build/$APP_NAME.app/Contents/Resources
     cp resources/status_bar_icon_on.png build/$APP_NAME.app/Contents/Resources
+    cp resources/curl-ca-bundle.crt build/$APP_NAME.app/Contents/Resources
     cp src/Info.plist build/$APP_NAME.app/Contents/
 else
     echo "Unknown platform. Exiting..."
@@ -107,7 +108,7 @@ $FREETYPE \
 cc -o $OUT_DIR/$APP_NAME $SOURCE $CFLAGS $LIBS $OTHER $SAN
 
 if [[ "$WALLWORKS_BUILD_TYPE" == "production" ]] && [[ "$OS" == "darwin" ]]; then
-    scripts/bundle_dylibs.sh -l "../Libraries" build/WallpaperWorks.app
+    scripts/bundle_dylibs.sh -l "../Frameworks" build/WallpaperWorks.app
 fi
 
 if [[ "$WALLWORKS_BUILD_TYPE" == "development" ]] && [[ "$OS" == "darwin" ]]; then
