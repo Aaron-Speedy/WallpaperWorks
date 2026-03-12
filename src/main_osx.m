@@ -4,6 +4,7 @@
 #include <CoreGraphics/CGWindowLevel.h>
 #include <Security/Security.h>
 #include <ServiceManagement/SMAppService.h>
+#include <TargetConditionals.h>
 
 #include <stdint.h>
 #include <unistd.h>

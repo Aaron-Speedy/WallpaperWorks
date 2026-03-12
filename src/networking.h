@@ -49,7 +49,19 @@ DownloadResponse download(Arena *perm, CURL *curl, s8 url) {
     S8ArenaPair s8_arena_pair = { .perm = perm, };
 
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60);
-    curl_easy_setopt(curl, CURLOPT_CAINFO, 
+
+    #ifdef _WIN32
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "./curl-ca-bundle.crt");
+    #endif
+
+    #ifdef __APPLE__
+    NSString *ca_path = [[NSBundle mainBundle]
+        pathForResource: @"curl-ca-bundle"
+        ofType: @"crt"
+    ];
+    curl_easy_setopt(curl, CURLOPT_CAINFO, [ca_path UTF8String]);
+    #endif
+
     curl_easy_setopt(curl, CURLOPT_URL, url.buf);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *) &s8_arena_pair);
 
