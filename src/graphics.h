@@ -288,16 +288,11 @@ DesktopStuff _get_desktop_stuff() {
     DesktopStuff ret = {0};
 
     ret.progman = FindWindowA("Progman", 0);
-    if (!ret.progman) return (DesktopStuff) {};
 
-    do {
+    {
         LONG_PTR ex = GetWindowLongPtrA(ret.progman, GWL_EXSTYLE);
-        if (!ex) {
-            ret.is_raised = false;
-            break;
-        }
-        ret.is_raised = (ex & WS_EX_NOREDIRECTIONBITMAP) != 0;
-    } while (0);
+        if (ex) ret.is_raised = (ex & WS_EX_NOREDIRECTIONBITMAP) != 0;
+    }
 
     SendMessageTimeoutA(ret.progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
 
