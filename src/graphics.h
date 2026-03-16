@@ -179,14 +179,14 @@ void _add_window_style(HWND hwnd, int class, LONG_PTR style_to_add) {
 }
 
 BOOL _get_last_child_window_cb(HWND top, LPARAM vv) {
-    *((HWND *) vv) = hwnd;
+    *((HWND *) vv) = top;
     return true;
 }
 
 HWND _get_last_child_window(HWND parent) {
     HWND last_child = 0;
 
-    EnumChildWindows(parent, _get_last_child_window_cb, &last_child);
+    EnumChildWindows(parent, _get_last_child_window_cb, (LPARAM) &last_child);
 
     return last_child;
 }
@@ -226,33 +226,37 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     if (resized) {
         SetWindowPos(
             win->p.win,
-            1,
+            HWND_BOTTOM,
             work.left, work.top,
             w, h,
             SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-        MapWindowPoints(hwin->p.win, win->p.desktop_stuff.worker_w, work, 2); // TODO: CHECK THIS LINE
+        RECT prct = {0};
+
+        MapWindowPoints(win->p.win, win->p.desktop_stuff.worker_w, &prct, 2); // TODO: CHECK THIS LINE
 
         const int IS_WINDOWS_7 = false;
 
         if (IS_WINDOWS_7) {
             SetParent(win->p.win, win->p.desktop_stuff.progman);
-        } else if (win->p.is_raised) {
+        } else if (win->p.desktop_stuff.is_raised) {
             UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
 
             _add_window_style(win->p.win, GWL_STYLE, WS_CHILD);
-            _add_window_style(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
-            SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
+            _add_window_style(win->p.win, GWL_EXSTYLE, WS_EX_LAYERED);
+            SetLayeredWindowAttributes(win->p.win, 0, 255, LWA_ALPHA);
             SetParent(win->p.win, win->p.desktop_stuff.progman);
-            SetWindowPos(win->p.desktop_stuff.def_view, 0, 0, 0, 0, flags);
+            SetWindowPos(win->p.win, win->p.desktop_stuff.def_view, 0, 0, 0, 0, flags);
 
-            if (_get_last_child_window(progman) != win->p.desktop_stuff.worker_w) {
+            if (_get_last_child_window(win->p.desktop_stuff.progman) != win->p.desktop_stuff.worker_w) {
                 SetWindowPos(win->p.desktop_stuff.worker_w, HWND_BOTTOM, 0, 0, 0, 0, flags);
             }
         } else {
             SetParent(win->p.win, win->p.desktop_stuff.worker_w);
         }
+
+        SetWindowPos(win->p.win, HWND_BOTTOM, prct.left, prct.top, w, h, SWP_NOACTIVATE | SWP_NOZORDER);
     }
 #endif
 }
@@ -274,8 +278,8 @@ BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
 BOOL _get_desktop_stuff_cb(HWND top, LPARAM vv) {
     HWND def_view = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
     if (def_view) {
-        *((DesktopStuff *) vv).worker_w = FindWindowExA(0, top, "WorkerW", 0);
-        *((DesktopStuff *) vv).def_view = def_view;
+        ((DesktopStuff *) vv)->worker_w = FindWindowExA(0, top, "WorkerW", 0);
+        ((DesktopStuff *) vv)->def_view = def_view;
     }
     return true;
 }
@@ -284,10 +288,10 @@ DesktopStuff _get_desktop_stuff() {
     DesktopStuff ret = {0};
 
     ret.progman = FindWindowA("Progman", 0);
-    if (!ret.progman) return 0;
+    if (!ret.progman) return (DesktopStuff) {};
 
     do {
-        long *ex = GetWindowLongPtrA(ret.progman, GWL_EXSTYLE);
+        LONG_PTR ex = GetWindowLongPtrA(ret.progman, GWL_EXSTYLE);
         if (!ex) {
             ret.is_raised = false;
             break;
