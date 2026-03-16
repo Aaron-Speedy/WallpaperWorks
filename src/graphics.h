@@ -234,7 +234,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
 
         RECT prct = {0};
 
-        MapWindowPoints(win->p.win, win->p.desktop_stuff.worker_w, &prct, 2); // TODO: CHECK THIS LINE
+        MapWindowPoints(win->p.win, win->p.desktop_stuff.worker_w, (POINT *) &prct, 2); // TODO: CHECK THIS LINE
 
         const int IS_WINDOWS_7 = false;
 
