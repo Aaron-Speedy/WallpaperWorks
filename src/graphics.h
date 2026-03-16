@@ -479,6 +479,11 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
 
 #elif _WIN32
     win->p.desktop_stuff = _get_desktop_stuff();
+    SetWindowLongPtrA(
+        win->p.win,
+        GWL_STYLE,
+        WS_POPUP | WS_SYSMENU
+    );
     _fill_working_area(win, monitor);
 #endif
 }
