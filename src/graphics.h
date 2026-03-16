@@ -232,10 +232,6 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
             SWP_NOACTIVATE | SWP_NOZORDER
         );
 
-        RECT prct = {0};
-
-        MapWindowPoints(win->p.win, win->p.desktop_stuff.worker_w, (POINT *) &prct, 2); // TODO: CHECK THIS LINE
-
         const int IS_WINDOWS_7 = false;
 
         if (IS_WINDOWS_7) {
@@ -256,7 +252,7 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
             SetParent(win->p.win, win->p.desktop_stuff.worker_w);
         }
 
-        SetWindowPos(win->p.win, HWND_BOTTOM, prct.left, prct.top, w, h, SWP_NOACTIVATE | SWP_NOZORDER);
+        SetWindowPos(win->p.win, HWND_BOTTOM, work.left, work.top, w, h, SWP_NOACTIVATE | SWP_NOZORDER);
     }
 #endif
 }
