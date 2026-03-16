@@ -40,6 +40,10 @@ typedef struct {
 
 #elif _WIN32
 #include <Windows.h>
+typedef struct {
+    HWND worker_w, def_view, progman;
+    bool is_raised;
+} DesktopStuff;
 typedef enum {
     COLOR_B,
     COLOR_G,
@@ -52,8 +56,8 @@ typedef struct {
 typedef struct {
     HWND win;
     BITMAPINFO bitmap_info;
+    DesktopStuff desktop_stuff;
 } PlatformWin;
-HWND _worker_w = 0, _def_view;
 
 #else
 #error "Unsupported platform!"
@@ -167,6 +171,26 @@ void _resize_win(Win *win) {
 #endif
 }
 
+void _add_window_style(HWND hwnd, int class, LONG_PTR style_to_add) {
+    LONG_PTR old_style = GetWindowLongPtrA(hwnd, class);
+    if ((old_style & style_to_add) == 0) {
+        SetWindowLongPtrA(hwnd, class, old_style | style_to_add);
+    }
+}
+
+BOOL _get_last_child_window_cb(HWND top, LPARAM vv) {
+    *((HWND *) vv) = hwnd;
+    return true;
+}
+
+HWND _get_last_child_window(HWND parent) {
+    HWND last_child = 0;
+
+    EnumChildWindows(parent, _get_last_child_window_cb, &last_child);
+
+    return last_child;
+}
+
 void _fill_working_area(Win *win, PlatformMonitor m) {
 #ifdef __linux__
     if (!win->p.draw_to_img) XMoveResizeWindow(win->p.display, win->p.win, m.x, m.y, m.w, m.h);
@@ -202,11 +226,33 @@ void _fill_working_area(Win *win, PlatformMonitor m) {
     if (resized) {
         SetWindowPos(
             win->p.win,
-            _def_view,
+            1,
             work.left, work.top,
             w, h,
-            SWP_NOACTIVATE | SWP_SHOWWINDOW
+            SWP_NOACTIVATE | SWP_NOZORDER
         );
+
+        MapWindowPoints(hwin->p.win, win->p.desktop_stuff.worker_w, work, 2); // TODO: CHECK THIS LINE
+
+        const int IS_WINDOWS_7 = false;
+
+        if (IS_WINDOWS_7) {
+            SetParent(win->p.win, win->p.desktop_stuff.progman);
+        } else if (win->p.is_raised) {
+            UINT flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE;
+
+            _add_window_style(win->p.win, GWL_STYLE, WS_CHILD);
+            _add_window_style(hwnd, GWL_EXSTYLE, WS_EX_LAYERED);
+            SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
+            SetParent(win->p.win, win->p.desktop_stuff.progman);
+            SetWindowPos(win->p.desktop_stuff.def_view, 0, 0, 0, 0, flags);
+
+            if (_get_last_child_window(progman) != win->p.desktop_stuff.worker_w) {
+                SetWindowPos(win->p.desktop_stuff.worker_w, HWND_BOTTOM, 0, 0, 0, 0, flags);
+            }
+        } else {
+            SetParent(win->p.win, win->p.desktop_stuff.worker_w);
+        }
     }
 #endif
 }
@@ -225,25 +271,42 @@ BOOL _collect_monitors_cb(HMONITOR h, HDC hdc, LPRECT rect, LPARAM vv) {
 
 // https://www.codeproject.com/Articles/856020/Draw-Behind-Desktop-Icons-in-Windows-plus
 
-BOOL _get_worker_w_and_def_view_cb(HWND top, LPARAM vv) {
-    HWND p = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
-    if (p) {
-        _def_view = p;
-        _worker_w =  FindWindowExA(0, top, "WorkerW", 0);
-        return false;
+BOOL _get_desktop_stuff_cb(HWND top, LPARAM vv) {
+    HWND def_view = FindWindowExA(top, 0, "SHELLDLL_DefView", 0);
+    if (def_view) {
+        *((DesktopStuff *) vv).worker_w = FindWindowExA(0, top, "WorkerW", 0);
+        *((DesktopStuff *) vv).def_view = def_view;
     }
     return true;
 }
 
-void _get_worker_w_and_def_view() {
-    HWND progman = FindWindowA("Progman", 0);
-    if (!progman) return;
+DesktopStuff _get_desktop_stuff() {
+    DesktopStuff ret = {0};
 
-    SendMessageTimeoutA(progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
+    ret.progman = FindWindowA("Progman", 0);
+    if (!ret.progman) return 0;
 
-    EnumWindows(_get_worker_w_and_def_view_cb, 0);
+    do {
+        long *ex = GetWindowLongPtrA(ret.progman, GWL_EXSTYLE);
+        if (!ex) {
+            ret.is_raised = false;
+            break;
+        }
+        ret.is_raised = (ex & WS_EX_NOREDIRECTIONBITMAP) != 0;
+    } while (0);
 
-    // TODO: Other stuff for CONFIGURATIONNNNNNNNNNNNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!! depending on the set up.
+    SendMessageTimeoutA(ret.progman, 0x052C, 0xD, 0x1, SMTO_NORMAL, 1000, 0);
+
+    EnumWindows(_get_desktop_stuff_cb, (LPARAM) &ret);
+
+    if (ret.is_raised) {
+        ret.worker_w = FindWindowExA(ret.progman, 0, "WorkerW", 0);
+    }
+
+    // TODO: Windows 7
+    // TODO original_WorkerW
+
+    return ret;
 }
 
 LRESULT _main_win_cb(HWND pwin, UINT msg, WPARAM hv, LPARAM vv) {
@@ -420,18 +483,7 @@ void make_win_bg(Win *win, PlatformMonitor monitor, bool draw_to_root) {
     if (!win->p.img) err("Failed to make the window the background.");
 
 #elif _WIN32
-
-    // if (!_worker_w || !_def_view) _get_worker_w_and_def_view();
-
-    // SetParent(win->p.win, _worker_w);
-    // SetWindowLongPtr(win->p.win, GWL_STYLE, WS_CHILD);
-
-    // LONG_PTR ex = GetWindowLongPtr(win->p.win, GWL_EXSTYLE);
-    // ex &= ~WS_EX_LAYERED;
-    // SetWindowLongPtr(win->p.win, GWL_EXSTYLE, ex);
-
-    win->p.win = _worker_w;
-
+    win->p.desktop_stuff = _get_desktop_stuff();
     _fill_working_area(win, monitor);
 #endif
 }
@@ -515,13 +567,14 @@ void move_win_to_monitor(Win *win, PlatformMonitor m) {
 
     // assert(!"Unimplemented");
 #elif _WIN32
-    SetWindowPos(
-        win->p.win,
-        _def_view,
-        m.rect.left, m.rect.top,
-        win->w, win->h,
-        SWP_NOACTIVATE | SWP_SHOWWINDOW
-    );
+    // TODO
+    // SetWindowPos(
+    //     win->p.win,
+    //     _def_view,
+    //     m.rect.left, m.rect.top,
+    //     win->w, win->h,
+    //     SWP_NOACTIVATE | SWP_SHOWWINDOW
+    // );
 #endif
 }
 
