@@ -728,8 +728,6 @@ void close_win(Win *win) {
     }
     DestroyWindow(win->p.win);
 #endif
-    free(win->buf);
-    *win = (Win) {0};
 }
 
 bool is_program_already_open(char *id) {
