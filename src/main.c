@@ -27,6 +27,7 @@ typedef struct {
 typedef struct {
     Image screen;
     Background scaled_background;
+    Background wallpaper_frame;
     FFont time_font;
     FFont date_font;
 } Monitor;
@@ -330,6 +331,26 @@ void make_fonts() {
     }
 }
 
+void rebuild_wallpaper_frame(int monitor_i) {
+    Monitor *monitor = &ctx.monitors[monitor_i];
+
+    if (monitor->wallpaper_frame.img.w != monitor->screen.w ||
+        monitor->wallpaper_frame.img.h != monitor->screen.h) {
+        free(monitor->wallpaper_frame.img.buf);
+        monitor->wallpaper_frame.img = new_img(0, monitor->screen);
+    }
+
+    for (int x = 0; x < monitor->wallpaper_frame.img.w; x++) {
+        for (int y = 0; y < monitor->wallpaper_frame.img.h; y++) {
+            *img_at(&monitor->wallpaper_frame.img, x, y) = color(0, 0, 0, 255);
+        }
+    }
+
+    pthread_mutex_lock(&scaled_lock);
+        place_img(monitor->wallpaper_frame.img, monitor->scaled_background.img, 0, 0, 0);
+    pthread_mutex_unlock(&scaled_lock);
+}
+
 void start() {
     {
         pthread_t thread = 0;
@@ -362,16 +383,18 @@ void start() {
     }
 }
 
-void app_loop(int monitor_i) {
+void app_loop(int monitor_i, bool wallpaper_dirty, time_t now) {
     if (gate_is_closed(&not_paused)) return;
 
     Monitor *monitor = &ctx.monitors[monitor_i];
+
+    if (wallpaper_dirty) rebuild_wallpaper_frame(monitor_i);
 
     new_static_arena(scratch, 500);
 
     s8 time_str = {0}, date_str = {0};
     {
-        time_t ftime = time(0) + 1; // TODO: merge this magic number with the event timeout
+        time_t ftime = now;
         struct tm *lt = localtime(&ftime);
 
         {
@@ -401,14 +424,7 @@ void app_loop(int monitor_i) {
         }
     }
 
-    pthread_mutex_lock(&scaled_lock);
-        for (int x = 0; x < monitor->screen.w; x++) {
-            for (int y = 0; y < monitor->screen.h; y++) {
-                *img_at(&monitor->screen, x, y) = color(0, 0, 0, 255);
-            }
-        }
-        place_img(monitor->screen, monitor->scaled_background.img, 0, 0, 0);
-    pthread_mutex_unlock(&scaled_lock);
+    place_img(monitor->screen, monitor->wallpaper_frame.img, 0, 0, 0);
 
     Image time_bound = get_bound_of_text(&monitor->time_font, time_str);
     time_bound = draw_text_shadow(
