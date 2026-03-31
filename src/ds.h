@@ -207,8 +207,12 @@ s8 s8_read_file(Arena *perm, s8 p) {
     if (fseek(fp, 0, SEEK_SET) < 0) { ret = s8_errno(); goto end; }
 
     ret = new_s8(perm, ret.len);
-    fread(ret.buf, 1, ret.len, fp);
-    if (ferror(fp)) { ret = s8_err(s8("fread")); goto end; }
+    ssize read_len = fread(ret.buf, 1, ret.len, fp);
+    if (read_len < ret.len) {
+        if (ferror(fp)) ret = s8_err(s8("fread"));
+        else ret = s8_err(s8("short read"));
+        goto end;
+    }
 
 end:
     fclose(fp);
